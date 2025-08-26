@@ -16,6 +16,17 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        externalNativeBuild {
+            cmake {
+                arguments.add("-DANDROID_STL=c++_shared") // Forma más idiomática en Kotlin de añadir a una lista
+            }
+        }
+
+        ndk {
+            abiFilters.addAll(setOf("armeabi-v7a", "arm64-v8a"))
+        }
+
     }
 
     buildTypes {
@@ -27,30 +38,35 @@ android {
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
     kotlinOptions {
         jvmTarget = "11"
     }
+
     buildFeatures {
         compose = true
     }
 
     packaging {
         resources {
-            excludes += "/assets/gpt2_model.ms" // Asegúrate que la ruta sea correcta desde la raíz del APK
-            // O si quieres excluir todas las extensiones .ms en assets:
-            // excludes += "assets/**/*.ms"
-            // O para cualquier archivo .ms en cualquier lugar del APK (menos común para assets):
-            // excludes += "**/*.ms"
-
-            // Si tienes otros modelos con otras extensiones, añádelos también:
-            // excludes += "/assets/another_model.tflite"
-            // excludes += "assets/**/*.onnx"
+            excludes += "/assets/gpt2_model.ms"
         }
     }
+
+    externalNativeBuild {
+        cmake {
+            // CORRECCIÓN AQUÍ:
+            path = file("CMakeLists.txt") // Usar asignación y la función file()
+            version = "3.22.1" // Usar asignación
+        }
+    }
+
+    ndkVersion = "21.3.6528147"
 }
 
 dependencies {
