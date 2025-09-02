@@ -282,5 +282,3 @@ Java_edu_unicauca_app_agrochat_MindSporeHelper_unloadModel(JNIEnv *env, jobject 
     MS_PRINT("Native environment (C++ API) unloaded.");
     return JNI_TRUE;
 }
-
-

@@ -19,16 +19,23 @@ android {
 
         externalNativeBuild {
             cmake {
-                arguments.add("-DANDROID_STL=c++_shared") // Forma más idiomática en Kotlin de añadir a una lista
+                arguments.add("-DANDROID_STL=c++_shared")
             }
         }
 
         ndk {
             abiFilters.addAll(setOf("armeabi-v7a", "arm64-v8a"))
         }
-
     }
 
+    sourceSets {
+        named("main") {
+            jniLibs.srcDirs("src/main/jniLibs")
+            // Si también quieres añadir 'libs':
+            // jniLibs.srcDirs("src/main/jniLibs", "libs")
+        }
+    }
+//para sincronizar
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -53,21 +60,25 @@ android {
     }
 
     packaging {
-        resources {
-            excludes += "/assets/gpt2_model.ms"
-        }
+        // resources { // Comenta o elimina esta sección si el modelo está en assets y se usa
+        //     excludes += "/assets/gpt2_model.ms"
+        // }
     }
 
+    // Esta sección externalNativeBuild se mantiene tal cual si la usas
+    // para construir OTRA librería nativa (ej. msjni) con CMake.
+    // No interfiere directamente con la inclusión de tus .so precompilados
+    // del tokenizador si estos ya son la capa JNI.
     externalNativeBuild {
         cmake {
-            // CORRECCIÓN AQUÍ:
-            path = file("CMakeLists.txt") // Usar asignación y la función file()
-            version = "3.22.1" // Usar asignación
+            path = file("CMakeLists.txt")
+            version = "3.22.1"
         }
     }
 
-    ndkVersion = "21.3.6528147"
+    ndkVersion = "27.2.12479018"
 }
+
 
 dependencies {
 
