@@ -1,0 +1,134 @@
+[
+  {
+    "prompt": "Hola",
+    "response": "¡Hola! Soy AgroChat, tu asistente agrícola. ¿En qué puedo ayudarte hoy?"
+  },
+  {
+    "prompt": "hola",
+    "response": "¡Hola! Soy tu asistente de agricultura. Puedo ayudarte con cultivos, plagas, fertilizantes y más. ¿Qué necesitas?"
+  },
+  {
+    "prompt": "Buenos días",
+    "response": "¡Buenos días! Estoy aquí para ayudarte con tus consultas agrícolas. ¿Qué te gustaría saber?"
+  },
+  {
+    "prompt": "¿Quién eres?",
+    "response": "Soy AgroChat, un asistente virtual especializado en agricultura. Puedo ayudarte con información sobre cultivos, control de plagas, fertilización y buenas prácticas agrícolas."
+  },
+  {
+    "prompt": "¿Qué puedes hacer?",
+    "response": "Puedo ayudarte con: cultivo de hortalizas y frutas, control de plagas y enfermedades, recomendaciones de fertilizantes, épocas de siembra, y consejos para mejorar tu producción agrícola."
+  },
+  {
+    "prompt": "¿Cómo cultivar tomates?",
+    "response": "Para cultivar tomates necesitas: 1) Suelo bien drenado y rico en materia orgánica, 2) Riego regular pero sin encharcamiento, 3) Sol directo 6-8 horas diarias, 4) Fertilizar cada 2-3 semanas, 5) Podar brotes laterales, 6) Entutorar las plantas cuando crezcan."
+  },
+  {
+    "prompt": "cultivo de tomate",
+    "response": "El tomate requiere suelo fértil con buen drenaje, pH entre 6.0-6.8, temperaturas de 20-25°C, y riego constante sin mojar las hojas. Siembra en almácigo y trasplanta cuando tenga 4-6 hojas."
+  },
+  {
+    "prompt": "¿Qué fertilizante usar para maíz?",
+    "response": "Para maíz usa fertilizante NPK 15-15-15 al sembrar. A los 30 días aplica nitrógeno (urea). A los 60 días repite la aplicación de nitrógeno. El compost orgánico antes de siembra mejora mucho el suelo."
+  },
+  {
+    "prompt": "fertilizante para maíz",
+    "response": "El maíz necesita mucho nitrógeno. Aplica NPK al inicio y luego urea en dos dosis: a los 30 y 60 días después de la siembra. Unos 150-200 kg de nitrógeno por hectárea en total."
+  },
+  {
+    "prompt": "Control de plagas en papa",
+    "response": "Las plagas de papa más comunes son: gusano blanco, polilla guatemalteca y gorgojo andino. Controla con rotación de cultivos, semillas certificadas, trampas de feromonas y Bacillus thuringiensis como control biológico."
+  },
+  {
+    "prompt": "plagas de la papa",
+    "response": "Las principales plagas son: polilla de la papa, gorgojo, pulgones y gusano blanco. Usa rotación de cultivos, elimina rastrojos, aplica insecticidas biológicos y mantén buena vigilancia del cultivo."
+  },
+  {
+    "prompt": "¿Cuándo plantar frijoles?",
+    "response": "Siembra frijoles al inicio de lluvias cuando el suelo tenga más de 15°C. En zonas templadas: marzo-mayo y agosto-septiembre. Evita épocas de heladas. El frijol necesita 90-120 días para cosecha."
+  },
+  {
+    "prompt": "época de siembra de frijol",
+    "response": "El frijol se siembra al inicio del período de lluvias. Necesita temperatura de 15-25°C. En clima cálido puedes sembrar casi todo el año. En clima frío, evita heladas y temperaturas bajo 10°C."
+  },
+  {
+    "prompt": "Síntomas de enfermedad en plantas",
+    "response": "Síntomas comunes: hojas amarillas (falta nitrógeno o exceso agua), manchas marrones (hongos), marchitamiento (problemas de raíz), hojas enrolladas (virus o ácaros), crecimiento lento (falta nutrientes)."
+  },
+  {
+    "prompt": "hojas amarillas en mis plantas",
+    "response": "Las hojas amarillas pueden indicar: exceso de riego, falta de nitrógeno, deficiencia de hierro, o raíces dañadas. Revisa el drenaje, reduce el riego y aplica fertilizante nitrogenado si el suelo está seco."
+  },
+  {
+    "prompt": "¿Cómo sembrar zanahoria?",
+    "response": "La zanahoria se siembra directo en suelo suelto y profundo, sin piedras. Siembra superficial (0.5-1cm), mantén húmedo hasta germinar. Aclarea a 5cm entre plantas. Cosecha en 90-120 días."
+  },
+  {
+    "prompt": "cultivo de cebolla",
+    "response": "La cebolla necesita suelo fértil y bien drenado. Siembra en almácigo y trasplanta a los 45-60 días. Espaciado de 10cm entre plantas. Riega regularmente pero reduce antes de cosecha para que madure."
+  },
+  {
+    "prompt": "¿Cómo cultivar lechuga?",
+    "response": "La lechuga prefiere clima fresco (15-20°C). Siembra en almácigo o directo. Trasplanta a 25cm de distancia. Necesita riego frecuente y suelo rico en nitrógeno. Cosecha en 45-60 días."
+  },
+  {
+    "prompt": "cultivo de papa",
+    "response": "Siembra papas en suelo suelto y bien drenado a 10cm de profundidad. Espacia 30cm entre plantas y 70cm entre surcos. Aporta tierra cuando crezcan. Cosecha cuando la planta se seque, unos 90-120 días."
+  },
+  {
+    "prompt": "¿Qué es el compost?",
+    "response": "El compost es abono orgánico hecho de residuos vegetales descompuestos. Mejora la estructura del suelo, retiene agua, aporta nutrientes y aumenta la actividad microbiana. Es excelente para cualquier cultivo."
+  },
+  {
+    "prompt": "cómo hacer compost",
+    "response": "Para hacer compost: mezcla residuos verdes (cocina, césped) con secos (hojas, cartón). Mantén húmedo y voltea cada semana. En 2-3 meses tendrás compost listo. Evita carnes y lácteos."
+  },
+  {
+    "prompt": "control de malezas",
+    "response": "Controla malezas con: mulch o cobertura del suelo, deshierbe manual regular, rotación de cultivos, y herbicidas selectivos si es necesario. Las malezas compiten por agua y nutrientes con tus cultivos."
+  },
+  {
+    "prompt": "riego por goteo",
+    "response": "El riego por goteo ahorra agua, reduce enfermedades foliares y entrega agua directamente a las raíces. Instala mangueras con goteros cada 20-30cm. Riega 2-4 litros por hora por gotero según el cultivo."
+  },
+  {
+    "prompt": "¿Cuánto regar mis plantas?",
+    "response": "La cantidad de riego depende del cultivo, clima y suelo. En general, riega cuando los primeros 5cm de suelo estén secos. Hortalizas necesitan 25-50mm por semana. Evita encharcamiento."
+  },
+  {
+    "prompt": "pH del suelo",
+    "response": "El pH ideal para la mayoría de cultivos es 6.0-7.0. Si es muy ácido, aplica cal. Si es muy alcalino, usa azufre o materia orgánica. Haz análisis de suelo para conocer el pH exacto."
+  },
+  {
+    "prompt": "análisis de suelo",
+    "response": "El análisis de suelo te indica pH, nutrientes disponibles y textura. Toma muestras de varios puntos a 20cm de profundidad, mézclalas y envía a laboratorio. Hazlo antes de cada temporada de siembra."
+  },
+  {
+    "prompt": "pulgones en mis plantas",
+    "response": "Los pulgones se controlan con: agua jabonosa, aceite de neem, mariquitas (depredador natural), o insecticidas específicos. Revisa el envés de las hojas donde se esconden. Actúa rápido porque se multiplican velozmente."
+  },
+  {
+    "prompt": "hongos en las hojas",
+    "response": "Los hongos causan manchas, pudrición y marchitez. Controla con: buena ventilación, evitar mojar hojas, fungicidas cúpricos o azufre, y eliminando partes afectadas. La prevención es clave."
+  },
+  {
+    "prompt": "¿Qué sembrar en verano?",
+    "response": "En verano siembra: tomate, pimiento, berenjena, sandía, melón, pepino, calabaza y maíz. Estos cultivos necesitan calor y sol directo. Asegura buen riego porque el calor aumenta la evaporación."
+  },
+  {
+    "prompt": "¿Qué sembrar en invierno?",
+    "response": "En invierno siembra: lechuga, espinaca, brócoli, coliflor, repollo, zanahoria, rábano y acelga. Estos cultivos toleran el frío y algunos mejoran su sabor con temperaturas bajas."
+  },
+  {
+    "prompt": "gracias",
+    "response": "¡De nada! Si tienes más preguntas sobre agricultura, no dudes en consultarme. ¡Éxito con tus cultivos!"
+  },
+  {
+    "prompt": "adiós",
+    "response": "¡Hasta luego! Fue un placer ayudarte. Recuerda que estoy aquí cuando necesites consejos agrícolas. ¡Buenas cosechas!"
+  },
+  {
+    "prompt": "muchas gracias",
+    "response": "¡Con gusto! Espero que la información te sea útil. Si necesitas más ayuda con tus cultivos, aquí estaré. ¡Suerte!"
+  }
+]

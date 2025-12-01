@@ -1,0 +1,434 @@
+{
+  "version": "1.0",
+  "description": "Base de conocimiento agrícola para AgroChat - Sistema de búsqueda semántica",
+  "categories": ["cultivo", "plagas", "fertilizacion", "riego", "siembra", "diagnostico", "cosecha", "general"],
+  "entries": [
+    {
+      "id": 1,
+      "category": "cultivo",
+      "questions": [
+        "¿Cómo cultivar tomates?",
+        "¿Cómo sembrar tomate?",
+        "Guía para cultivar tomates",
+        "Pasos para sembrar tomate"
+      ],
+      "answer": "Para cultivar tomates:\n\n🌱 **Preparación:**\n1. Suelo bien drenado, rico en materia orgánica\n2. pH ideal: 6.0-6.8\n\n☀️ **Condiciones:**\n3. Exposición solar: 6-8 horas diarias\n4. Temperatura: 20-25°C\n\n💧 **Cuidados:**\n5. Riego regular pero no excesivo\n6. Fertilización cada 2-3 semanas\n7. Poda de brotes laterales (chupones)\n8. Tutoreo para soporte\n\n⏱️ **Tiempo:** 60-80 días hasta cosecha"
+    },
+    {
+      "id": 2,
+      "category": "cultivo",
+      "questions": [
+        "¿Cómo cultivar maíz?",
+        "¿Cómo sembrar maíz?",
+        "Guía para cultivar maíz",
+        "Pasos para sembrar maíz"
+      ],
+      "answer": "Para cultivar maíz:\n\n🌱 **Siembra:**\n1. Profundidad: 3-5 cm\n2. Distancia entre plantas: 25-30 cm\n3. Distancia entre surcos: 70-80 cm\n\n☀️ **Condiciones:**\n4. Temperatura del suelo: >15°C\n5. Pleno sol\n\n💧 **Cuidados:**\n6. Riego abundante, especialmente en floración\n7. Fertilización nitrogenada a los 30 y 60 días\n\n⏱️ **Tiempo:** 90-120 días hasta cosecha"
+    },
+    {
+      "id": 3,
+      "category": "cultivo",
+      "questions": [
+        "¿Cómo cultivar papa?",
+        "¿Cómo sembrar papa?",
+        "¿Cómo sembrar patata?",
+        "Guía para cultivar papa"
+      ],
+      "answer": "Para cultivar papa:\n\n🌱 **Siembra:**\n1. Usar tubérculos-semilla certificados\n2. Profundidad: 10-15 cm\n3. Distancia: 30 cm entre plantas, 70 cm entre surcos\n\n🌡️ **Condiciones:**\n4. Clima fresco: 15-20°C ideal\n5. Suelo suelto, bien drenado\n\n💧 **Cuidados:**\n6. Aporque a los 20-30 días\n7. Riego moderado y constante\n8. Evitar encharcamiento (pudrición)\n\n⏱️ **Tiempo:** 90-120 días hasta cosecha"
+    },
+    {
+      "id": 4,
+      "category": "cultivo",
+      "questions": [
+        "¿Cómo cultivar frijol?",
+        "¿Cómo sembrar frijoles?",
+        "Guía para cultivar frijol",
+        "¿Cuándo plantar frijoles?"
+      ],
+      "answer": "Para cultivar frijol:\n\n🌱 **Siembra:**\n1. Profundidad: 3-5 cm\n2. Distancia: 10-15 cm entre plantas\n3. Época: inicio de lluvias, temperatura >15°C\n\n☀️ **Condiciones:**\n4. Suelo bien drenado\n5. pH: 6.0-7.0\n6. Evitar heladas\n\n💧 **Cuidados:**\n7. Riego moderado\n8. No mojar las hojas (hongos)\n9. Rotación de cultivos\n\n⏱️ **Tiempo:** 70-90 días hasta cosecha"
+    },
+    {
+      "id": 5,
+      "category": "cultivo",
+      "questions": [
+        "¿Cómo cultivar café?",
+        "¿Cómo sembrar café?",
+        "Guía para cultivar café"
+      ],
+      "answer": "Para cultivar café:\n\n🌱 **Establecimiento:**\n1. Altitud: 1200-1800 msnm (arábica)\n2. Sombra parcial (30-50%)\n3. Distancia: 2x2 m entre plantas\n\n🌡️ **Condiciones:**\n4. Temperatura: 18-24°C\n5. Lluvia: 1500-2000 mm/año\n6. Suelo volcánico ideal\n\n💧 **Cuidados:**\n7. Podas de formación y renovación\n8. Control de broca y roya\n9. Fertilización 3-4 veces/año\n\n⏱️ **Tiempo:** Primera cosecha a los 3-4 años"
+    },
+    {
+      "id": 6,
+      "category": "plagas",
+      "questions": [
+        "¿Cómo controlar la mosca blanca?",
+        "Control de mosca blanca",
+        "¿Qué hacer contra la mosca blanca?",
+        "Mosca blanca en mis plantas"
+      ],
+      "answer": "Control de mosca blanca (Bemisia tabaci):\n\n🔍 **Identificación:**\n- Insectos pequeños blancos bajo las hojas\n- Hojas pegajosas (melaza)\n- Fumagina (hongo negro)\n\n🌿 **Control orgánico:**\n1. Trampas amarillas pegajosas\n2. Jabón potásico al 1-2%\n3. Extracto de neem\n4. Aceite de nim\n\n🧪 **Control químico:**\n5. Imidacloprid (sistémico)\n6. Spiromesifen\n\n⚠️ **Prevención:**\n7. Eliminar malezas hospederas\n8. Rotación de cultivos\n9. Mallas antiáfidos en invernadero"
+    },
+    {
+      "id": 7,
+      "category": "plagas",
+      "questions": [
+        "¿Cómo controlar el gusano cogollero?",
+        "Control de cogollero en maíz",
+        "Gusano en el maíz",
+        "Spodoptera en maíz"
+      ],
+      "answer": "Control de gusano cogollero (Spodoptera frugiperda):\n\n🔍 **Identificación:**\n- Larva verde-gris con líneas\n- Come el cogollo del maíz\n- Excremento en forma de aserrín\n\n🌿 **Control biológico:**\n1. Bacillus thuringiensis (Bt)\n2. Trichogramma (avispas parasitoides)\n3. Beauveria bassiana (hongo)\n\n🧪 **Control químico:**\n4. Clorpirifos (aplicar al cogollo)\n5. Spinosad\n\n⚠️ **Prevención:**\n6. Siembra temprana\n7. Eliminar rastrojos\n8. Monitoreo semanal"
+    },
+    {
+      "id": 8,
+      "category": "plagas",
+      "questions": [
+        "¿Cómo controlar plagas en papa?",
+        "Plagas de la papa",
+        "Gusano blanco en papa",
+        "Polilla de la papa"
+      ],
+      "answer": "Principales plagas de papa y su control:\n\n🐛 **Gusano blanco (Premnotrypes):**\n- Rotación de cultivos (3+ años)\n- Trampas con cebo\n- Aplicación de Beauveria\n\n🦋 **Polilla guatemalteca:**\n- Aporque alto\n- Cosecha oportuna\n- Almacenamiento en frío\n\n🪲 **Gorgojo de los Andes:**\n- Barreras de plástico\n- Trampas de caída\n\n⚠️ **General:**\n- Usar semilla certificada\n- Monitoreo constante\n- Consultar agrónomo local"
+    },
+    {
+      "id": 9,
+      "category": "fertilizacion",
+      "questions": [
+        "¿Qué fertilizante usar para tomate?",
+        "Fertilización del tomate",
+        "¿Cómo abonar tomates?",
+        "Nutrientes para tomate"
+      ],
+      "answer": "Fertilización del tomate:\n\n🌱 **Base (antes de siembra):**\n- Compost o materia orgánica: 2-3 kg/m²\n- Fósforo (P): 50-80 kg/ha\n\n📅 **Durante el ciclo:**\n1. Trasplante: NPK 10-20-10\n2. Floración: Aumentar potasio (K)\n3. Fructificación: NPK 15-5-25\n\n🍅 **Frecuencia:**\n- Cada 2-3 semanas\n- Riego + fertirrigación ideal\n\n⚠️ **Cuidado:**\n- Exceso de N = mucha hoja, poco fruto\n- Deficiencia de Ca = pudrición apical"
+    },
+    {
+      "id": 10,
+      "category": "fertilizacion",
+      "questions": [
+        "¿Qué fertilizante usar para maíz?",
+        "Fertilización del maíz",
+        "¿Cómo abonar maíz?",
+        "NPK para maíz"
+      ],
+      "answer": "Fertilización del maíz:\n\n🌱 **Siembra:**\n- NPK 15-15-15: 200-300 kg/ha\n- O DAP (18-46-0): 100 kg/ha\n\n📅 **Aplicaciones:**\n1. Siembra: Fósforo completo + 1/3 nitrógeno\n2. 30 días: Urea 100-150 kg/ha\n3. 60 días: Urea 100-150 kg/ha\n\n💡 **Total recomendado:**\n- N: 150-200 kg/ha\n- P: 60-80 kg/ha\n- K: 60-80 kg/ha\n\n⚠️ **Importante:**\n- Aplicar nitrógeno en suelo húmedo\n- Incorporar para evitar pérdidas"
+    },
+    {
+      "id": 11,
+      "category": "fertilizacion",
+      "questions": [
+        "¿Qué es un fertilizante orgánico?",
+        "Abonos orgánicos",
+        "¿Cómo hacer compost?",
+        "Fertilizantes naturales"
+      ],
+      "answer": "Fertilizantes orgánicos:\n\n🌿 **Tipos principales:**\n1. **Compost:** Residuos vegetales descompuestos\n2. **Humus de lombriz:** Excelente acondicionador\n3. **Estiércol:** Vaca, gallina, caballo (compostado)\n4. **Bocashi:** Fermentación rápida\n5. **Biol:** Fertilizante líquido fermentado\n\n✅ **Ventajas:**\n- Mejora estructura del suelo\n- Aporta microorganismos\n- Liberación lenta de nutrientes\n- Sostenible y económico\n\n📝 **Compost casero:**\n- Capas: verde (N) + seco (C)\n- Voltear cada 15 días\n- Listo en 2-3 meses"
+    },
+    {
+      "id": 12,
+      "category": "riego",
+      "questions": [
+        "¿Cada cuánto regar tomate?",
+        "Riego del tomate",
+        "¿Cuánta agua necesita el tomate?",
+        "Frecuencia de riego tomate"
+      ],
+      "answer": "Riego del tomate:\n\n💧 **Frecuencia:**\n- Plántulas: Diario, poco volumen\n- Crecimiento: Cada 2-3 días\n- Fructificación: Cada 1-2 días\n\n📊 **Cantidad:**\n- 2-4 litros/planta/día en verano\n- Menos en invierno o nublado\n\n⏰ **Mejor hora:**\n- Temprano en la mañana\n- Evitar mojar hojas\n\n🎯 **Sistema recomendado:**\n- Goteo: más eficiente\n- Mulch para retener humedad\n\n⚠️ **Evitar:**\n- Riego irregular (rajado de frutos)\n- Encharcamiento (pudrición raíz)"
+    },
+    {
+      "id": 13,
+      "category": "riego",
+      "questions": [
+        "¿Cómo hacer riego por goteo?",
+        "Sistema de riego por goteo",
+        "Riego por goteo casero",
+        "Instalar goteo"
+      ],
+      "answer": "Riego por goteo:\n\n🔧 **Componentes básicos:**\n1. Tanque o fuente de agua\n2. Filtro\n3. Tubería principal\n4. Manguera de goteo\n5. Goteros (2-4 L/hora)\n\n📐 **Instalación:**\n1. Calcular necesidad de agua\n2. Diseñar distribución\n3. Conectar desde tanque elevado (1m+)\n4. Colocar manguera en línea de cultivo\n5. Goteros cada 30-50 cm\n\n✅ **Ventajas:**\n- Ahorra 40-60% agua\n- Menos malezas\n- Fertilización integrada\n- Menor enfermedad foliar\n\n💡 **Casero:** Botellas invertidas con agujero pequeño"
+    },
+    {
+      "id": 14,
+      "category": "diagnostico",
+      "questions": [
+        "Hojas amarillas en mis plantas",
+        "¿Por qué mis plantas tienen hojas amarillas?",
+        "Amarillamiento de hojas",
+        "Hojas se ponen amarillas"
+      ],
+      "answer": "Diagnóstico de hojas amarillas:\n\n🔍 **Causas comunes:**\n\n1. **Deficiencia de nitrógeno:**\n   - Hojas viejas amarillas primero\n   - Solución: Fertilizante nitrogenado\n\n2. **Exceso de agua:**\n   - Raíces asfixiadas\n   - Solución: Mejorar drenaje\n\n3. **Falta de hierro (clorosis):**\n   - Hojas nuevas amarillas, venas verdes\n   - Solución: Quelato de hierro\n\n4. **pH inadecuado:**\n   - Bloquea absorción de nutrientes\n   - Solución: Ajustar pH (6.0-7.0)\n\n5. **Envejecimiento natural:**\n   - Hojas viejas caen\n   - Normal si son pocas\n\n⚠️ **Consejo:** Revisar riego primero"
+    },
+    {
+      "id": 15,
+      "category": "diagnostico",
+      "questions": [
+        "Manchas en las hojas",
+        "¿Por qué mis plantas tienen manchas?",
+        "Hojas con manchas negras",
+        "Manchas marrones en hojas"
+      ],
+      "answer": "Diagnóstico de manchas en hojas:\n\n🔍 **Por color:**\n\n1. **Manchas marrones/negras:**\n   - Hongos (Alternaria, Septoria)\n   - Quemadura solar o química\n   - Solución: Fungicida, sombra\n\n2. **Manchas amarillas con halo:**\n   - Bacteriosis\n   - Solución: Eliminar hojas, cobre\n\n3. **Manchas blancas polvorientas:**\n   - Mildiu polvoso (Oidio)\n   - Solución: Azufre, bicarbonato\n\n4. **Manchas con anillos:**\n   - Virus\n   - Solución: Eliminar planta\n\n⚠️ **Prevención:**\n- No mojar hojas al regar\n- Buena ventilación\n- Rotación de cultivos"
+    },
+    {
+      "id": 16,
+      "category": "diagnostico",
+      "questions": [
+        "Plantas marchitas",
+        "¿Por qué mis plantas se marchitan?",
+        "Marchitamiento de plantas",
+        "Plantas caídas"
+      ],
+      "answer": "Diagnóstico de marchitamiento:\n\n🔍 **Causas:**\n\n1. **Falta de agua:**\n   - Suelo seco\n   - Recupera al regar\n   - Solución: Riego inmediato\n\n2. **Exceso de agua:**\n   - Suelo empapado\n   - Raíces podridas\n   - Solución: Drenar, no regar\n\n3. **Fusarium/Verticillium:**\n   - Marchitez vascular\n   - No recupera con riego\n   - Corte tallo: marrón interno\n\n4. **Daño de raíces:**\n   - Plagas del suelo\n   - Trasplante reciente\n\n5. **Calor extremo:**\n   - Temporal, recupera en noche\n   - Solución: Sombra, mulch\n\n⚠️ **Importante:** Si no recupera en 24h con buen riego, puede ser enfermedad vascular"
+    },
+    {
+      "id": 17,
+      "category": "siembra",
+      "questions": [
+        "¿Cuándo sembrar tomate?",
+        "Época de siembra del tomate",
+        "Mejor mes para sembrar tomate",
+        "Calendario siembra tomate"
+      ],
+      "answer": "Calendario de siembra del tomate:\n\n📅 **Por clima:**\n\n**Clima cálido (costa):**\n- Todo el año\n- Evitar picos de lluvia intensa\n\n**Clima templado (valle):**\n- Siembra: Septiembre-Noviembre\n- Trasplante: Octubre-Diciembre\n- Cosecha: Enero-Marzo\n\n**Clima frío (sierra):**\n- Siembra: Agosto-Octubre\n- Usar invernadero o protección\n\n🌡️ **Condiciones ideales:**\n- Temperatura: 20-25°C\n- Evitar heladas\n- Suelo >15°C\n\n💡 **Semillero:**\n- 30-45 días antes de trasplante\n- Trasplantar con 4-6 hojas verdaderas"
+    },
+    {
+      "id": 18,
+      "category": "cosecha",
+      "questions": [
+        "¿Cuándo cosechar tomate?",
+        "¿Cómo saber si el tomate está listo?",
+        "Punto de cosecha tomate",
+        "Madurez del tomate"
+      ],
+      "answer": "Cosecha del tomate:\n\n🍅 **Indicadores de madurez:**\n- Color: Rojo uniforme (o según variedad)\n- Firmeza: Cede ligeramente al tacto\n- Brillo: Superficie brillante\n- Aroma: Fragancia característica\n\n📅 **Tiempo desde siembra:**\n- 60-80 días según variedad\n- Cherry: 55-65 días\n- Roma: 70-80 días\n\n✂️ **Cómo cosechar:**\n- Cortar con pedúnculo\n- Mañana fresca ideal\n- No jalar, usar tijera\n\n📦 **Post-cosecha:**\n- Verde maduro: 18-20°C para madurar\n- Maduro: Consumir en 5-7 días\n- No refrigerar verdes (pierden sabor)"
+    },
+    {
+      "id": 19,
+      "category": "general",
+      "questions": [
+        "¿Qué es la rotación de cultivos?",
+        "Rotación de cultivos",
+        "¿Por qué rotar cultivos?",
+        "Cómo rotar cultivos"
+      ],
+      "answer": "Rotación de cultivos:\n\n🔄 **¿Qué es?**\nAlternar diferentes tipos de cultivos en el mismo terreno cada temporada.\n\n✅ **Beneficios:**\n1. Rompe ciclos de plagas\n2. Mejora fertilidad del suelo\n3. Reduce enfermedades\n4. Aprovecha nutrientes diferentes\n\n📋 **Ejemplo de rotación:**\n- Año 1: Leguminosas (frijol) - fijan N\n- Año 2: Hojas (lechuga) - usan N\n- Año 3: Frutos (tomate) - alto K\n- Año 4: Raíces (zanahoria) - suelo suelto\n\n⚠️ **Regla básica:**\nNo repetir familia botánica en mismo lugar por 3+ años"
+    },
+    {
+      "id": 20,
+      "category": "general",
+      "questions": [
+        "¿Qué es el pH del suelo?",
+        "pH del suelo",
+        "¿Cómo medir el pH?",
+        "Importancia del pH"
+      ],
+      "answer": "pH del suelo:\n\n📊 **Escala:**\n- 0-6.9: Ácido\n- 7.0: Neutro\n- 7.1-14: Alcalino\n\n🌱 **Rangos ideales:**\n- Mayoría hortalizas: 6.0-7.0\n- Arándanos: 4.5-5.5\n- Espárragos: 6.5-7.5\n\n🔬 **Cómo medir:**\n1. Kit de pH de suelo\n2. Medidor digital\n3. Laboratorio (más preciso)\n\n⚗️ **Corregir pH:**\n- Subir (ácido→neutro): Cal agrícola\n- Bajar (alcalino→neutro): Azufre, materia orgánica\n\n⚠️ **Importancia:**\nPH inadecuado = nutrientes bloqueados aunque estén en el suelo"
+    },
+    {
+      "id": 21,
+      "category": "general",
+      "questions": [
+        "Hola",
+        "Buenos días",
+        "Buenas tardes",
+        "Buenas noches",
+        "Hola, ¿cómo estás?"
+      ],
+      "answer": "¡Hola! 👋 Soy AgroChat, tu asistente agrícola.\n\nPuedo ayudarte con:\n🌱 Cultivo de hortalizas y frutas\n🐛 Control de plagas y enfermedades\n💧 Riego y fertilización\n📅 Calendarios de siembra\n🔍 Diagnóstico de problemas en plantas\n\n¿En qué puedo ayudarte hoy?"
+    },
+    {
+      "id": 22,
+      "category": "general",
+      "questions": [
+        "Gracias",
+        "Muchas gracias",
+        "Te agradezco",
+        "Gracias por la ayuda"
+      ],
+      "answer": "¡De nada! 😊 Me alegra poder ayudarte.\n\nSi tienes más preguntas sobre agricultura, no dudes en consultarme.\n\n¡Buenas cosechas! 🌾"
+    },
+    {
+      "id": 23,
+      "category": "general",
+      "questions": [
+        "¿Quién eres?",
+        "¿Qué eres?",
+        "¿Cómo te llamas?",
+        "¿Qué puedes hacer?"
+      ],
+      "answer": "Soy **AgroChat** 🌱, un asistente virtual especializado en agricultura.\n\n**Puedo ayudarte con:**\n- 🌿 Técnicas de cultivo\n- 🐛 Control de plagas y enfermedades\n- 💧 Sistemas de riego\n- 🧪 Fertilización\n- 📅 Calendarios de siembra\n- 🔍 Diagnóstico de problemas\n\nFunciono 100% offline, así que puedes consultarme incluso sin internet.\n\n¿Qué te gustaría saber?"
+    },
+    {
+      "id": 24,
+      "category": "plagas",
+      "questions": [
+        "¿Cómo controlar la roya del café?",
+        "Roya en café",
+        "Mi café tiene roya",
+        "Hongo naranja en café"
+      ],
+      "answer": "Control de roya del café (Hemileia vastatrix):\n\n🔍 **Identificación:**\n- Polvo naranja bajo las hojas\n- Manchas amarillas en el haz\n- Caída prematura de hojas\n\n🌿 **Control cultural:**\n1. Variedades resistentes (Castillo, Cenicafé 1)\n2. Sombra regulada (30-40%)\n3. Nutrición balanceada (K y Ca)\n4. Podas de renovación\n\n🧪 **Control químico:**\n5. Fungicidas cúpricos (preventivo)\n6. Triazoles (curativo)\n7. Aplicar cada 30-45 días en época lluviosa\n\n⚠️ **Importante:**\nFactor clave: nutrición adecuada del cafeto"
+    },
+    {
+      "id": 25,
+      "category": "cultivo",
+      "questions": [
+        "¿Cómo cultivar cebolla?",
+        "¿Cómo sembrar cebolla?",
+        "Guía para cultivar cebolla"
+      ],
+      "answer": "Para cultivar cebolla:\n\n🌱 **Siembra:**\n1. Semillero: 45-60 días antes\n2. Trasplante cuando tenga grosor de lápiz\n3. Distancia: 10-15 cm x 20-30 cm\n\n🌡️ **Condiciones:**\n4. Clima fresco: 15-25°C\n5. Días largos favorecen bulbificación\n6. Suelo bien drenado\n\n💧 **Cuidados:**\n7. Riego moderado, suspender antes de cosecha\n8. No aporcar (dejar cuello expuesto)\n9. Fertilización: N inicial, K en bulbificación\n\n⏱️ **Tiempo:** 120-150 días\n\n🧅 **Cosecha:** Cuando hojas caen naturalmente"
+    },
+    {
+      "id": 26,
+      "category": "fertilizacion",
+      "questions": [
+        "¿Qué es NPK?",
+        "¿Qué significa NPK?",
+        "NPK en fertilizantes",
+        "Números del fertilizante"
+      ],
+      "answer": "NPK en fertilizantes:\n\n🔤 **Significado:**\n- **N** = Nitrógeno\n- **P** = Fósforo (P₂O₅)\n- **K** = Potasio (K₂O)\n\n📊 **Ejemplo: 15-15-15**\n- 15% Nitrógeno\n- 15% Fósforo\n- 15% Potasio\n\n🌱 **Función de cada uno:**\n\n**Nitrógeno (N):**\n- Crecimiento vegetativo\n- Hojas verdes\n- Deficiencia: hojas amarillas\n\n**Fósforo (P):**\n- Raíces y floración\n- Energía de la planta\n- Deficiencia: hojas moradas\n\n**Potasio (K):**\n- Frutos y resistencia\n- Calidad de cosecha\n- Deficiencia: bordes quemados"
+    },
+    {
+      "id": 27,
+      "category": "plagas",
+      "questions": [
+        "¿Cómo controlar pulgones?",
+        "Pulgones en mis plantas",
+        "Áfidos en el huerto",
+        "Control de áfidos"
+      ],
+      "answer": "Control de pulgones (áfidos):\n\n🔍 **Identificación:**\n- Insectos pequeños verdes, negros o amarillos\n- Colonias en brotes tiernos\n- Hojas enrolladas, pegajosas\n\n🌿 **Control orgánico:**\n1. Agua a presión (elimina colonias)\n2. Jabón potásico 1-2%\n3. Extracto de ajo + ají\n4. Aceite de neem\n5. Liberar mariquitas (depredador natural)\n\n🧪 **Control químico:**\n6. Pirimicarb (específico)\n7. Imidacloprid (sistémico)\n\n⚠️ **Prevención:**\n- No exceder nitrógeno\n- Revisar plantas nuevas\n- Plantas repelentes: albahaca, menta"
+    },
+    {
+      "id": 28,
+      "category": "riego",
+      "questions": [
+        "¿Cuánta agua necesitan las plantas?",
+        "Cantidad de riego",
+        "¿Cómo saber si riego suficiente?",
+        "Necesidad de agua cultivos"
+      ],
+      "answer": "Necesidades de agua por cultivo:\n\n💧 **Demanda alta (4-6 L/m²/día):**\n- Tomate, pepino, pimiento\n- Apio, lechuga\n- Maíz en floración\n\n💧 **Demanda media (2-4 L/m²/día):**\n- Frijol, arveja\n- Zanahoria, remolacha\n- Papa\n\n💧 **Demanda baja (1-2 L/m²/día):**\n- Cebolla, ajo\n- Hierbas aromáticas\n\n🔍 **Cómo verificar:**\n1. Introducir dedo 5cm en suelo\n2. Si está seco: regar\n3. Si está húmedo: esperar\n\n⚠️ **Variables:**\n- Clima caliente: más agua\n- Suelo arenoso: más frecuente\n- Suelo arcilloso: menos frecuente"
+    },
+    {
+      "id": 29,
+      "category": "diagnostico",
+      "questions": [
+        "Planta no crece",
+        "Mi planta no crece",
+        "Crecimiento lento",
+        "¿Por qué mi planta no crece?"
+      ],
+      "answer": "Diagnóstico de crecimiento lento:\n\n🔍 **Causas comunes:**\n\n1. **Falta de luz:**\n   - Plantas estiradas, pálidas\n   - Solución: Más exposición solar\n\n2. **Deficiencia de nutrientes:**\n   - Especialmente nitrógeno\n   - Solución: Fertilización balanceada\n\n3. **Raíces comprimidas:**\n   - Maceta muy pequeña\n   - Solución: Trasplantar\n\n4. **Temperatura inadecuada:**\n   - Muy frío o muy caliente\n   - Verificar rango del cultivo\n\n5. **pH del suelo:**\n   - Bloquea nutrientes\n   - Solución: Ajustar pH\n\n6. **Plagas de raíz:**\n   - Revisar sistema radicular\n   - Buscar larvas o pudrición"
+    },
+    {
+      "id": 30,
+      "category": "general",
+      "questions": [
+        "Adiós",
+        "Hasta luego",
+        "Chao",
+        "Nos vemos"
+      ],
+      "answer": "¡Hasta pronto! 👋\n\nRecuerda que puedo ayudarte con:\n- Cultivos 🌱\n- Plagas 🐛\n- Fertilización 🧪\n- Riego 💧\n\n¡Buenas cosechas y éxito en tu huerto! 🌾"
+    },
+    {
+      "id": 31,
+      "category": "plagas",
+      "questions": [
+        "¿Cómo controlar plagas del tomate?",
+        "Plagas en el tomate",
+        "¿Qué plagas atacan al tomate?",
+        "Control de plagas en tomate",
+        "Insectos del tomate"
+      ],
+      "answer": "Principales plagas del tomate y su control:\n\n🐛 **Gusano del fruto (Helicoverpa):**\n- Daño: Perfora frutos\n- Control: Bacillus thuringiensis (Bt), feromonas\n\n🪰 **Mosca blanca:**\n- Daño: Succiona savia, transmite virus\n- Control: Trampas amarillas, jabón potásico, neem\n\n🐜 **Pulgones:**\n- Daño: Brotes deformados\n- Control: Agua a presión, insecticida biológico\n\n🕷️ **Araña roja:**\n- Daño: Hojas amarillas con puntos\n- Control: Mantener humedad, azufre mojable\n\n🌿 **Prevención general:**\n1. Rotación de cultivos\n2. Eliminar rastrojos\n3. Revisar hojas regularmente\n4. No mojar follaje al regar"
+    },
+    {
+      "id": 32,
+      "category": "cosecha",
+      "questions": [
+        "¿Cuándo cosechar maíz?",
+        "Momento de cosechar maíz",
+        "¿Cómo saber si el maíz está listo?",
+        "Cosecha del maíz",
+        "Maíz listo para cosechar"
+      ],
+      "answer": "Momento óptimo para cosechar maíz:\n\n🌽 **Para maíz tierno (elote/choclo):**\n- 18-22 días después de la floración\n- Los estigmas (pelos) se vuelven marrones\n- Al presionar un grano sale líquido lechoso\n\n🌾 **Para maíz seco (grano):**\n- 120-150 días después de siembra\n- Hojas de la mazorca secas y amarillas\n- Grano duro, no se marca con la uña\n- Humedad del grano < 20%\n\n✅ **Señales de madurez:**\n1. Planta amarillenta\n2. Mazorca inclinada hacia abajo\n3. Brácteas secas\n\n⏱️ **Consejo:** Cosechar temprano en la mañana cuando está fresco"
+    },
+    {
+      "id": 33,
+      "category": "fertilizacion",
+      "questions": [
+        "¿Qué fertilizante usar para maíz?",
+        "Fertilización del maíz",
+        "Abono para maíz",
+        "NPK para maíz",
+        "Nutrientes para maíz"
+      ],
+      "answer": "Fertilización del maíz:\n\n📊 **Requerimientos principales:**\n- Alto consumo de nitrógeno (N)\n- Fósforo (P) en siembra\n- Potasio (K) moderado\n\n📅 **Programa recomendado:**\n\n**En siembra:**\n- DAP o NPK 10-30-10\n- 150-200 kg/ha\n\n**A los 30 días (aporque):**\n- Urea (46-0-0) o Sulfato de amonio\n- 150-200 kg/ha\n\n**A los 60 días (panojamiento):**\n- Segunda dosis de nitrógeno\n- 100 kg/ha urea\n\n🌱 **Dosis casera:**\n- 1 cucharada de fertilizante completo por planta en siembra\n- 1 cucharada de urea por planta a los 30 días\n\n⚠️ **Importante:** No aplicar urea en contacto directo con la semilla"
+    },
+    {
+      "id": 34,
+      "category": "cosecha",
+      "questions": [
+        "¿Cuándo cosechar tomate?",
+        "Momento de cosechar tomate",
+        "Tomate listo para cosecha",
+        "¿Cómo saber si el tomate está maduro?",
+        "Cosecha del tomate"
+      ],
+      "answer": "Momento óptimo para cosechar tomate:\n\n🍅 **Señales de madurez:**\n1. Color uniforme (rojo, amarillo según variedad)\n2. Ligeramente blando al tacto\n3. Se desprende fácil del pedúnculo\n4. Brillo en la piel\n\n📅 **Etapas de cosecha:**\n- **Verde maduro:** Para transporte largo\n- **Pintón:** 30-60% color, madura en 3-5 días\n- **Maduro:** Consumo inmediato o local\n\n⏱️ **Tiempo desde floración:**\n- 45-65 días según variedad\n- Cherry: 55-65 días\n- Pera: 65-75 días\n\n🌡️ **Tips:**\n1. Cosechar cada 2-3 días\n2. Evitar horas de calor intenso\n3. No refrigerar (pierde sabor)\n4. Madurar a temperatura ambiente"
+    },
+    {
+      "id": 35,
+      "category": "plagas",
+      "questions": [
+        "¿Cómo controlar plagas del maíz?",
+        "Plagas en el maíz",
+        "Gusano del maíz",
+        "Control de plagas en maíz",
+        "Insectos del maíz"
+      ],
+      "answer": "Principales plagas del maíz y su control:\n\n🐛 **Gusano cogollero (Spodoptera):**\n- Daño: Come el cogollo y hojas\n- Control: Bt, Spinosad, insecticidas\n- Aplicar al atardecer\n\n🪱 **Gusano elotero:**\n- Daño: Perfora granos de la mazorca\n- Control: Aceite mineral en estigmas, Bt\n\n🐜 **Gallina ciega (larvas):**\n- Daño: Come raíces\n- Control: Insecticida en siembra, rotación\n\n🦗 **Gusano alambre:**\n- Daño: Perfora semillas y tallos\n- Control: Tratamiento de semilla\n\n🌿 **Prevención:**\n1. Siembra temprana\n2. Variedades resistentes\n3. Destruir rastrojos\n4. Rotación con leguminosas\n5. Monitoreo semanal"
+    },
+    {
+      "id": 36,
+      "category": "plagas",
+      "questions": [
+        "¿Cómo controlar plagas del tomate?",
+        "Plagas en el tomate",
+        "Plagas del tomate",
+        "Control de plagas en tomate",
+        "Insectos en el tomate",
+        "Gusanos en tomate"
+      ],
+      "answer": "Principales plagas del tomate y su control:\n\n🐛 **Gusano del fruto (Helicoverpa):**\n- Daño: Perfora frutos\n- Control: Bt, Spinosad, trampas de feromona\n- Recoger frutos dañados\n\n🪰 **Mosca blanca:**\n- Daño: Chupa savia, transmite virus\n- Control: Jabón potásico, aceite de neem\n- Trampas amarillas pegajosas\n\n🐜 **Pulgón o áfido:**\n- Daño: Deforma hojas, transmite virus\n- Control: Agua jabonosa, extracto de ajo\n- Introducir mariquitas\n\n🕷️ **Ácaro rojo:**\n- Daño: Hojas amarillentas con puntos\n- Control: Azufre, acaricidas, riego foliar\n\n🌿 **Prevención:**\n1. Rotación de cultivos\n2. Eliminar malezas\n3. No regar por aspersión\n4. Inspección semanal\n5. Asociar con albahaca o caléndula"
+    },
+    {
+      "id": 37,
+      "category": "cosecha",
+      "questions": [
+        "¿Cuándo cosechar maíz?",
+        "Momento de cosechar maíz",
+        "Maíz listo para cosecha",
+        "¿Cómo saber si el maíz está maduro?",
+        "Cosecha del maíz",
+        "¿Cuándo cortar el maíz?"
+      ],
+      "answer": "Momento óptimo para cosechar maíz:\n\n🌽 **Para elote/choclo (consumo tierno):**\n- 18-22 días después de floración\n- Estigmas (pelos) secos y marrones\n- Grano lechoso al presionar\n- 70-75% humedad del grano\n\n🌾 **Para grano seco:**\n- 45-55 días después de floración\n- Hojas de la mazorca secas y pajizas\n- Grano duro al presionar\n- 20-25% humedad del grano\n- Línea negra visible en la base del grano\n\n📅 **Tiempo desde siembra:**\n- Elote: 70-90 días\n- Grano seco: 120-150 días\n\n🌡️ **Tips:**\n1. Cosechar elote temprano en la mañana\n2. Para grano, esperar tiempo seco\n3. Secar a 14% humedad para almacenamiento\n4. Evitar cosechar después de lluvia"
+    },
+    {
+      "id": 38,
+      "category": "diagnostico",
+      "questions": [
+        "Mi planta tiene manchas en las hojas",
+        "Manchas en las hojas",
+        "¿Por qué mis plantas tienen manchas?",
+        "Hojas con manchas oscuras",
+        "Manchas negras en las hojas"
+      ],
+      "answer": "Diagnóstico de manchas en las hojas:\n\n🟤 **Manchas marrones/negras:**\n- **Causa probable:** Hongos (Alternaria, Septoria)\n- **Tratamiento:** Fungicida cúprico, eliminar hojas afectadas\n- **Prevención:** No mojar follaje, buena ventilación\n\n🟡 **Manchas amarillas con borde oscuro:**\n- **Causa probable:** Bacterias o virus\n- **Tratamiento:** Eliminar plantas afectadas\n- **Prevención:** Desinfectar herramientas\n\n⬜ **Manchas blancas polvorientas:**\n- **Causa probable:** Oídio (hongo)\n- **Tratamiento:** Azufre, bicarbonato de sodio\n- **Prevención:** Evitar humedad alta\n\n🔴 **Manchas rojizas/púrpuras:**\n- **Causa probable:** Deficiencia de fósforo\n- **Tratamiento:** Fertilizante fosfatado\n\n📋 **Acciones generales:**\n1. Retirar hojas muy afectadas\n2. Mejorar circulación de aire\n3. Evitar riego por aspersión\n4. Aplicar fungicida preventivo"
+    }
+  ]
+}

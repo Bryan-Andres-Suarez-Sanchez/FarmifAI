@@ -1,0 +1,623 @@
+package edu.unicauca.app.agrochat.mindspore
+
+import android.content.Context
+import android.util.Log
+import edu.unicauca.app.agrochat.MindSporeHelper
+import edu.unicauca.app.agrochat.UniversalNativeTokenizer
+import org.json.JSONObject
+import java.io.BufferedInputStream
+import java.io.DataInputStream
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import kotlin.math.sqrt
+
+/**
+ * SemanticSearchHelper - Búsqueda semántica para AgroChat
+ * 
+ * Este helper implementa un sistema de búsqueda semántica que:
+ * 1. Carga embeddings pre-calculados de la base de conocimiento
+ * 2. Usa MindSpore Lite para generar embeddings de preguntas del usuario
+ * 3. Encuentra la respuesta más similar usando similitud coseno
+ */
+class SemanticSearchHelper(private val context: Context) {
+    
+    companion object {
+        private const val TAG = "SemanticSearchHelper"
+        
+        // Archivos de assets
+        private const val EMBEDDINGS_FILE = "kb_embeddings.npy"
+        private const val KNOWLEDGE_BASE_FILE = "agrochat_knowledge_base.json"
+        private const val MODEL_FILE = "sentence_encoder.ms"
+        private const val TOKENIZER_FILE = "sentence_tokenizer.json"
+        
+        // Configuración del modelo
+        private const val EMBEDDING_DIM = 384  // MiniLM produce embeddings de 384 dims
+        private const val MAX_SEQ_LENGTH = 128
+        private const val NUM_THREADS = 2
+    }
+    
+    // Datos cargados
+    private var kbEmbeddings: Array<FloatArray>? = null
+    private var kbQuestions: List<String>? = null
+    private var kbEntryIds: List<Int>? = null
+    private var kbEntries: Map<Int, KnowledgeEntry>? = null
+    
+    // Modelo y tokenizador para búsqueda semántica real
+    private var modelHandle: Long = 0L
+    private var tokenizer: UniversalNativeTokenizer? = null
+    private var useMindSporeEncoder = false  // Flag para usar MindSpore o fallback
+    
+    // Estado
+    private var isInitialized = false
+    
+    data class KnowledgeEntry(
+        val id: Int,
+        val category: String,
+        val questions: List<String>,
+        val answer: String
+    )
+    
+    data class MatchResult(
+        val answer: String,
+        val matchedQuestion: String,
+        val similarityScore: Float,
+        val category: String,
+        val entryId: Int
+    )
+    
+    /**
+     * Inicializa el sistema cargando embeddings y base de conocimiento
+     */
+    fun initialize(): Boolean {
+        if (isInitialized) {
+            Log.d(TAG, "Ya inicializado")
+            return true
+        }
+        
+        try {
+            Log.i(TAG, "Inicializando SemanticSearchHelper...")
+            
+            // 1. Cargar base de conocimiento
+            loadKnowledgeBase()
+            
+            // 2. Cargar embeddings pre-calculados
+            loadEmbeddings()
+            
+            // 3. Intentar cargar modelo MindSpore para encoding
+            tryLoadMindSporeEncoder()
+            
+            isInitialized = true
+            Log.i(TAG, "SemanticSearchHelper inicializado correctamente")
+            Log.i(TAG, "  - Entradas en KB: ${kbEntries?.size}")
+            Log.i(TAG, "  - Preguntas indexadas: ${kbQuestions?.size}")
+            Log.i(TAG, "  - Dimensión embeddings: $EMBEDDING_DIM")
+            Log.i(TAG, "  - MindSpore encoder: ${if (useMindSporeEncoder) "activo" else "fallback a texto"}")
+            
+            return true
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error inicializando SemanticSearchHelper: ${e.message}", e)
+            return false
+        }
+    }
+    
+    /**
+     * Intenta cargar el encoder MindSpore
+     */
+    private fun tryLoadMindSporeEncoder() {
+        try {
+            // Verificar si existe el modelo
+            val assetsList = context.assets.list("") ?: emptyArray()
+            if (MODEL_FILE !in assetsList) {
+                Log.w(TAG, "Modelo $MODEL_FILE no encontrado, usando fallback de texto")
+                return
+            }
+            
+            // Intentar cargar tokenizador
+            tokenizer = UniversalNativeTokenizer(context, TOKENIZER_FILE)
+            if (tokenizer?.isReady() != true) {
+                Log.w(TAG, "Tokenizador no disponible, usando fallback de texto")
+                tokenizer = null
+                return
+            }
+            
+            // Cargar modelo MindSpore
+            modelHandle = MindSporeHelper.loadModelFromAssets(context, MODEL_FILE, NUM_THREADS)
+            if (modelHandle == 0L) {
+                Log.w(TAG, "No se pudo cargar modelo MindSpore, usando fallback de texto")
+                return
+            }
+            
+            useMindSporeEncoder = true
+            Log.i(TAG, "Encoder MindSpore cargado exitosamente")
+            
+        } catch (e: Exception) {
+            Log.w(TAG, "Error cargando encoder MindSpore: ${e.message}, usando fallback")
+            useMindSporeEncoder = false
+        }
+    }
+    
+    /**
+     * Carga la base de conocimiento desde JSON
+     */
+    private fun loadKnowledgeBase() {
+        Log.d(TAG, "Cargando base de conocimiento...")
+        
+        val jsonString = context.assets.open(KNOWLEDGE_BASE_FILE).bufferedReader().use { it.readText() }
+        val json = JSONObject(jsonString)
+        val entries = json.getJSONArray("entries")
+        
+        val entriesMap = mutableMapOf<Int, KnowledgeEntry>()
+        
+        for (i in 0 until entries.length()) {
+            val entry = entries.getJSONObject(i)
+            val id = entry.getInt("id")
+            val category = entry.getString("category")
+            val answer = entry.getString("answer")
+            
+            val questionsArray = entry.getJSONArray("questions")
+            val questions = mutableListOf<String>()
+            for (j in 0 until questionsArray.length()) {
+                questions.add(questionsArray.getString(j))
+            }
+            
+            entriesMap[id] = KnowledgeEntry(id, category, questions, answer)
+        }
+        
+        kbEntries = entriesMap
+        Log.d(TAG, "Base de conocimiento cargada: ${entriesMap.size} entradas")
+    }
+    
+    /**
+     * Carga los embeddings pre-calculados desde archivo .npy
+     */
+    private fun loadEmbeddings() {
+        Log.d(TAG, "Cargando embeddings pre-calculados...")
+        
+        val inputStream = context.assets.open(EMBEDDINGS_FILE)
+        val dataInputStream = DataInputStream(BufferedInputStream(inputStream))
+        
+        // Leer header de NumPy v1.0
+        // Formato: \x93NUMPY (6 bytes) + version (2 bytes) + header_len (2 bytes) + header
+        val magic = ByteArray(6)
+        dataInputStream.readFully(magic)
+        Log.d(TAG, "NPY magic: ${magic.map { it.toInt() and 0xFF }}")
+        
+        // Leer versión (2 bytes: major, minor)
+        val versionMajor = dataInputStream.readByte().toInt() and 0xFF
+        val versionMinor = dataInputStream.readByte().toInt() and 0xFF
+        Log.d(TAG, "NPY version: $versionMajor.$versionMinor")
+        
+        // Leer tamaño del header (little-endian)
+        // v1: 2 bytes, v2+: 4 bytes
+        val headerLen: Int
+        if (versionMajor == 1) {
+            val byte1 = dataInputStream.readByte().toInt() and 0xFF
+            val byte2 = dataInputStream.readByte().toInt() and 0xFF
+            headerLen = byte1 or (byte2 shl 8)
+        } else {
+            // Version 2+: 4 bytes little-endian
+            val bytes = ByteArray(4)
+            dataInputStream.readFully(bytes)
+            headerLen = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).int
+        }
+        Log.d(TAG, "NPY header length: $headerLen")
+        
+        // Leer y parsear el header
+        val headerBytes = ByteArray(headerLen)
+        dataInputStream.readFully(headerBytes)
+        val headerStr = String(headerBytes)
+        
+        Log.d(TAG, "Header NPY: $headerStr")
+        
+        // Extraer shape del header
+        val shapeMatch = Regex("""'shape':\s*\((\d+),\s*(\d+)\)""").find(headerStr)
+        
+        val numQuestions: Int
+        val embeddingDim: Int
+        
+        if (shapeMatch != null) {
+            numQuestions = shapeMatch.groupValues[1].toInt()
+            embeddingDim = shapeMatch.groupValues[2].toInt()
+        } else {
+            Log.w(TAG, "No se pudo parsear shape del header, usando fallback")
+            embeddingDim = EMBEDDING_DIM
+            numQuestions = 119  // Fallback basado en nuestra KB
+        }
+        
+        Log.d(TAG, "Embeddings shape: ($numQuestions, $embeddingDim)")
+        
+        // Leer los datos de embeddings
+        val embeddings = Array(numQuestions) { FloatArray(embeddingDim) }
+        val buffer = ByteArray(4)
+        
+        for (i in 0 until numQuestions) {
+            for (j in 0 until embeddingDim) {
+                dataInputStream.readFully(buffer)
+                embeddings[i][j] = ByteBuffer.wrap(buffer)
+                    .order(ByteOrder.LITTLE_ENDIAN)
+                    .float
+            }
+            
+            // Normalizar cada embedding (L2 norm = 1)
+            var norm = 0f
+            for (j in 0 until embeddingDim) {
+                norm += embeddings[i][j] * embeddings[i][j]
+            }
+            norm = sqrt(norm)
+            if (norm > 0) {
+                for (j in 0 until embeddingDim) {
+                    embeddings[i][j] /= norm
+                }
+            }
+        }
+        
+        dataInputStream.close()
+        
+        Log.d(TAG, "Embeddings cargados y normalizados: ${embeddings.size} vectores de $embeddingDim dims")
+        
+        // Generar mapeo de preguntas desde la KB
+        val questions = mutableListOf<String>()
+        val entryIds = mutableListOf<Int>()
+        
+        kbEntries?.entries?.sortedBy { it.key }?.forEach { (id, entry) ->
+            entry.questions.forEach { q ->
+                questions.add(q)
+                entryIds.add(id)
+            }
+        }
+        
+        kbEmbeddings = embeddings
+        kbQuestions = questions
+        kbEntryIds = entryIds
+    }
+    
+    /**
+     * Obtiene el tamaño de la base de conocimiento
+     */
+    fun getKnowledgeBaseSize(): Int {
+        return kbEntries?.size ?: 0
+    }
+    
+    /**
+     * Busca la mejor coincidencia para la pregunta del usuario
+     */
+    fun findBestMatch(userQuery: String): MatchResult? {
+        if (!isInitialized) {
+            Log.e(TAG, "SemanticSearchHelper no inicializado")
+            return null
+        }
+        
+        val embeddings = kbEmbeddings ?: return null
+        val questions = kbQuestions ?: return null
+        val entryIds = kbEntryIds ?: return null
+        val entries = kbEntries ?: return null
+        
+        val startTime = System.currentTimeMillis()
+        
+        // Calcular embedding de la query o usar fallback
+        val queryEmbedding = if (useMindSporeEncoder) {
+            computeEmbedding(userQuery)
+        } else {
+            null
+        }
+        
+        var bestScore = -1f
+        var bestIdx = -1
+        
+        if (queryEmbedding != null) {
+            // Búsqueda semántica real con embeddings
+            for (i in embeddings.indices) {
+                val score = cosineSimilarity(queryEmbedding, embeddings[i])
+                if (score > bestScore) {
+                    bestScore = score
+                    bestIdx = i
+                }
+            }
+        } else {
+            // Fallback: similitud de texto
+            val queryLower = userQuery.lowercase().trim()
+            
+            for (i in questions.indices) {
+                val questionLower = questions[i].lowercase()
+                val score = calculateTextSimilarity(queryLower, questionLower)
+                
+                if (score > bestScore) {
+                    bestScore = score
+                    bestIdx = i
+                }
+            }
+        }
+        
+        val elapsedTime = System.currentTimeMillis() - startTime
+        
+        if (bestIdx < 0) {
+            return null
+        }
+        
+        val matchedQuestion = questions[bestIdx]
+        val entryId = entryIds[bestIdx]
+        val entry = entries[entryId]!!
+        
+        return MatchResult(
+            answer = entry.answer,
+            matchedQuestion = matchedQuestion,
+            similarityScore = bestScore,
+            category = entry.category,
+            entryId = entryId
+        )
+    }
+    
+    /**
+     * Computa el embedding de un texto usando MindSpore
+     */
+    private fun computeEmbedding(text: String): FloatArray? {
+        if (modelHandle == 0L || tokenizer == null) return null
+        
+        try {
+            // Tokenizar
+            val rawTokenIds = tokenizer!!.encode(text, addSpecialTokens = true)
+            if (rawTokenIds.isEmpty()) {
+                Log.w(TAG, "computeEmbedding: tokenIds vacío para '$text'")
+                return null
+            }
+            
+            // Filtrar tokens de padding del resultado del tokenizer
+            val padTokenId = tokenizer!!.padTokenId
+            val tokenIds = rawTokenIds.filter { it != padTokenId }.toIntArray()
+            
+            if (tokenIds.isEmpty()) {
+                Log.w(TAG, "computeEmbedding: Solo hay tokens de padding")
+                return null
+            }
+            
+            // Preparar entrada con padding
+            val inputIds = IntArray(MAX_SEQ_LENGTH) { padTokenId }
+            val attentionMask = IntArray(MAX_SEQ_LENGTH) { 0 }
+            
+            val numToCopy = minOf(tokenIds.size, MAX_SEQ_LENGTH)
+            for (i in 0 until numToCopy) {
+                inputIds[i] = tokenIds[i]
+                attentionMask[i] = 1
+            }
+            
+            // Ejecutar modelo con ambas entradas (input_ids y attention_mask)
+            val output = MindSporeHelper.predictSentenceEncoder(modelHandle, inputIds, attentionMask)
+            
+            if (output == null) {
+                Log.w(TAG, "computeEmbedding: predictSentenceEncoder devolvió null")
+                return null
+            }
+            
+            // El output esperado es de 384 elementos (embedding pooled directo)
+            val embedding: FloatArray
+            
+            when {
+                output.size == EMBEDDING_DIM -> {
+                    // Caso ideal: el output ya es el embedding de 384 dims
+                    embedding = output.copyOf()
+                }
+                output.size == MAX_SEQ_LENGTH * EMBEDDING_DIM -> {
+                    // Recibimos last_hidden_state [128, 384] - hacer mean pooling
+                    embedding = FloatArray(EMBEDDING_DIM)
+                    var validTokens = 0
+                    for (i in 0 until numToCopy) {
+                        if (attentionMask[i] == 1) {
+                            val offset = i * EMBEDDING_DIM
+                            for (j in 0 until EMBEDDING_DIM) {
+                                embedding[j] += output[offset + j]
+                            }
+                            validTokens++
+                        }
+                    }
+                    if (validTokens > 0) {
+                        for (j in 0 until EMBEDDING_DIM) {
+                            embedding[j] /= validTokens
+                        }
+                    }
+                }
+                output.size > EMBEDDING_DIM -> {
+                    // Tamaño inesperado - tomar los primeros EMBEDDING_DIM valores
+                    Log.w(TAG, "computeEmbedding: Tamaño inesperado ${output.size}")
+                    embedding = output.copyOfRange(0, EMBEDDING_DIM)
+                }
+                else -> {
+                    Log.e(TAG, "computeEmbedding: Output demasiado pequeño: ${output.size}")
+                    return null
+                }
+            }
+            
+            // Normalizar el embedding (L2 norm)
+            var norm = 0f
+            for (v in embedding) norm += v * v
+            norm = sqrt(norm)
+            if (norm > 0) {
+                for (i in embedding.indices) embedding[i] /= norm
+            }
+            
+            return embedding
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "computeEmbedding: Error: ${e.message}", e)
+            return null
+        }
+    }
+    
+    /**
+     * Calcula similitud de texto mejorada usando múltiples métricas
+     */
+    private fun calculateTextSimilarity(text1: String, text2: String): Float {
+        // Normalizar textos
+        val norm1 = normalizeText(text1)
+        val norm2 = normalizeText(text2)
+        
+        val words1 = norm1.split(Regex("\\s+")).filter { it.isNotEmpty() }.toSet()
+        val words2 = norm2.split(Regex("\\s+")).filter { it.isNotEmpty() }.toSet()
+        
+        if (words1.isEmpty() || words2.isEmpty()) return 0f
+        
+        // 1. Similitud Jaccard básica
+        val intersection = words1.intersect(words2).size.toFloat()
+        val union = words1.union(words2).size.toFloat()
+        val jaccard = if (union > 0) intersection / union else 0f
+        
+        // 2. Bonus por palabras clave coincidentes
+        val keywordScore = calculateKeywordBonus(words1, words2)
+        
+        // 3. Bonus por sinónimos
+        val synonymScore = calculateSynonymBonus(words1, words2)
+        
+        // 4. Bonus por subcadena contenida
+        val substringBonus = if (norm1.contains(norm2) || norm2.contains(norm1)) 0.3f else 0f
+        
+        // 5. Bonus por bigramas compartidos
+        val bigram1 = generateBigrams(norm1)
+        val bigram2 = generateBigrams(norm2)
+        val bigramScore = if (bigram1.isNotEmpty() && bigram2.isNotEmpty()) {
+            bigram1.intersect(bigram2).size.toFloat() / bigram1.union(bigram2).size.toFloat()
+        } else 0f
+        
+        // Combinar métricas con pesos
+        val finalScore = (jaccard * 0.25f + 
+                         keywordScore * 0.30f + 
+                         synonymScore * 0.20f + 
+                         bigramScore * 0.15f +
+                         substringBonus * 0.10f).coerceIn(0f, 1f)
+        
+        return finalScore
+    }
+    
+    /**
+     * Normaliza el texto removiendo acentos y caracteres especiales
+     */
+    private fun normalizeText(text: String): String {
+        return text.lowercase()
+            .replace("á", "a").replace("é", "e").replace("í", "i")
+            .replace("ó", "o").replace("ú", "u").replace("ñ", "n")
+            .replace(Regex("[^a-z0-9\\s]"), " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+    }
+    
+    /**
+     * Genera bigramas de un texto
+     */
+    private fun generateBigrams(text: String): Set<String> {
+        val words = text.split(Regex("\\s+")).filter { it.isNotEmpty() }
+        if (words.size < 2) return emptySet()
+        return words.zipWithNext { a, b -> "$a $b" }.toSet()
+    }
+    
+    /**
+     * Calcula bonus por palabras clave importantes
+     */
+    private fun calculateKeywordBonus(words1: Set<String>, words2: Set<String>): Float {
+        val keywords = setOf(
+            // Acciones
+            "cultivar", "sembrar", "plantar", "regar", "fertilizar", "abonar", "cosechar",
+            "podar", "fumigar", "controlar", "prevenir", "tratar", "diagnosticar",
+            // Cultivos
+            "tomate", "maiz", "papa", "frijol", "cafe", "cebolla", "lechuga", "zanahoria",
+            "pepino", "pimenton", "aji", "yuca", "platano", "aguacate", "mango", "naranja",
+            // Problemas
+            "plaga", "enfermedad", "hongo", "virus", "bacteria", "gusano", "mosca", "arana",
+            "pulgon", "trips", "minador", "marchitez", "pudricion", "mancha", "amarillo",
+            "amarillamiento", "secas", "marchitas", "caidas", "manchadas",
+            // Recursos
+            "fertilizante", "abono", "npk", "organico", "riego", "goteo", "agua", "suelo",
+            "tierra", "sustrato", "semilla", "nutriente", "nitrogeno", "fosforo", "potasio",
+            // Partes de planta
+            "hoja", "hojas", "raiz", "tallo", "flor", "fruto", "frutos",
+            // Otros
+            "mejor", "cuando", "como", "porque", "cantidad", "frecuencia"
+        )
+        
+        val important1 = words1.filter { it in keywords }.toSet()
+        val important2 = words2.filter { it in keywords }.toSet()
+        
+        if (important1.isEmpty() && important2.isEmpty()) return 0.5f
+        if (important1.isEmpty() || important2.isEmpty()) return 0f
+        
+        return important1.intersect(important2).size.toFloat() / 
+               important1.union(important2).size.toFloat()
+    }
+    
+    /**
+     * Calcula bonus por sinónimos agrícolas
+     */
+    private fun calculateSynonymBonus(words1: Set<String>, words2: Set<String>): Float {
+        // Diccionario de sinónimos agrícolas
+        val synonymGroups = listOf(
+            setOf("amarillo", "amarillamiento", "amarillas", "clorosis"),
+            setOf("marchito", "marchitas", "marchitez", "secas", "mustias"),
+            setOf("plaga", "plagas", "insecto", "insectos", "bicho", "bichos"),
+            setOf("enfermedad", "enfermedades", "padecimiento", "mal"),
+            setOf("fertilizante", "abono", "fertilizacion", "abonar", "nutriente"),
+            setOf("riego", "regar", "agua", "irrigacion", "mojado"),
+            setOf("sembrar", "siembra", "plantar", "plantacion", "cultivar"),
+            setOf("cosecha", "cosechar", "recolectar", "recoleccion"),
+            setOf("hoja", "hojas", "follaje", "foliar"),
+            setOf("raiz", "raices", "radicular"),
+            setOf("fruto", "frutos", "frutas", "produccion"),
+            setOf("hongo", "hongos", "fungico", "fungica"),
+            setOf("control", "controlar", "combatir", "eliminar", "tratamiento", "tratar"),
+            setOf("tomate", "tomates", "jitomate"),
+            setOf("maiz", "elote", "choclo"),
+            setOf("papa", "patata", "papas", "patatas"),
+            setOf("cafe", "cafeto", "cafetal"),
+            setOf("mejor", "optimo", "recomendado", "ideal"),
+            setOf("cuando", "epoca", "momento", "tiempo"),
+            setOf("como", "manera", "forma", "metodo")
+        )
+        
+        var matchCount = 0
+        for (group in synonymGroups) {
+            val has1 = words1.any { it in group }
+            val has2 = words2.any { it in group }
+            if (has1 && has2) matchCount++
+        }
+        
+        return if (matchCount > 0) (matchCount.toFloat() / 5f).coerceIn(0f, 1f) else 0f
+    }
+    
+    /**
+     * Calcula similitud coseno entre dos vectores
+     */
+    private fun cosineSimilarity(v1: FloatArray, v2: FloatArray): Float {
+        if (v1.size != v2.size) return 0f
+        
+        var dotProduct = 0f
+        var norm1 = 0f
+        var norm2 = 0f
+        
+        for (i in v1.indices) {
+            dotProduct += v1[i] * v2[i]
+            norm1 += v1[i] * v1[i]
+            norm2 += v2[i] * v2[i]
+        }
+        
+        val denominator = sqrt(norm1) * sqrt(norm2)
+        return if (denominator > 0) dotProduct / denominator else 0f
+    }
+    
+    /**
+     * Libera recursos
+     */
+    fun release() {
+        if (modelHandle != 0L) {
+            MindSporeHelper.unloadModel(modelHandle)
+            modelHandle = 0L
+        }
+        tokenizer?.release()
+        tokenizer = null
+        
+        kbEmbeddings = null
+        kbQuestions = null
+        kbEntryIds = null
+        kbEntries = null
+        isInitialized = false
+        useMindSporeEncoder = false
+        
+        Log.d(TAG, "Recursos liberados")
+    }
+}

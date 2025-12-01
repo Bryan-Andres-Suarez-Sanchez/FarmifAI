@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "edu.unicauca.app.agrochat"
-    compileSdk = 36
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "edu.unicauca.app.agrochat"
         minSdk = 24
-        targetSdk = 36
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -94,6 +94,16 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.appcompat)
+    
+    // Material Icons Extended para más iconos
+    implementation("androidx.compose.material:material-icons-extended:1.6.0")
+    
+    // ONNX Runtime para modelos exportados desde nlp_dev
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.16.3")
+    
+    // Vosk - Reconocimiento de voz offline (sin Google)
+    implementation("com.alphacephei:vosk-android:0.3.47")
+    
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

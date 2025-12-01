@@ -35,6 +35,7 @@ object MindSporeHelper {
     private external fun loadModel(modelBuffer: ByteBuffer, numThread: Int): Long
     external fun runNetFloat(envPtr: Long, input: FloatArray): FloatArray?
     external fun runNetIds(envPtr: Long, ids: IntArray): FloatArray? // La que usaremos para SLM
+    external fun runNetSentenceEncoder(envPtr: Long, inputIds: IntArray, attentionMask: IntArray): FloatArray? // Para Sentence Encoder
     external fun unloadModel(envPtr: Long): Boolean
 
 
@@ -176,6 +177,45 @@ object MindSporeHelper {
         } catch (e: Exception) {
             // Capturar cualquier excepción inesperada de la llamada JNI
             Log.e(TAG, "predictWithTokenIds: Excepción durante la llamada a runNetIds (JNI): ${e.message}", e)
+            return null
+        }
+    }
+
+    /**
+     * Ejecuta la inferencia en un modelo Sentence Encoder que requiere input_ids y attention_mask.
+     *
+     * @param modelHandle El handle nativo del modelo cargado.
+     * @param inputIds Un `IntArray` con los IDs de token.
+     * @param attentionMask Un `IntArray` con la máscara de atención (1s para tokens reales, 0s para padding).
+     * @return Un `FloatArray` con el embedding de salida, o `null` si falla.
+     */
+    fun predictSentenceEncoder(modelHandle: Long, inputIds: IntArray, attentionMask: IntArray): FloatArray? {
+        if (modelHandle == 0L) {
+            Log.e(TAG, "predictSentenceEncoder: Handle del modelo no válido (0L).")
+            return null
+        }
+        if (inputIds.isEmpty()) {
+            Log.w(TAG, "predictSentenceEncoder: El array de inputIds está vacío.")
+            return null
+        }
+        if (inputIds.size != attentionMask.size) {
+            Log.e(TAG, "predictSentenceEncoder: inputIds y attentionMask deben tener el mismo tamaño.")
+            return null
+        }
+
+        Log.d(TAG, "predictSentenceEncoder: Ejecutando con ${inputIds.size} tokens. Handle: $modelHandle")
+
+        try {
+            val output = runNetSentenceEncoder(modelHandle, inputIds, attentionMask)
+
+            if (output == null) {
+                Log.e(TAG, "predictSentenceEncoder: runNetSentenceEncoder (JNI) devolvió null.")
+            } else {
+                Log.i(TAG, "predictSentenceEncoder: Éxito. Tamaño de salida: ${output.size}")
+            }
+            return output
+        } catch (e: Exception) {
+            Log.e(TAG, "predictSentenceEncoder: Excepción durante JNI: ${e.message}", e)
             return null
         }
     }

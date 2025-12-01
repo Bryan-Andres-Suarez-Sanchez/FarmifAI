@@ -282,3 +282,237 @@ Java_edu_unicauca_app_agrochat_MindSporeHelper_unloadModel(JNIEnv *env, jobject 
     MS_PRINT("Native environment (C++ API) unloaded.");
     return JNI_TRUE;
 }
+
+// ------------------------------------------------------------------
+// Inferencia con múltiples tensores de entrada (para Sentence Encoder)
+// Acepta input_ids y attention_mask como IntArrays separados
+// ------------------------------------------------------------------
+extern "C"
+JNIEXPORT jfloatArray JNICALL
+Java_edu_unicauca_app_agrochat_MindSporeHelper_runNetSentenceEncoder(JNIEnv *env, jobject thiz,
+                                                         jlong handle, jintArray jinput_ids, jintArray jattention_mask) {
+    auto *p_env = reinterpret_cast<MSNativeEnvCpp *>(handle);
+    if (!p_env || !p_env->model) {
+        MS_PRINT("runNetSentenceEncoder: Invalid native handle or model.");
+        return nullptr;
+    }
+    std::shared_ptr<mindspore::Model> model = p_env->model;
+
+    // 1. Obtener Tensores de Entrada del Modelo
+    std::vector<mindspore::MSTensor> inputs = model->GetInputs();
+    MS_PRINT("runNetSentenceEncoder: Model has %zu inputs", inputs.size());
+    
+    if (inputs.size() < 2) {
+        MS_PRINT("runNetSentenceEncoder: Model expects at least 2 inputs, got %zu", inputs.size());
+        return nullptr;
+    }
+
+    // Imprimir información de cada tensor de entrada
+    for (size_t i = 0; i < inputs.size(); i++) {
+        MS_PRINT("runNetSentenceEncoder: Input[%zu] name='%s', shape=[", i, inputs[i].Name().c_str());
+        auto shape = inputs[i].Shape();
+        std::string shapeStr = "";
+        for (size_t j = 0; j < shape.size(); j++) {
+            shapeStr += std::to_string(shape[j]);
+            if (j < shape.size() - 1) shapeStr += ", ";
+        }
+        MS_PRINT("runNetSentenceEncoder: Input[%zu] shape=[%s], dtype=%d, elements=%zu", 
+                 i, shapeStr.c_str(), static_cast<int>(inputs[i].DataType()), inputs[i].ElementNum());
+    }
+
+    // 2. Obtener datos de Java
+    jsize input_ids_len = env->GetArrayLength(jinput_ids);
+    jsize attention_mask_len = env->GetArrayLength(jattention_mask);
+    
+    MS_PRINT("runNetSentenceEncoder: Java arrays - input_ids=%d, attention_mask=%d", 
+             (int)input_ids_len, (int)attention_mask_len);
+
+    // 3. Buscar tensores por nombre o usar los primeros dos
+    mindspore::MSTensor *input_ids_tensor = nullptr;
+    mindspore::MSTensor *attention_mask_tensor = nullptr;
+    
+    for (auto &tensor : inputs) {
+        std::string name = tensor.Name();
+        if (name.find("input_ids") != std::string::npos || name == "input_ids") {
+            input_ids_tensor = &tensor;
+            MS_PRINT("runNetSentenceEncoder: Found input_ids tensor: %s", name.c_str());
+        } else if (name.find("attention_mask") != std::string::npos || name == "attention_mask") {
+            attention_mask_tensor = &tensor;
+            MS_PRINT("runNetSentenceEncoder: Found attention_mask tensor: %s", name.c_str());
+        }
+    }
+    
+    // Fallback: usar primeros dos tensores si no encontramos por nombre
+    if (!input_ids_tensor) {
+        input_ids_tensor = &inputs[0];
+        MS_PRINT("runNetSentenceEncoder: Using inputs[0] as input_ids");
+    }
+    if (!attention_mask_tensor && inputs.size() > 1) {
+        attention_mask_tensor = &inputs[1];
+        MS_PRINT("runNetSentenceEncoder: Using inputs[1] as attention_mask");
+    }
+
+    // 4. Verificar tamaños
+    if (static_cast<size_t>(input_ids_len) != input_ids_tensor->ElementNum()) {
+        MS_PRINT("runNetSentenceEncoder: input_ids size mismatch: Java=%d, model=%zu",
+                 (int)input_ids_len, input_ids_tensor->ElementNum());
+        return nullptr;
+    }
+    
+    if (attention_mask_tensor && static_cast<size_t>(attention_mask_len) != attention_mask_tensor->ElementNum()) {
+        MS_PRINT("runNetSentenceEncoder: attention_mask size mismatch: Java=%d, model=%zu",
+                 (int)attention_mask_len, attention_mask_tensor->ElementNum());
+        return nullptr;
+    }
+
+    // 5. Copiar input_ids
+    void *input_ids_data = input_ids_tensor->MutableData();
+    if (!input_ids_data) {
+        MS_PRINT("runNetSentenceEncoder: Failed to get mutable data for input_ids");
+        return nullptr;
+    }
+    
+    jint *src_input_ids = env->GetIntArrayElements(jinput_ids, nullptr);
+    if (!src_input_ids) {
+        MS_PRINT("runNetSentenceEncoder: Failed to get Java input_ids array");
+        return nullptr;
+    }
+    
+    // Convertir a int64 si el modelo lo requiere
+    if (input_ids_tensor->DataType() == mindspore::DataType::kNumberTypeInt64) {
+        int64_t *dest = static_cast<int64_t*>(input_ids_data);
+        for (jsize i = 0; i < input_ids_len; i++) {
+            dest[i] = static_cast<int64_t>(src_input_ids[i]);
+        }
+        MS_PRINT("runNetSentenceEncoder: Copied input_ids as int64");
+    } else if (input_ids_tensor->DataType() == mindspore::DataType::kNumberTypeInt32) {
+        memcpy(input_ids_data, src_input_ids, input_ids_len * sizeof(jint));
+        MS_PRINT("runNetSentenceEncoder: Copied input_ids as int32");
+    } else {
+        MS_PRINT("runNetSentenceEncoder: Unexpected input_ids dtype: %d", 
+                 static_cast<int>(input_ids_tensor->DataType()));
+        env->ReleaseIntArrayElements(jinput_ids, src_input_ids, JNI_ABORT);
+        return nullptr;
+    }
+    env->ReleaseIntArrayElements(jinput_ids, src_input_ids, JNI_ABORT);
+
+    // 6. Copiar attention_mask
+    if (attention_mask_tensor) {
+        void *attention_mask_data = attention_mask_tensor->MutableData();
+        if (!attention_mask_data) {
+            MS_PRINT("runNetSentenceEncoder: Failed to get mutable data for attention_mask");
+            return nullptr;
+        }
+        
+        jint *src_attention_mask = env->GetIntArrayElements(jattention_mask, nullptr);
+        if (!src_attention_mask) {
+            MS_PRINT("runNetSentenceEncoder: Failed to get Java attention_mask array");
+            return nullptr;
+        }
+        
+        // Convertir a int64 si el modelo lo requiere
+        if (attention_mask_tensor->DataType() == mindspore::DataType::kNumberTypeInt64) {
+            int64_t *dest = static_cast<int64_t*>(attention_mask_data);
+            for (jsize i = 0; i < attention_mask_len; i++) {
+                dest[i] = static_cast<int64_t>(src_attention_mask[i]);
+            }
+            MS_PRINT("runNetSentenceEncoder: Copied attention_mask as int64");
+        } else if (attention_mask_tensor->DataType() == mindspore::DataType::kNumberTypeInt32) {
+            memcpy(attention_mask_data, src_attention_mask, attention_mask_len * sizeof(jint));
+            MS_PRINT("runNetSentenceEncoder: Copied attention_mask as int32");
+        } else {
+            MS_PRINT("runNetSentenceEncoder: Unexpected attention_mask dtype: %d", 
+                     static_cast<int>(attention_mask_tensor->DataType()));
+            env->ReleaseIntArrayElements(jattention_mask, src_attention_mask, JNI_ABORT);
+            return nullptr;
+        }
+        env->ReleaseIntArrayElements(jattention_mask, src_attention_mask, JNI_ABORT);
+    }
+
+    // 7. Ejecutar Inferencia
+    MS_PRINT("runNetSentenceEncoder: Running model prediction...");
+    std::vector<mindspore::MSTensor> outputs;
+    mindspore::Status status = model->Predict(inputs, &outputs);
+
+    if (status != mindspore::kSuccess) {
+        MS_PRINT("runNetSentenceEncoder: Model Predict failed! Error: %d", status.StatusCode());
+        return nullptr;
+    }
+    
+    if (outputs.empty()) {
+        MS_PRINT("runNetSentenceEncoder: Model returned no outputs");
+        return nullptr;
+    }
+
+    MS_PRINT("runNetSentenceEncoder: Model returned %zu outputs", outputs.size());
+
+    // 8. Procesar Tensores de Salida
+    // Para sentence encoder, buscamos el tensor de embeddings pooled (normalmente [1, 384])
+    const mindspore::MSTensor *best_output = nullptr;
+    const size_t EXPECTED_EMBEDDING_DIM = 384;
+    
+    for (size_t i = 0; i < outputs.size(); i++) {
+        const auto &out = outputs[i];
+        auto shape = out.Shape();
+        std::string shapeStr = "";
+        for (size_t j = 0; j < shape.size(); j++) {
+            shapeStr += std::to_string(shape[j]);
+            if (j < shape.size() - 1) shapeStr += ", ";
+        }
+        MS_PRINT("runNetSentenceEncoder: Output[%zu] name='%s', shape=[%s], dtype=%d, elements=%zu",
+                 i, out.Name().c_str(), shapeStr.c_str(), 
+                 static_cast<int>(out.DataType()), out.ElementNum());
+        
+        // Prioridad 1: Buscar tensor con exactamente EMBEDDING_DIM elementos (el pooled output)
+        if (out.ElementNum() == EXPECTED_EMBEDDING_DIM) {
+            best_output = &out;
+            MS_PRINT("runNetSentenceEncoder: Selected output[%zu] '%s' - has exactly %zu elements (pooled embedding)", 
+                     i, out.Name().c_str(), EXPECTED_EMBEDDING_DIM);
+            break; // Este es el que queremos
+        }
+        
+        // Prioridad 2: Buscar por nombre (sentence_embedding, pooler_output)
+        std::string name = out.Name();
+        if (name.find("sentence") != std::string::npos || 
+            name.find("pooler") != std::string::npos ||
+            name.find("embedding") != std::string::npos) {
+            best_output = &out;
+            MS_PRINT("runNetSentenceEncoder: Selected output '%s' by name match", name.c_str());
+        }
+        
+        // Fallback: usar el primer output si no encontramos mejor
+        if (!best_output) {
+            best_output = &out;
+        }
+    }
+
+    if (!best_output) {
+        MS_PRINT("runNetSentenceEncoder: No suitable output tensor found");
+        return nullptr;
+    }
+
+    if (best_output->DataType() != mindspore::DataType::kNumberTypeFloat32) {
+        MS_PRINT("runNetSentenceEncoder: Output dtype is not Float32: %d", 
+                 static_cast<int>(best_output->DataType()));
+        return nullptr;
+    }
+
+    const float *out_data_ptr = static_cast<const float *>(best_output->Data().get());
+    if (!out_data_ptr) {
+        MS_PRINT("runNetSentenceEncoder: Failed to get data from output tensor");
+        return nullptr;
+    }
+    
+    size_t out_elements = best_output->ElementNum();
+    MS_PRINT("runNetSentenceEncoder: Returning %zu float elements", out_elements);
+
+    jfloatArray joutput_array = env->NewFloatArray(static_cast<jsize>(out_elements));
+    if (!joutput_array) {
+        MS_PRINT("runNetSentenceEncoder: Failed to create output jfloatArray");
+        return nullptr;
+    }
+    env->SetFloatArrayRegion(joutput_array, 0, static_cast<jsize>(out_elements), out_data_ptr);
+
+    MS_PRINT("runNetSentenceEncoder: Success!");
+    return joutput_array;
+}
