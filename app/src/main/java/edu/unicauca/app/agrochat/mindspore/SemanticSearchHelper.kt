@@ -65,6 +65,11 @@ class SemanticSearchHelper(private val context: Context) {
         val entryId: Int
     )
     
+    data class ContextResult(
+        val contexts: List<MatchResult>,
+        val combinedContext: String
+    )
+    
     /**
      * Inicializa el sistema cargando embeddings y base de conocimiento
      */
@@ -598,6 +603,141 @@ class SemanticSearchHelper(private val context: Context) {
         
         val denominator = sqrt(norm1) * sqrt(norm2)
         return if (denominator > 0) dotProduct / denominator else 0f
+    }
+    
+    /**
+     * Busca los K mejores contextos para RAG (Retrieval Augmented Generation)
+     * Esto permite que el LLM tenga múltiples fuentes de información
+     * 
+     * @param userQuery La pregunta del usuario
+     * @param topK Número de contextos a recuperar (default 3)
+     * @param minScore Score mínimo para incluir un resultado (default 0.4)
+     * @return ContextResult con los contextos encontrados
+     */
+    fun findTopKContexts(userQuery: String, topK: Int = 3, minScore: Float = 0.4f): ContextResult {
+        if (!isInitialized) {
+            Log.e(TAG, "SemanticSearchHelper no inicializado")
+            return ContextResult(emptyList(), "")
+        }
+        
+        val embeddings = kbEmbeddings ?: return ContextResult(emptyList(), "")
+        val questions = kbQuestions ?: return ContextResult(emptyList(), "")
+        val entryIds = kbEntryIds ?: return ContextResult(emptyList(), "")
+        val entries = kbEntries ?: return ContextResult(emptyList(), "")
+        
+        val startTime = System.currentTimeMillis()
+        
+        // Calcular embedding de la query o usar fallback
+        val queryEmbedding = if (useMindSporeEncoder) {
+            computeEmbedding(userQuery)
+        } else {
+            null
+        }
+        
+        // Lista de (índice, score) para ordenar
+        val scores = mutableListOf<Pair<Int, Float>>()
+        
+        // Variable para tracking del mejor score semántico
+        var bestSemanticScore = -1f
+        var bestSemanticIdx = -1
+        
+        if (queryEmbedding != null) {
+            // Búsqueda semántica real con embeddings
+            for (i in embeddings.indices) {
+                val score = cosineSimilarity(queryEmbedding, embeddings[i])
+                if (score > bestSemanticScore) {
+                    bestSemanticScore = score
+                    bestSemanticIdx = i
+                }
+                if (score >= minScore) {
+                    scores.add(i to score)
+                }
+            }
+            Log.d(TAG, "Búsqueda semántica: mejor score=$bestSemanticScore, pregunta='${if (bestSemanticIdx >= 0) questions[bestSemanticIdx] else "N/A"}'")
+            
+            // Si no hay buenos matches semánticos, usar fallback de texto
+            if (scores.isEmpty()) {
+                Log.d(TAG, "Sin matches semánticos (minScore=$minScore), usando fallback de texto")
+                val queryLower = userQuery.lowercase().trim()
+                var bestTextScore = 0f
+                var bestTextQuestion = ""
+                for (i in questions.indices) {
+                    val questionLower = questions[i].lowercase()
+                    val textScore = calculateTextSimilarity(queryLower, questionLower)
+                    if (textScore > bestTextScore) {
+                        bestTextScore = textScore
+                        bestTextQuestion = questions[i]
+                    }
+                    if (textScore >= 0.2f) {
+                        scores.add(i to textScore)
+                    }
+                }
+                Log.d(TAG, "Fallback texto: mejor score=$bestTextScore, pregunta='$bestTextQuestion', total matches=${scores.size}")
+            }
+        } else {
+            // Fallback: similitud de texto
+            val queryLower = userQuery.lowercase().trim()
+            for (i in questions.indices) {
+                val questionLower = questions[i].lowercase()
+                val score = calculateTextSimilarity(queryLower, questionLower)
+                if (score >= minScore) {
+                    scores.add(i to score)
+                }
+            }
+        }
+        
+        // Ordenar por score descendente y tomar top K
+        val topResults = scores.sortedByDescending { it.second }.take(topK)
+        
+        // Evitar duplicados de la misma entrada (diferentes preguntas pueden apuntar a la misma respuesta)
+        val seenEntryIds = mutableSetOf<Int>()
+        val uniqueResults = mutableListOf<MatchResult>()
+        
+        for ((idx, score) in topResults) {
+            val entryId = entryIds[idx]
+            if (entryId !in seenEntryIds) {
+                seenEntryIds.add(entryId)
+                val entry = entries[entryId]!!
+                uniqueResults.add(
+                    MatchResult(
+                        answer = entry.answer,
+                        matchedQuestion = questions[idx],
+                        similarityScore = score,
+                        category = entry.category,
+                        entryId = entryId
+                    )
+                )
+            }
+        }
+        
+        val elapsedTime = System.currentTimeMillis() - startTime
+        Log.d(TAG, "findTopKContexts: ${uniqueResults.size} contextos en ${elapsedTime}ms")
+        
+        // Construir contexto combinado para el LLM
+        val combinedContext = buildCombinedContext(uniqueResults)
+        
+        return ContextResult(uniqueResults, combinedContext)
+    }
+    
+    /**
+     * Construye un contexto combinado formateado para el LLM
+     */
+    private fun buildCombinedContext(results: List<MatchResult>): String {
+        if (results.isEmpty()) return ""
+        
+        val sb = StringBuilder()
+        sb.append("Base de conocimiento agrícola relevante:\n\n")
+        
+        results.forEachIndexed { index, result ->
+            sb.append("【${index + 1}】 ${result.category.uppercase()}\n")
+            sb.append("Tema: ${result.matchedQuestion}\n")
+            sb.append("Información: ${result.answer}\n")
+            if (index < results.size - 1) {
+                sb.append("\n---\n\n")
+            }
+        }
+        
+        return sb.toString()
     }
     
     /**

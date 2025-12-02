@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import edu.unicauca.app.agrochat.llm.GroqService
+import edu.unicauca.app.agrochat.llm.LlamaService
 import edu.unicauca.app.agrochat.mindspore.SemanticSearchHelper
 import edu.unicauca.app.agrochat.ui.theme.AgroChatTheme
 import edu.unicauca.app.agrochat.voice.VoiceHelper
@@ -87,15 +88,19 @@ class MainActivity : ComponentActivity() {
     private var semanticSearchHelper: SemanticSearchHelper? = null
     private var voiceHelper: VoiceHelper? = null
     private var groqService: GroqService? = null
+    private var llamaService: LlamaService? = null
+    private var isLlamaLoaded by mutableStateOf(false)
     private var isListening by mutableStateOf(false)
     private var hasAudioPermission by mutableStateOf(false)
     private var isOnlineMode by mutableStateOf(false)
     private var showSettingsDialog by mutableStateOf(false)
+    private var isLlamaEnabled by mutableStateOf(true)  // Toggle para LLM local
     private val SIMILARITY_THRESHOLD = 0.55f
     
-    // SharedPreferences key para guardar API key
+    // SharedPreferences keys
     private val PREFS_NAME = "agrochat_prefs"
     private val KEY_GROQ_API = "groq_api_key"
+    private val KEY_LLAMA_ENABLED = "llama_enabled"
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -116,8 +121,14 @@ class MainActivity : ComponentActivity() {
             this, Manifest.permission.RECORD_AUDIO
         ) == PackageManager.PERMISSION_GRANTED
 
+        // Cargar preferencias
+        loadPreferences()
+        
         // Inicializar Groq
         initializeGroq()
+        
+        // Inicializar Llama local
+        initializeLlama()
         
         lifecycleScope.launch { initializeSemanticSearch() }
         if (hasAudioPermission) initializeVoice()
@@ -133,13 +144,16 @@ class MainActivity : ComponentActivity() {
                     isProcessing = isProcessing,
                     isListening = isListening,
                     isOnlineMode = isOnlineMode,
+                    isLlamaEnabled = isLlamaEnabled,
+                    isLlamaLoaded = isLlamaLoaded,
                     showSettingsDialog = showSettingsDialog,
                     onSendMessage = { sendMessage(it) },
                     onMicClick = { handleMicClick() },
                     onModeChange = { currentMode = it },
                     onSettingsClick = { showSettingsDialog = true },
                     onDismissSettings = { showSettingsDialog = false },
-                    onSaveApiKey = { key -> saveGroqApiKey(key) }
+                    onSaveApiKey = { key -> saveGroqApiKey(key) },
+                    onToggleLlama = { enabled -> toggleLlama(enabled) }
                 )
             }
         }
@@ -186,6 +200,20 @@ class MainActivity : ComponentActivity() {
         if (isListening) voiceHelper?.stopListening() else voiceHelper?.startListening()
     }
     
+    private fun loadPreferences() {
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        isLlamaEnabled = prefs.getBoolean(KEY_LLAMA_ENABLED, true)
+    }
+    
+    private fun toggleLlama(enabled: Boolean) {
+        isLlamaEnabled = enabled
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putBoolean(KEY_LLAMA_ENABLED, enabled).apply()
+        
+        val status = if (enabled) "LLM Local activado" else "LLM Local desactivado"
+        Toast.makeText(this, status, Toast.LENGTH_SHORT).show()
+    }
+    
     private fun initializeGroq() {
         groqService = GroqService(applicationContext)
         
@@ -195,6 +223,47 @@ class MainActivity : ComponentActivity() {
         if (!savedKey.isNullOrBlank()) {
             groqService?.setApiKey(savedKey)
             updateOnlineStatus()
+        }
+    }
+    
+    private fun initializeLlama() {
+        llamaService = LlamaService.getInstance()
+        
+        // Verificar si el modelo está disponible y cargarlo automáticamente
+        if (llamaService?.isModelAvailable(applicationContext) == true) {
+            Log.i("MainActivity", "Modelo Llama disponible (${llamaService?.getModelSizeMB(applicationContext)}MB), cargando automáticamente...")
+            
+            lifecycleScope.launch {
+                try {
+                    uiStatus = "Cargando LLM local..."
+                    val result = llamaService?.load(applicationContext)
+                    result?.onSuccess {
+                        isLlamaLoaded = true
+                        Log.i("MainActivity", "✓ Llama cargado exitosamente")
+                        
+                        // Si no hay internet, mostrar que Llama está listo
+                        updateOnlineStatus()
+                        if (!isOnlineMode && isLlamaEnabled) {
+                            withContext(Dispatchers.Main) {
+                                uiStatus = "Llama listo ✓"
+                                Toast.makeText(
+                                    applicationContext, 
+                                    "🦙 LLM Local activado automáticamente (offline)", 
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
+                    }?.onFailure { e ->
+                        Log.w("MainActivity", "Error cargando Llama: ${e.message}")
+                        isLlamaLoaded = false
+                    }
+                } catch (e: Exception) {
+                    Log.e("MainActivity", "Error inicializando Llama", e)
+                    isLlamaLoaded = false
+                }
+            }
+        } else {
+            Log.i("MainActivity", "Modelo Llama no disponible - usando solo búsqueda semántica")
         }
     }
     
@@ -211,7 +280,16 @@ class MainActivity : ComponentActivity() {
     }
     
     private fun updateOnlineStatus() {
-        isOnlineMode = groqService?.isAvailable() == true
+        // Verificar conectividad de red
+        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+        val activeNetwork = connectivityManager.activeNetwork
+        val capabilities = connectivityManager.getNetworkCapabilities(activeNetwork)
+        val hasInternet = capabilities?.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
+        
+        // Solo está en modo online si hay internet Y Groq está configurado
+        isOnlineMode = hasInternet && groqService?.isAvailable() == true
+        
+        Log.d("MainActivity", "updateOnlineStatus: hasInternet=$hasInternet, groqAvailable=${groqService?.isAvailable()}, isOnlineMode=$isOnlineMode")
     }
 
     private suspend fun initializeSemanticSearch() {
@@ -237,18 +315,36 @@ class MainActivity : ComponentActivity() {
 
         lifecycleScope.launch {
             isProcessing = true
-            updateOnlineStatus()  // Actualizar estado de conexión
-            uiStatus = if (isOnlineMode) "Consultando IA..." else "Pensando..."
+            
+            // Actualizar estado de conexión ANTES de procesar
+            updateOnlineStatus()
+            
+            // Mostrar estado según modo disponible
+            uiStatus = when {
+                isOnlineMode -> "Consultando IA online..."
+                isLlamaEnabled && isLlamaLoaded -> "Generando respuesta local..."
+                else -> "Buscando información..."
+            }
+            
             try {
                 val response = findResponse(userMessage)
                 chatMessages.add(ChatMessage(response, isUser = false))
                 lastResponse = response
-                uiStatus = if (isOnlineMode) "Online ✓" else "Offline"
+                
+                // Actualizar status final
+                uiStatus = when {
+                    isOnlineMode -> "Online ✓"
+                    isLlamaEnabled && isLlamaLoaded -> "Llama ✓"
+                    else -> "Offline"
+                }
+                
                 voiceHelper?.speak(response)
             } catch (e: Exception) {
+                Log.e("MainActivity", "Error en sendMessage", e)
                 val err = "Hubo un error. Intenta de nuevo."
                 chatMessages.add(ChatMessage(err, isUser = false))
                 lastResponse = err
+                uiStatus = "Error"
             } finally {
                 isProcessing = false
             }
@@ -256,9 +352,11 @@ class MainActivity : ComponentActivity() {
     }
 
     private suspend fun findResponse(userQuery: String): String = withContext(Dispatchers.IO) {
-        // Primero intentar con Groq si está disponible
-        if (groqService?.isAvailable() == true) {
-            Log.d("MainActivity", "Usando Groq LLM (online)")
+        Log.d("MainActivity", "findResponse: isOnlineMode=$isOnlineMode, isLlamaEnabled=$isLlamaEnabled, isLlamaLoaded=$isLlamaLoaded")
+        
+        // 1. Primero intentar con Groq si está disponible (online)
+        if (isOnlineMode && groqService?.isAvailable() == true) {
+            Log.d("MainActivity", "→ Usando Groq LLM (online)")
             
             // Preparar historial de conversación
             val history = chatMessages
@@ -272,29 +370,77 @@ class MainActivity : ComponentActivity() {
             
             result.fold(
                 onSuccess = { response ->
+                    Log.d("MainActivity", "✓ Groq respondió exitosamente")
                     return@withContext response
                 },
                 onFailure = { error ->
-                    Log.w("MainActivity", "Groq falló: ${error.message}, usando fallback offline")
-                    // Continuar con búsqueda offline
+                    Log.w("MainActivity", "✗ Groq falló: ${error.message}, usando fallback offline")
+                    // Continuar con LLM local o búsqueda offline
                 }
             )
         }
         
-        // Fallback: búsqueda semántica offline
-        Log.d("MainActivity", "Usando MindSpore (offline)")
-        val result = semanticSearchHelper?.findBestMatch(userQuery)
-        if (result == null) return@withContext "No pude procesar tu pregunta."
-        if (result.similarityScore < SIMILARITY_THRESHOLD) {
+        // 2. RAG: Obtener múltiples contextos relevantes de la KB (Top-3)
+        val ragContext = semanticSearchHelper?.findTopKContexts(
+            userQuery = userQuery,
+            topK = 3,
+            minScore = 0.4f
+        )
+        
+        val combinedKBContext = ragContext?.combinedContext
+        val bestMatch = ragContext?.contexts?.firstOrNull()
+        
+        Log.d("MainActivity", "RAG: ${ragContext?.contexts?.size ?: 0} contextos encontrados")
+        
+        // 3. Intentar con Llama local si está cargado Y habilitado (offline pero inteligente)
+        if (isLlamaEnabled && isLlamaLoaded && llamaService != null) {
+            Log.d("MainActivity", "→ Usando Llama LLM (offline local) con RAG")
+            
+            try {
+                val result = llamaService!!.generateAgriResponse(
+                    userQuery = userQuery,
+                    contextFromKB = combinedKBContext,  // Múltiples contextos
+                    maxTokens = 350  // Aumentado para respuestas más completas
+                )
+                
+                result.fold(
+                    onSuccess = { response ->
+                        val cleanResponse = response.trim()
+                        // Verificar que la respuesta tenga contenido significativo (más de 10 chars)
+                        if (cleanResponse.length > 10) {
+                            Log.d("MainActivity", "✓ Llama respondió exitosamente (${cleanResponse.length} chars)")
+                            return@withContext cleanResponse
+                        } else {
+                            Log.w("MainActivity", "✗ Llama respuesta muy corta: '$cleanResponse', usando fallback")
+                        }
+                    },
+                    onFailure = { error ->
+                        Log.w("MainActivity", "✗ Llama falló: ${error.message}, usando búsqueda semántica")
+                    }
+                )
+            } catch (e: Exception) {
+                Log.e("MainActivity", "✗ Error con Llama: ${e.message}", e)
+                // Continuar con búsqueda semántica
+            }
+        }
+        
+        // 4. Fallback final: búsqueda semántica pura (offline)
+        Log.d("MainActivity", "→ Usando MindSpore búsqueda semántica (offline)")
+        if (bestMatch == null) return@withContext "No pude procesar tu pregunta."
+        if (bestMatch.similarityScore < SIMILARITY_THRESHOLD) {
             return@withContext "No encontré información sobre eso.\n\nPuedo ayudarte con:\n• Cultivos\n• Plagas\n• Fertilización\n• Riego"
         }
-        return@withContext result.answer
+        Log.d("MainActivity", "✓ Usando respuesta de KB (score: ${bestMatch.similarityScore})")
+        return@withContext bestMatch.answer
     }
 
     override fun onDestroy() {
         super.onDestroy()
         voiceHelper?.release()
         semanticSearchHelper?.release()
+        lifecycleScope.launch {
+            llamaService?.unload()
+        }
     }
 }
 
@@ -308,13 +454,16 @@ fun AgroChatApp(
     isProcessing: Boolean,
     isListening: Boolean,
     isOnlineMode: Boolean,
+    isLlamaEnabled: Boolean,
+    isLlamaLoaded: Boolean,
     showSettingsDialog: Boolean,
     onSendMessage: (String) -> Unit,
     onMicClick: () -> Unit,
     onModeChange: (AppMode) -> Unit,
     onSettingsClick: () -> Unit,
     onDismissSettings: () -> Unit,
-    onSaveApiKey: (String) -> Unit
+    onSaveApiKey: (String) -> Unit,
+    onToggleLlama: (Boolean) -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -336,7 +485,10 @@ fun AgroChatApp(
         if (showSettingsDialog) {
             SettingsDialog(
                 onDismiss = onDismissSettings,
-                onSaveApiKey = onSaveApiKey
+                onSaveApiKey = onSaveApiKey,
+                isLlamaEnabled = isLlamaEnabled,
+                isLlamaLoaded = isLlamaLoaded,
+                onToggleLlama = onToggleLlama
             )
         }
     }
@@ -679,7 +831,10 @@ fun OnlineIndicator(isOnline: Boolean, onClick: () -> Unit) {
 @Composable
 fun SettingsDialog(
     onDismiss: () -> Unit,
-    onSaveApiKey: (String) -> Unit
+    onSaveApiKey: (String) -> Unit,
+    isLlamaEnabled: Boolean,
+    isLlamaLoaded: Boolean,
+    onToggleLlama: (Boolean) -> Unit
 ) {
     var apiKey by remember { mutableStateOf("") }
     
@@ -692,18 +847,89 @@ fun SettingsDialog(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Settings, null, tint = AgroColors.Accent)
                 Spacer(Modifier.width(12.dp))
-                Text("Configuración LLM")
+                Text("Configuración")
             }
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                // Sección LLM Local (Llama)
+                Surface(
+                    color = AgroColors.SurfaceLight,
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    "🦙",
+                                    fontSize = 20.sp
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    "LLM Local (Llama)",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = AgroColors.TextPrimary
+                                )
+                            }
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                if (isLlamaLoaded) "Modelo cargado (770MB)" else "Modelo no disponible",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (isLlamaLoaded) AgroColors.Accent else AgroColors.TextSecondary
+                            )
+                        }
+                        Switch(
+                            checked = isLlamaEnabled,
+                            onCheckedChange = { onToggleLlama(it) },
+                            enabled = isLlamaLoaded,
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = AgroColors.Accent,
+                                checkedTrackColor = AgroColors.Accent.copy(alpha = 0.5f),
+                                uncheckedThumbColor = AgroColors.TextSecondary,
+                                uncheckedTrackColor = AgroColors.SurfaceLight
+                            )
+                        )
+                    }
+                }
+                
+                if (isLlamaEnabled && isLlamaLoaded) {
+                    Text(
+                        "✓ Respuestas inteligentes offline con IA generativa",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AgroColors.Accent
+                    )
+                } else if (!isLlamaLoaded) {
+                    Text(
+                        "Copia el modelo GGUF a la carpeta de la app para habilitar",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AgroColors.TextSecondary
+                    )
+                }
+                
+                HorizontalDivider(color = AgroColors.SurfaceLight)
+                
+                // Sección Groq Online
                 Text(
-                    "Para respuestas más fluidas con IA, ingresa tu API key gratuita de Groq.",
+                    "☁️ LLM Online (Groq)",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = AgroColors.TextPrimary
+                )
+                
+                Text(
+                    "Para respuestas más fluidas cuando hay internet.",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 
                 Text(
-                    "Obtén tu key gratis en:\nconsole.groq.com",
+                    "Obtén tu key gratis en: console.groq.com",
                     style = MaterialTheme.typography.bodySmall,
                     color = AgroColors.Accent
                 )
@@ -725,12 +951,6 @@ fun SettingsDialog(
                         unfocusedTextColor = AgroColors.TextPrimary
                     )
                 )
-                
-                Text(
-                    "Sin API key, la app funciona offline con respuestas predefinidas.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = AgroColors.TextSecondary
-                )
             }
         },
         confirmButton = {
@@ -746,7 +966,7 @@ fun SettingsDialog(
                 onClick = onDismiss,
                 colors = ButtonDefaults.textButtonColors(contentColor = AgroColors.TextSecondary)
             ) {
-                Text("Cancelar")
+                Text("Cerrar")
             }
         }
     )
