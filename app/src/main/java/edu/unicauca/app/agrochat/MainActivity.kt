@@ -3,6 +3,7 @@ package edu.unicauca.app.agrochat
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -10,8 +11,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.view.PreviewView
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,9 +26,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.ChatBubble
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Cloud
@@ -39,16 +45,24 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import edu.unicauca.app.agrochat.llm.GroqService
 import edu.unicauca.app.agrochat.llm.LlamaService
 import edu.unicauca.app.agrochat.mindspore.SemanticSearchHelper
 import edu.unicauca.app.agrochat.ui.theme.AgroChatTheme
+import edu.unicauca.app.agrochat.vision.CameraHelper
+import edu.unicauca.app.agrochat.vision.DiseaseResult
+import edu.unicauca.app.agrochat.vision.PlantDiseaseClassifier
 import edu.unicauca.app.agrochat.voice.VoiceHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -72,10 +86,12 @@ object AgroColors {
 data class ChatMessage(
     val text: String,
     val isUser: Boolean,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    val imageBitmap: Bitmap? = null,  // Para mensajes con imagen
+    val diseaseResult: DiseaseResult? = null  // Para resultados de diagnóstico
 )
 
-enum class AppMode { VOICE, CHAT }
+enum class AppMode { VOICE, CHAT, CAMERA }
 
 class MainActivity : ComponentActivity() {
 
@@ -97,6 +113,15 @@ class MainActivity : ComponentActivity() {
     private var isLlamaEnabled by mutableStateOf(true)  // Toggle para LLM local
     private val SIMILARITY_THRESHOLD = 0.55f
     
+    // Diagnóstico visual
+    private var plantDiseaseClassifier: PlantDiseaseClassifier? = null
+    private var cameraHelper: CameraHelper? = null
+    private var isDiagnosticReady by mutableStateOf(false)
+    private var hasCameraPermission by mutableStateOf(false)
+    private var capturedBitmap by mutableStateOf<Bitmap?>(null)
+    private var lastDiagnosis by mutableStateOf<DiseaseResult?>(null)
+    private var isDiagnosing by mutableStateOf(false)
+    
     // SharedPreferences keys
     private val PREFS_NAME = "agrochat_prefs"
     private val KEY_GROQ_API = "groq_api_key"
@@ -112,6 +137,17 @@ class MainActivity : ComponentActivity() {
             Toast.makeText(this, "Se necesita permiso de micrófono", Toast.LENGTH_LONG).show()
         }
     }
+    
+    private val requestCameraPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        hasCameraPermission = isGranted
+        if (isGranted) {
+            currentMode = AppMode.CAMERA
+        } else {
+            Toast.makeText(this, "Se necesita permiso de cámara para diagnóstico visual", Toast.LENGTH_LONG).show()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -119,6 +155,10 @@ class MainActivity : ComponentActivity() {
 
         hasAudioPermission = ContextCompat.checkSelfPermission(
             this, Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
+        
+        hasCameraPermission = ContextCompat.checkSelfPermission(
+            this, Manifest.permission.CAMERA
         ) == PackageManager.PERMISSION_GRANTED
 
         // Cargar preferencias
@@ -129,6 +169,9 @@ class MainActivity : ComponentActivity() {
         
         // Inicializar Llama local
         initializeLlama()
+        
+        // Inicializar clasificador de enfermedades
+        initializeDiagnostic()
         
         lifecycleScope.launch { initializeSemanticSearch() }
         if (hasAudioPermission) initializeVoice()
@@ -147,14 +190,147 @@ class MainActivity : ComponentActivity() {
                     isLlamaEnabled = isLlamaEnabled,
                     isLlamaLoaded = isLlamaLoaded,
                     showSettingsDialog = showSettingsDialog,
+                    isDiagnosticReady = isDiagnosticReady,
+                    isDiagnosing = isDiagnosing,
+                    capturedBitmap = capturedBitmap,
+                    lastDiagnosis = lastDiagnosis,
                     onSendMessage = { sendMessage(it) },
                     onMicClick = { handleMicClick() },
-                    onModeChange = { currentMode = it },
+                    onModeChange = { handleModeChange(it) },
                     onSettingsClick = { showSettingsDialog = true },
                     onDismissSettings = { showSettingsDialog = false },
                     onSaveApiKey = { key -> saveGroqApiKey(key) },
-                    onToggleLlama = { enabled -> toggleLlama(enabled) }
+                    onToggleLlama = { enabled -> toggleLlama(enabled) },
+                    onCaptureImage = { bitmap -> processCapture(bitmap) },
+                    onClearCapture = { clearCapture() },
+                    onDiagnosisToChat = { result -> diagnosisToChat(result) }
                 )
+            }
+        }
+    }
+    
+    private fun initializeDiagnostic() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                plantDiseaseClassifier = PlantDiseaseClassifier(applicationContext)
+                val success = plantDiseaseClassifier?.initialize() ?: false
+                
+                withContext(Dispatchers.Main) {
+                    isDiagnosticReady = success
+                    if (success) {
+                        Log.i("MainActivity", "✅ Diagnóstico visual inicializado")
+                    } else {
+                        Log.w("MainActivity", "⚠️ Modelo de diagnóstico no disponible - funcionalidad deshabilitada")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Error inicializando diagnóstico: ${e.message}", e)
+                withContext(Dispatchers.Main) {
+                    isDiagnosticReady = false
+                }
+            }
+        }
+    }
+    
+    private fun handleModeChange(mode: AppMode) {
+        if (mode == AppMode.CAMERA && !hasCameraPermission) {
+            requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        } else {
+            // Limpiar captura al salir del modo cámara
+            if (currentMode == AppMode.CAMERA && mode != AppMode.CAMERA) {
+                clearCapture()
+            }
+            currentMode = mode
+        }
+    }
+    
+    private fun processCapture(bitmap: Bitmap) {
+        capturedBitmap = bitmap
+        lastDiagnosis = null
+        
+        if (!isDiagnosticReady) {
+            Toast.makeText(this, "Modelo de diagnóstico no disponible", Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        lifecycleScope.launch {
+            isDiagnosing = true
+            uiStatus = "Analizando imagen..."
+            
+            try {
+                val result = withContext(Dispatchers.Default) {
+                    plantDiseaseClassifier?.classify(bitmap)
+                }
+                
+                lastDiagnosis = result
+                uiStatus = if (result != null) {
+                    "Diagnóstico completado ✓"
+                } else {
+                    "No se pudo identificar la planta"
+                }
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Error en diagnóstico: ${e.message}", e)
+                uiStatus = "Error analizando imagen"
+                Toast.makeText(applicationContext, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+                isDiagnosing = false
+            }
+        }
+    }
+    
+    private fun clearCapture() {
+        capturedBitmap = null
+        lastDiagnosis = null
+        isDiagnosing = false
+    }
+    
+    private fun diagnosisToChat(result: DiseaseResult) {
+        // Añadir mensaje visual al chat con la imagen y diagnóstico
+        chatMessages.add(ChatMessage(
+            text = "📸 Diagnóstico visual: ${result.displayName}",
+            isUser = true,
+            imageBitmap = capturedBitmap,
+            diseaseResult = result
+        ))
+        
+        // Cambiar a modo chat y buscar más información
+        currentMode = AppMode.CHAT
+        
+        // Generar consulta RAG basada en el diagnóstico
+        lifecycleScope.launch {
+            isProcessing = true
+            uiStatus = "Buscando tratamiento..."
+            
+            try {
+                val query = result.toRagQuery()
+                val response = findResponse(query)
+                
+                val fullResponse = buildString {
+                    append("🔍 **${result.displayName}**\n")
+                    append("🌿 Cultivo: ${result.crop}\n")
+                    append("📊 Confianza: ${(result.confidence * 100).toInt()}%\n\n")
+                    
+                    if (result.isHealthy) {
+                        append("✅ La planta se ve saludable.\n\n")
+                    } else {
+                        append("⚠️ Enfermedad detectada.\n\n")
+                    }
+                    
+                    append("**Recomendación:**\n")
+                    append(response)
+                }
+                
+                chatMessages.add(ChatMessage(fullResponse, isUser = false))
+                lastResponse = fullResponse
+                voiceHelper?.speak(response)
+                
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Error buscando tratamiento", e)
+                chatMessages.add(ChatMessage("No pude encontrar información del tratamiento.", isUser = false))
+            } finally {
+                isProcessing = false
+                uiStatus = "Listo"
+                clearCapture()
             }
         }
     }
@@ -438,6 +614,8 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
         voiceHelper?.release()
         semanticSearchHelper?.release()
+        plantDiseaseClassifier?.release()
+        cameraHelper?.release()
         lifecycleScope.launch {
             llamaService?.unload()
         }
@@ -457,13 +635,20 @@ fun AgroChatApp(
     isLlamaEnabled: Boolean,
     isLlamaLoaded: Boolean,
     showSettingsDialog: Boolean,
+    isDiagnosticReady: Boolean,
+    isDiagnosing: Boolean,
+    capturedBitmap: Bitmap?,
+    lastDiagnosis: DiseaseResult?,
     onSendMessage: (String) -> Unit,
     onMicClick: () -> Unit,
     onModeChange: (AppMode) -> Unit,
     onSettingsClick: () -> Unit,
     onDismissSettings: () -> Unit,
     onSaveApiKey: (String) -> Unit,
-    onToggleLlama: (Boolean) -> Unit
+    onToggleLlama: (Boolean) -> Unit,
+    onCaptureImage: (Bitmap) -> Unit,
+    onClearCapture: () -> Unit,
+    onDiagnosisToChat: (DiseaseResult) -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -476,8 +661,29 @@ fun AgroChatApp(
             label = "mode"
         ) { mode ->
             when (mode) {
-                AppMode.VOICE -> VoiceModeScreen(lastResponse, statusMessage, isModelReady, isProcessing, isListening, isOnlineMode, onMicClick, onSettingsClick) { onModeChange(AppMode.CHAT) }
-                AppMode.CHAT -> ChatModeScreen(messages, statusMessage, isModelReady, isProcessing, isListening, isOnlineMode, onSendMessage, onMicClick, onSettingsClick) { onModeChange(AppMode.VOICE) }
+                AppMode.VOICE -> VoiceModeScreen(
+                    lastResponse, statusMessage, isModelReady, isProcessing, isListening, isOnlineMode, 
+                    isDiagnosticReady, onMicClick, onSettingsClick,
+                    onSwitchToChat = { onModeChange(AppMode.CHAT) },
+                    onSwitchToCamera = { onModeChange(AppMode.CAMERA) }
+                )
+                AppMode.CHAT -> ChatModeScreen(
+                    messages, statusMessage, isModelReady, isProcessing, isListening, isOnlineMode,
+                    isDiagnosticReady, onSendMessage, onMicClick, onSettingsClick,
+                    onSwitchToVoice = { onModeChange(AppMode.VOICE) },
+                    onSwitchToCamera = { onModeChange(AppMode.CAMERA) }
+                )
+                AppMode.CAMERA -> CameraModeScreen(
+                    statusMessage = statusMessage,
+                    isDiagnosticReady = isDiagnosticReady,
+                    isDiagnosing = isDiagnosing,
+                    capturedBitmap = capturedBitmap,
+                    lastDiagnosis = lastDiagnosis,
+                    onCaptureImage = onCaptureImage,
+                    onClearCapture = onClearCapture,
+                    onDiagnosisToChat = onDiagnosisToChat,
+                    onSwitchToChat = { onModeChange(AppMode.CHAT) }
+                )
             }
         }
         
@@ -502,9 +708,11 @@ fun VoiceModeScreen(
     isProcessing: Boolean,
     isListening: Boolean,
     isOnlineMode: Boolean,
+    isDiagnosticReady: Boolean,
     onMicClick: () -> Unit,
     onSettingsClick: () -> Unit,
-    onSwitchToChat: () -> Unit
+    onSwitchToChat: () -> Unit,
+    onSwitchToCamera: () -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -580,17 +788,34 @@ fun VoiceModeScreen(
             }
         }
         
-        // Botón para cambiar a chat
-        FloatingActionButton(
-            onClick = onSwitchToChat,
+        // Botones flotantes
+        Column(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(24.dp)
                 .navigationBarsPadding(),
-            containerColor = AgroColors.SurfaceLight,
-            contentColor = AgroColors.TextPrimary
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Icon(Icons.Default.ChatBubble, "Modo Chat")
+            // Botón de cámara (si diagnóstico disponible)
+            if (isDiagnosticReady) {
+                FloatingActionButton(
+                    onClick = onSwitchToCamera,
+                    containerColor = AgroColors.Accent,
+                    contentColor = Color.White,
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(Icons.Default.CameraAlt, "Diagnóstico Visual", modifier = Modifier.size(24.dp))
+                }
+            }
+            
+            // Botón para cambiar a chat
+            FloatingActionButton(
+                onClick = onSwitchToChat,
+                containerColor = AgroColors.SurfaceLight,
+                contentColor = AgroColors.TextPrimary
+            ) {
+                Icon(Icons.Default.ChatBubble, "Modo Chat")
+            }
         }
     }
 }
@@ -657,10 +882,12 @@ fun ChatModeScreen(
     isProcessing: Boolean,
     isListening: Boolean,
     isOnlineMode: Boolean,
+    isDiagnosticReady: Boolean,
     onSendMessage: (String) -> Unit,
     onMicClick: () -> Unit,
     onSettingsClick: () -> Unit,
-    onSwitchToVoice: () -> Unit
+    onSwitchToVoice: () -> Unit,
+    onSwitchToCamera: () -> Unit
 ) {
     var inputText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
@@ -679,6 +906,11 @@ fun ChatModeScreen(
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OnlineIndicator(isOnlineMode, onSettingsClick)
+                    if (isDiagnosticReady) {
+                        IconButton(onClick = onSwitchToCamera, Modifier.size(48.dp).background(AgroColors.Accent, CircleShape)) {
+                            Icon(Icons.Default.CameraAlt, "Diagnóstico Visual", tint = Color.White)
+                        }
+                    }
                     IconButton(onClick = onSwitchToVoice, Modifier.size(48.dp).background(AgroColors.SurfaceLight, CircleShape)) {
                         Icon(Icons.Default.RecordVoiceOver, "Modo Voz", tint = AgroColors.Accent)
                     }
@@ -972,4 +1204,399 @@ fun SettingsDialog(
     )
 }
 
+// ==================== PANTALLA DE CÁMARA ====================
 
+@Composable
+fun CameraModeScreen(
+    statusMessage: String,
+    isDiagnosticReady: Boolean,
+    isDiagnosing: Boolean,
+    capturedBitmap: Bitmap?,
+    lastDiagnosis: DiseaseResult?,
+    onCaptureImage: (Bitmap) -> Unit,
+    onClearCapture: () -> Unit,
+    onDiagnosisToChat: (DiseaseResult) -> Unit,
+    onSwitchToChat: () -> Unit
+) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    
+    var cameraHelper by remember { mutableStateOf<CameraHelper?>(null) }
+    var isCameraReady by remember { mutableStateOf(false) }
+    
+    // Inicializar CameraHelper
+    DisposableEffect(Unit) {
+        cameraHelper = CameraHelper(context)
+        onDispose {
+            cameraHelper?.release()
+        }
+    }
+    
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+        ) {
+            // Header
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = AgroColors.Surface,
+                tonalElevation = 4.dp
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text("📸", fontSize = 28.sp)
+                        Column {
+                            Text(
+                                "Diagnóstico Visual",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = AgroColors.TextPrimary
+                            )
+                            Text(
+                                statusMessage,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = AgroColors.TextSecondary
+                            )
+                        }
+                    }
+                    
+                    IconButton(
+                        onClick = onSwitchToChat,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(AgroColors.SurfaceLight, CircleShape)
+                    ) {
+                        Icon(
+                            Icons.Default.Close,
+                            "Cerrar",
+                            tint = AgroColors.TextPrimary
+                        )
+                    }
+                }
+            }
+            
+            // Área principal
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
+                if (capturedBitmap != null) {
+                    // Mostrar imagen capturada y resultado
+                    CapturedImageView(
+                        bitmap = capturedBitmap,
+                        diagnosis = lastDiagnosis,
+                        isDiagnosing = isDiagnosing,
+                        onRetake = onClearCapture,
+                        onGetTreatment = { 
+                            lastDiagnosis?.let { onDiagnosisToChat(it) }
+                        }
+                    )
+                } else {
+                    // Preview de cámara
+                    CameraPreview(
+                        cameraHelper = cameraHelper,
+                        lifecycleOwner = lifecycleOwner,
+                        onCameraReady = { isCameraReady = true },
+                        onCapture = { bitmap -> onCaptureImage(bitmap) }
+                    )
+                }
+            }
+        }
+        
+        // Instrucciones
+        if (capturedBitmap == null && isCameraReady) {
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 120.dp)
+                    .padding(horizontal = 32.dp),
+                color = AgroColors.Surface.copy(alpha = 0.9f),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Text(
+                    "Enfoca una hoja de la planta y toca para capturar",
+                    modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AgroColors.TextPrimary,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun CameraPreview(
+    cameraHelper: CameraHelper?,
+    lifecycleOwner: LifecycleOwner,
+    onCameraReady: () -> Unit,
+    onCapture: (Bitmap) -> Unit
+) {
+    var isCapturing by remember { mutableStateOf(false) }
+    
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Preview de cámara
+        AndroidView(
+            factory = { ctx ->
+                PreviewView(ctx).apply {
+                    implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+                    scaleType = PreviewView.ScaleType.FILL_CENTER
+                    
+                    cameraHelper?.startCamera(
+                        lifecycleOwner = lifecycleOwner,
+                        previewView = this,
+                        callback = object : CameraHelper.CameraCallback {
+                            override fun onCameraReady() {
+                                onCameraReady()
+                            }
+                            override fun onCameraError(message: String) {
+                                Log.e("CameraPreview", "Error: $message")
+                            }
+                        }
+                    )
+                }
+            },
+            modifier = Modifier.fillMaxSize()
+        )
+        
+        // Botón de captura
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 32.dp)
+                .navigationBarsPadding()
+        ) {
+            Surface(
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(CircleShape)
+                    .clickable(enabled = !isCapturing) {
+                        isCapturing = true
+                        cameraHelper?.captureImage(object : CameraHelper.CaptureCallback {
+                            override fun onImageCaptured(bitmap: Bitmap) {
+                                isCapturing = false
+                                onCapture(bitmap)
+                            }
+                            override fun onCaptureError(message: String) {
+                                isCapturing = false
+                                Log.e("CameraPreview", "Error capturando: $message")
+                            }
+                        })
+                    },
+                color = Color.White,
+                shape = CircleShape,
+                shadowElevation = 8.dp
+            ) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                    if (isCapturing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(40.dp),
+                            color = AgroColors.Primary,
+                            strokeWidth = 3.dp
+                        )
+                    } else {
+                        Icon(
+                            Icons.Default.PhotoCamera,
+                            contentDescription = "Capturar",
+                            tint = AgroColors.Primary,
+                            modifier = Modifier.size(40.dp)
+                        )
+                    }
+                }
+            }
+        }
+        
+        // Marco de enfoque
+        Box(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .size(280.dp)
+                .border(3.dp, AgroColors.Accent.copy(alpha = 0.6f), RoundedCornerShape(24.dp))
+        )
+    }
+}
+
+@Composable
+fun CapturedImageView(
+    bitmap: Bitmap,
+    diagnosis: DiseaseResult?,
+    isDiagnosing: Boolean,
+    onRetake: () -> Unit,
+    onGetTreatment: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Imagen capturada
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            shape = RoundedCornerShape(24.dp),
+            shadowElevation = 8.dp
+        ) {
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = "Imagen capturada",
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        
+        // Resultado del diagnóstico
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = AgroColors.Surface,
+            shape = RoundedCornerShape(20.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                if (isDiagnosing) {
+                    // Estado: Analizando
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = AgroColors.Accent,
+                            strokeWidth = 3.dp
+                        )
+                        Text(
+                            "Analizando imagen...",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = AgroColors.TextPrimary
+                        )
+                    }
+                } else if (diagnosis != null) {
+                    // Resultado obtenido
+                    val emoji = if (diagnosis.isHealthy) "✅" else "⚠️"
+                    val statusColor = if (diagnosis.isHealthy) AgroColors.Accent else Color(0xFFFF9800)
+                    
+                    Text(
+                        "$emoji ${diagnosis.displayName}",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = AgroColors.TextPrimary,
+                        textAlign = TextAlign.Center
+                    )
+                    
+                    Spacer(Modifier.height(8.dp))
+                    
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // Cultivo
+                        Surface(
+                            color = AgroColors.SurfaceLight,
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                "🌿 ${diagnosis.crop}",
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = AgroColors.TextPrimary
+                            )
+                        }
+                        
+                        // Confianza
+                        Surface(
+                            color = statusColor.copy(alpha = 0.2f),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                "📊 ${(diagnosis.confidence * 100).toInt()}%",
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = statusColor
+                            )
+                        }
+                    }
+                    
+                    Spacer(Modifier.height(20.dp))
+                    
+                    // Botones de acción
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Botón Retomar
+                        OutlinedButton(
+                            onClick = onRetake,
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = AgroColors.TextSecondary
+                            ),
+                            border = ButtonDefaults.outlinedButtonBorder(enabled = true).copy(
+                                brush = Brush.horizontalGradient(
+                                    listOf(AgroColors.SurfaceLight, AgroColors.SurfaceLight)
+                                )
+                            )
+                        ) {
+                            Icon(Icons.Default.CameraAlt, null, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Retomar")
+                        }
+                        
+                        // Botón Ver Tratamiento
+                        Button(
+                            onClick = onGetTreatment,
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = AgroColors.Accent
+                            )
+                        ) {
+                            Icon(Icons.Default.ChatBubble, null, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Tratamiento")
+                        }
+                    }
+                } else {
+                    // No se pudo identificar
+                    Text(
+                        "❓ No se pudo identificar",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = AgroColors.TextSecondary
+                    )
+                    
+                    Spacer(Modifier.height(8.dp))
+                    
+                    Text(
+                        "Intenta con mejor iluminación o enfocando solo la hoja",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = AgroColors.TextSecondary,
+                        textAlign = TextAlign.Center
+                    )
+                    
+                    Spacer(Modifier.height(16.dp))
+                    
+                    Button(
+                        onClick = onRetake,
+                        colors = ButtonDefaults.buttonColors(containerColor = AgroColors.Accent)
+                    ) {
+                        Icon(Icons.Default.CameraAlt, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Intentar de nuevo")
+                    }
+                }
+            }
+        }
+    }
+}

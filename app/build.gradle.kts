@@ -104,6 +104,13 @@ dependencies {
     // Vosk - Reconocimiento de voz offline (sin Google)
     implementation("com.alphacephei:vosk-android:0.3.47")
     
+    // CameraX para diagnóstico visual de plantas
+    val cameraxVersion = "1.3.1"
+    implementation("androidx.camera:camera-core:$cameraxVersion")
+    implementation("androidx.camera:camera-camera2:$cameraxVersion")
+    implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
+    implementation("androidx.camera:camera-view:$cameraxVersion")
+    
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

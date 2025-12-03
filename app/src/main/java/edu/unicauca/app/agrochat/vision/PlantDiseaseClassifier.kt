@@ -1,0 +1,267 @@
+package edu.unicauca.app.agrochat.vision
+
+import android.content.Context
+import android.graphics.Bitmap
+import android.util.Log
+import edu.unicauca.app.agrochat.MindSporeHelper
+import org.json.JSONObject
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+
+/**
+ * Resultado de la clasificación de enfermedad de planta
+ */
+data class DiseaseResult(
+    val id: Int,
+    val name: String,
+    val displayName: String,
+    val crop: String,
+    val confidence: Float,
+    val isHealthy: Boolean
+) {
+    /**
+     * Genera una query optimizada para búsqueda RAG
+     */
+    fun toRagQuery(): String {
+        return if (isHealthy) {
+            "Cuidados preventivos para $crop sano mantenimiento"
+        } else {
+            "$displayName tratamiento control $crop enfermedad"
+        }
+    }
+}
+
+/**
+ * Clasificador de enfermedades de plantas usando MindSpore Lite.
+ * 
+ * Usa un modelo MobileNetV2 entrenado en el dataset PlantVillage
+ * para clasificar imágenes de hojas en 38 categorías (14 cultivos × enfermedades).
+ */
+class PlantDiseaseClassifier(private val context: Context) {
+    
+    companion object {
+        private const val TAG = "PlantDiseaseClassifier"
+        private const val MODEL_FILE = "plant_disease_model.ms"
+        private const val LABELS_FILE = "plant_disease_labels.json"
+        private const val INPUT_SIZE = 224
+        private const val PIXEL_SIZE = 3  // RGB
+        private const val IMAGE_MEAN = 127.5f
+        private const val IMAGE_STD = 127.5f
+        private const val MIN_CONFIDENCE = 0.5f  // Mínima confianza para reportar resultado
+    }
+    
+    private var modelHandle: Long = 0L
+    private var labels: List<LabelInfo> = emptyList()
+    private var isInitialized = false
+    
+    /**
+     * Información de cada etiqueta/clase del modelo
+     */
+    data class LabelInfo(
+        val id: Int,
+        val name: String,       // Nombre técnico (ej: "Tomato___Early_blight")
+        val display: String,    // Nombre en español (ej: "Tizón temprano tomate")
+        val crop: String        // Cultivo (ej: "Tomate")
+    )
+    
+    /**
+     * Inicializa el clasificador cargando el modelo y las etiquetas.
+     * 
+     * @return true si la inicialización fue exitosa
+     */
+    fun initialize(): Boolean {
+        if (isInitialized) {
+            Log.d(TAG, "Clasificador ya inicializado")
+            return true
+        }
+        
+        return try {
+            // Verificar si el modelo existe
+            if (!modelExists()) {
+                Log.w(TAG, "Modelo $MODEL_FILE no encontrado en assets. El diagnóstico visual no estará disponible.")
+                return false
+            }
+            
+            // Cargar etiquetas
+            labels = loadLabels()
+            if (labels.isEmpty()) {
+                Log.e(TAG, "No se pudieron cargar las etiquetas")
+                return false
+            }
+            
+            // Cargar modelo MindSpore
+            modelHandle = MindSporeHelper.loadModelFromAssets(context, MODEL_FILE, numThreads = 2)
+            
+            if (modelHandle == 0L) {
+                Log.e(TAG, "No se pudo cargar el modelo MindSpore")
+                return false
+            }
+            
+            isInitialized = true
+            Log.i(TAG, "✅ Clasificador inicializado con ${labels.size} clases")
+            true
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error inicializando clasificador: ${e.message}", e)
+            false
+        }
+    }
+    
+    /**
+     * Verifica si el modelo existe en assets
+     */
+    private fun modelExists(): Boolean {
+        return try {
+            context.assets.open(MODEL_FILE).use { true }
+        } catch (e: Exception) {
+            false
+        }
+    }
+    
+    /**
+     * Carga las etiquetas desde el archivo JSON
+     */
+    private fun loadLabels(): List<LabelInfo> {
+        return try {
+            val jsonString = context.assets.open(LABELS_FILE).bufferedReader().use { it.readText() }
+            val jsonObject = JSONObject(jsonString)
+            val labelsArray = jsonObject.getJSONArray("labels")
+            
+            (0 until labelsArray.length()).map { i ->
+                val label = labelsArray.getJSONObject(i)
+                LabelInfo(
+                    id = label.getInt("id"),
+                    name = label.getString("name"),
+                    display = label.getString("display"),
+                    crop = label.getString("crop")
+                )
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error cargando etiquetas: ${e.message}", e)
+            emptyList()
+        }
+    }
+    
+    /**
+     * Clasifica una imagen de hoja/planta para detectar enfermedades.
+     * 
+     * @param bitmap La imagen a clasificar (cualquier tamaño, se redimensiona internamente)
+     * @return DiseaseResult con la enfermedad detectada, o null si falla o confianza muy baja
+     */
+    fun classify(bitmap: Bitmap): DiseaseResult? {
+        if (!isInitialized) {
+            Log.e(TAG, "Clasificador no inicializado. Llama a initialize() primero.")
+            return null
+        }
+        
+        return try {
+            val startTime = System.currentTimeMillis()
+            
+            // 1. Redimensionar imagen a 224x224
+            val resizedBitmap = Bitmap.createScaledBitmap(bitmap, INPUT_SIZE, INPUT_SIZE, true)
+            Log.d(TAG, "Imagen redimensionada a ${INPUT_SIZE}x${INPUT_SIZE}")
+            
+            // 2. Preprocesar imagen a FloatArray normalizado
+            val inputData = preprocessImage(resizedBitmap)
+            
+            // 3. Ejecutar inferencia con MindSpore
+            val outputData = MindSporeHelper.runNetFloat(modelHandle, inputData)
+            
+            if (outputData == null) {
+                Log.e(TAG, "La inferencia devolvió null")
+                return null
+            }
+            
+            // 4. Encontrar la clase con mayor probabilidad
+            var maxIndex = 0
+            var maxProb = outputData[0]
+            for (i in 1 until outputData.size) {
+                if (outputData[i] > maxProb) {
+                    maxProb = outputData[i]
+                    maxIndex = i
+                }
+            }
+            
+            val elapsedTime = System.currentTimeMillis() - startTime
+            Log.d(TAG, "Inferencia completada en ${elapsedTime}ms")
+            
+            // 5. Verificar confianza mínima
+            if (maxProb < MIN_CONFIDENCE) {
+                Log.w(TAG, "Confianza muy baja: $maxProb. No se puede determinar enfermedad.")
+                return null
+            }
+            
+            // 6. Obtener información de la etiqueta
+            val labelInfo = labels.getOrNull(maxIndex)
+            if (labelInfo == null) {
+                Log.e(TAG, "Índice de clase $maxIndex fuera de rango")
+                return null
+            }
+            
+            val result = DiseaseResult(
+                id = labelInfo.id,
+                name = labelInfo.name,
+                displayName = labelInfo.display,
+                crop = labelInfo.crop,
+                confidence = maxProb,
+                isHealthy = labelInfo.name.contains("healthy", ignoreCase = true)
+            )
+            
+            Log.i(TAG, "✅ Resultado: ${result.displayName} (${(result.confidence * 100).toInt()}%)")
+            result
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error clasificando imagen: ${e.message}", e)
+            null
+        }
+    }
+    
+    /**
+     * Preprocesa la imagen para el modelo:
+     * - Extrae valores RGB
+     * - Normaliza a rango [-1, 1]
+     * 
+     * @param bitmap Imagen de 224x224
+     * @return FloatArray de tamaño 224*224*3
+     */
+    private fun preprocessImage(bitmap: Bitmap): FloatArray {
+        val floatArray = FloatArray(INPUT_SIZE * INPUT_SIZE * PIXEL_SIZE)
+        val intValues = IntArray(INPUT_SIZE * INPUT_SIZE)
+        
+        bitmap.getPixels(intValues, 0, INPUT_SIZE, 0, 0, INPUT_SIZE, INPUT_SIZE)
+        
+        var pixelIndex = 0
+        for (pixelValue in intValues) {
+            // Extraer canales RGB y normalizar a [-1, 1]
+            floatArray[pixelIndex++] = ((pixelValue shr 16 and 0xFF) - IMAGE_MEAN) / IMAGE_STD  // R
+            floatArray[pixelIndex++] = ((pixelValue shr 8 and 0xFF) - IMAGE_MEAN) / IMAGE_STD   // G
+            floatArray[pixelIndex++] = ((pixelValue and 0xFF) - IMAGE_MEAN) / IMAGE_STD         // B
+        }
+        
+        return floatArray
+    }
+    
+    /**
+     * Verifica si el clasificador está listo para usar
+     */
+    fun isReady(): Boolean = isInitialized && modelHandle != 0L
+    
+    /**
+     * Obtiene la lista de cultivos soportados
+     */
+    fun getSupportedCrops(): List<String> {
+        return labels.map { it.crop }.distinct()
+    }
+    
+    /**
+     * Libera recursos del modelo
+     */
+    fun release() {
+        if (modelHandle != 0L) {
+            MindSporeHelper.unloadModel(modelHandle)
+            modelHandle = 0L
+        }
+        isInitialized = false
+        Log.d(TAG, "Recursos liberados")
+    }
+}
