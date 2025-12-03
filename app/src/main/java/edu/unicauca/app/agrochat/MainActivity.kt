@@ -1304,13 +1304,24 @@ fun CameraModeScreen(
                         }
                     )
                 } else {
-                    // Preview de cámara
-                    CameraPreview(
-                        cameraHelper = cameraHelper,
-                        lifecycleOwner = lifecycleOwner,
-                        onCameraReady = { isCameraReady = true },
-                        onCapture = { bitmap -> onCaptureImage(bitmap) }
-                    )
+                    val currentCameraHelper = cameraHelper
+                    if (currentCameraHelper != null) {
+                        // Preview de cámara
+                        CameraPreview(
+                            cameraHelper = currentCameraHelper,
+                            lifecycleOwner = lifecycleOwner,
+                            onCameraReady = { isCameraReady = true },
+                            onCapture = { bitmap -> onCaptureImage(bitmap) }
+                        )
+                    } else {
+                        // Cargando cámara
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = AgroColors.Primary)
+                        }
+                    }
                 }
             }
         }
@@ -1339,33 +1350,44 @@ fun CameraModeScreen(
 
 @Composable
 fun CameraPreview(
-    cameraHelper: CameraHelper?,
+    cameraHelper: CameraHelper,
     lifecycleOwner: LifecycleOwner,
     onCameraReady: () -> Unit,
     onCapture: (Bitmap) -> Unit
 ) {
     var isCapturing by remember { mutableStateOf(false) }
     
+    // Track si la cámara ya fue iniciada con este helper
+    var cameraStarted by remember { mutableStateOf(false) }
+    
     Box(modifier = Modifier.fillMaxSize()) {
-        // Preview de cámara
+        // Preview de cámara - usar factory para iniciar solo una vez
         AndroidView(
             factory = { ctx ->
                 PreviewView(ctx).apply {
                     implementationMode = PreviewView.ImplementationMode.COMPATIBLE
                     scaleType = PreviewView.ScaleType.FILL_CENTER
                     
-                    cameraHelper?.startCamera(
-                        lifecycleOwner = lifecycleOwner,
-                        previewView = this,
-                        callback = object : CameraHelper.CameraCallback {
-                            override fun onCameraReady() {
-                                onCameraReady()
-                            }
-                            override fun onCameraError(message: String) {
-                                Log.e("CameraPreview", "Error: $message")
-                            }
+                    // Iniciar cámara inmediatamente en factory
+                    post {
+                        if (!cameraStarted) {
+                            cameraStarted = true
+                            Log.d("CameraPreview", "Iniciando cámara en factory...")
+                            cameraHelper.startCamera(
+                                lifecycleOwner = lifecycleOwner,
+                                previewView = this,
+                                callback = object : CameraHelper.CameraCallback {
+                                    override fun onCameraReady() {
+                                        Log.d("CameraPreview", "✅ Cámara lista")
+                                        onCameraReady()
+                                    }
+                                    override fun onCameraError(message: String) {
+                                        Log.e("CameraPreview", "Error: $message")
+                                    }
+                                }
+                            )
                         }
-                    )
+                    }
                 }
             },
             modifier = Modifier.fillMaxSize()
@@ -1384,14 +1406,16 @@ fun CameraPreview(
                     .clip(CircleShape)
                     .clickable(enabled = !isCapturing) {
                         isCapturing = true
-                        cameraHelper?.captureImage(object : CameraHelper.CaptureCallback {
+                        Log.d("CameraPreview", "Capturando imagen...")
+                        cameraHelper.captureImage(object : CameraHelper.CaptureCallback {
                             override fun onImageCaptured(bitmap: Bitmap) {
                                 isCapturing = false
+                                Log.d("CameraPreview", "✅ Imagen capturada: ${bitmap.width}x${bitmap.height}")
                                 onCapture(bitmap)
                             }
                             override fun onCaptureError(message: String) {
                                 isCapturing = false
-                                Log.e("CameraPreview", "Error capturando: $message")
+                                Log.e("CameraPreview", "❌ Error capturando: $message")
                             }
                         })
                     },

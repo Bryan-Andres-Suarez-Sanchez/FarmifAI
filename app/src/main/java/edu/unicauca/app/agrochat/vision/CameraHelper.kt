@@ -31,6 +31,7 @@ class CameraHelper(private val context: Context) {
     private var cameraExecutor: ExecutorService = Executors.newSingleThreadExecutor()
     private var cameraProvider: ProcessCameraProvider? = null
     private var isStarted = false
+    private var currentPreviewView: PreviewView? = null
     
     /**
      * Callback para cuando la cámara está lista
@@ -60,33 +61,49 @@ class CameraHelper(private val context: Context) {
         previewView: PreviewView,
         callback: CameraCallback? = null
     ) {
+        Log.d(TAG, "[DEBUG] startCamera() llamado")
+        Log.d(TAG, "[DEBUG] isStarted=$isStarted, currentPreviewView=${currentPreviewView != null}, cameraProvider=${cameraProvider != null}")
+        
+        // Evitar reiniciar si ya está activa con el mismo preview
+        if (isStarted && currentPreviewView == previewView && cameraProvider != null) {
+            Log.d(TAG, "[DEBUG] Cámara ya iniciada, omitiendo reinicio")
+            callback?.onCameraReady()
+            return
+        }
+        
+        currentPreviewView = previewView
+        
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
+        Log.d(TAG, "[DEBUG] Obteniendo CameraProvider...")
         
         cameraProviderFuture.addListener({
             try {
                 cameraProvider = cameraProviderFuture.get()
+                Log.d(TAG, "[DEBUG] CameraProvider obtenido")
                 
                 // Configurar Preview
                 val preview = Preview.Builder()
-                    .setTargetAspectRatio(AspectRatio.RATIO_4_3)
                     .build()
                     .also {
                         it.setSurfaceProvider(previewView.surfaceProvider)
                     }
+                Log.d(TAG, "[DEBUG] Preview configurado")
                 
                 // Configurar ImageCapture
                 imageCapture = ImageCapture.Builder()
                     .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                    .setTargetAspectRatio(AspectRatio.RATIO_4_3)
                     .build()
+                Log.d(TAG, "[DEBUG] ImageCapture configurado: ${imageCapture != null}")
                 
                 // Usar cámara trasera por defecto
                 val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
                 
                 // Unbind antes de bind
                 cameraProvider?.unbindAll()
+                Log.d(TAG, "[DEBUG] Unbind completado, haciendo bind...")
                 
                 // Bind use cases
+                Log.d(TAG, "    Binding use cases...")
                 cameraProvider?.bindToLifecycle(
                     lifecycleOwner,
                     cameraSelector,
@@ -96,10 +113,11 @@ class CameraHelper(private val context: Context) {
                 
                 isStarted = true
                 Log.i(TAG, "✅ Cámara iniciada correctamente")
+                Log.d(TAG, "    imageCapture después de bind: $imageCapture")
                 callback?.onCameraReady()
                 
             } catch (e: Exception) {
-                Log.e(TAG, "Error iniciando cámara: ${e.message}", e)
+                Log.e(TAG, "[DEBUG] ❌ Error iniciando cámara: ${e.message}", e)
                 callback?.onCameraError("No se pudo iniciar la cámara: ${e.message}")
             }
             
@@ -112,38 +130,45 @@ class CameraHelper(private val context: Context) {
      * @param callback Callback con el bitmap resultante o error
      */
     fun captureImage(callback: CaptureCallback) {
+        Log.d(TAG, "[DEBUG] captureImage() llamado")
+        Log.d(TAG, "[DEBUG] isStarted=$isStarted, imageCapture=${imageCapture != null}, cameraProvider=${cameraProvider != null}")
+        
         val imageCapture = imageCapture
         
         if (imageCapture == null) {
-            Log.e(TAG, "ImageCapture no inicializado")
+            Log.e(TAG, "[DEBUG] ❌ ImageCapture es NULL - cámara no inicializada")
             callback.onCaptureError("La cámara no está lista")
             return
         }
         
+        Log.d(TAG, "[DEBUG] Llamando takePicture()...")
         imageCapture.takePicture(
             ContextCompat.getMainExecutor(context),
             object : ImageCapture.OnImageCapturedCallback() {
                 
                 override fun onCaptureSuccess(imageProxy: ImageProxy) {
+                    Log.d(TAG, "[DEBUG] ✅ onCaptureSuccess() - imagen recibida")
+                    Log.d(TAG, "[DEBUG] ImageProxy format=${imageProxy.format}, size=${imageProxy.width}x${imageProxy.height}")
                     try {
                         val bitmap = imageProxyToBitmap(imageProxy)
                         imageProxy.close()
                         
                         if (bitmap != null) {
-                            Log.d(TAG, "Imagen capturada: ${bitmap.width}x${bitmap.height}")
+                            Log.d(TAG, "[DEBUG] ✅ Bitmap creado: ${bitmap.width}x${bitmap.height}")
                             callback.onImageCaptured(bitmap)
                         } else {
+                            Log.e(TAG, "[DEBUG] ❌ imageProxyToBitmap retornó null")
                             callback.onCaptureError("No se pudo procesar la imagen")
                         }
                     } catch (e: Exception) {
                         imageProxy.close()
-                        Log.e(TAG, "Error procesando imagen: ${e.message}", e)
+                        Log.e(TAG, "[DEBUG] ❌ Exception en onCaptureSuccess: ${e.message}", e)
                         callback.onCaptureError("Error procesando imagen: ${e.message}")
                     }
                 }
                 
                 override fun onError(exception: ImageCaptureException) {
-                    Log.e(TAG, "Error capturando imagen: ${exception.message}", exception)
+                    Log.e(TAG, "[DEBUG] ❌ onError() - code=${exception.imageCaptureError}, msg=${exception.message}", exception)
                     callback.onCaptureError("Error capturando imagen: ${exception.message}")
                 }
             }

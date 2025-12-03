@@ -30,3 +30,25 @@ Thumbs.db
 
 # Kotlin
 .kotlin/
+tools/tf_env/
+*.tflite
+plantvillage_dataset/
+training_log.txt
+
+# Python virtual environments
+embedding_venv/
+tools/tf_env/
+venv/
+.venv/
+
+# Debug logs
+*.log
+camera_debug_logs*.txt
+training_log.txt
+
+# Datasets
+plantvillage_dataset/
+*.tflite
+
+# Temp llama repo
+temp_llama/

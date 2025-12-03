@@ -47,7 +47,7 @@ class PlantDiseaseClassifier(private val context: Context) {
         private const val PIXEL_SIZE = 3  // RGB
         private const val IMAGE_MEAN = 127.5f
         private const val IMAGE_STD = 127.5f
-        private const val MIN_CONFIDENCE = 0.5f  // Mínima confianza para reportar resultado
+        private const val MIN_CONFIDENCE = 0.15f  // Mínima confianza para reportar resultado (15%)
     }
     
     private var modelHandle: Long = 0L
@@ -172,12 +172,15 @@ class PlantDiseaseClassifier(private val context: Context) {
                 return null
             }
             
-            // 4. Encontrar la clase con mayor probabilidad
+            // 4. Aplicar softmax para convertir logits a probabilidades
+            val probabilities = softmax(outputData)
+            
+            // 5. Encontrar la clase con mayor probabilidad
             var maxIndex = 0
-            var maxProb = outputData[0]
-            for (i in 1 until outputData.size) {
-                if (outputData[i] > maxProb) {
-                    maxProb = outputData[i]
+            var maxProb = probabilities[0]
+            for (i in 1 until probabilities.size) {
+                if (probabilities[i] > maxProb) {
+                    maxProb = probabilities[i]
                     maxIndex = i
                 }
             }
@@ -239,6 +242,28 @@ class PlantDiseaseClassifier(private val context: Context) {
         }
         
         return floatArray
+    }
+    
+    /**
+     * Aplica softmax a los logits para convertirlos en probabilidades.
+     * Softmax: exp(x_i) / sum(exp(x_j))
+     */
+    private fun softmax(logits: FloatArray): FloatArray {
+        // Encontrar el máximo para estabilidad numérica
+        val maxLogit = logits.maxOrNull() ?: 0f
+        
+        // Calcular exp(x - max) para cada elemento
+        val expValues = FloatArray(logits.size) { i ->
+            kotlin.math.exp((logits[i] - maxLogit).toDouble()).toFloat()
+        }
+        
+        // Sumar todos los exp
+        val sumExp = expValues.sum()
+        
+        // Dividir cada exp por la suma
+        return FloatArray(logits.size) { i ->
+            expValues[i] / sumExp
+        }
     }
     
     /**
