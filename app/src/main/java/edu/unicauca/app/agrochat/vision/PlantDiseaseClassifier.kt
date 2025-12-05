@@ -47,7 +47,7 @@ class PlantDiseaseClassifier(private val context: Context) {
         private const val PIXEL_SIZE = 3  // RGB
         private const val IMAGE_MEAN = 127.5f
         private const val IMAGE_STD = 127.5f
-        private const val MIN_CONFIDENCE = 0.15f  // Mínima confianza para reportar resultado (15%)
+        private const val MIN_CONFIDENCE = 0.03f  // Mínima confianza para reportar resultado (3%)
     }
     
     private var modelHandle: Long = 0L
@@ -173,6 +173,7 @@ class PlantDiseaseClassifier(private val context: Context) {
             }
             
             // 4. Aplicar softmax para convertir logits a probabilidades
+            Log.d(TAG, "Output size: ${outputData.size}, first 5 logits: ${outputData.take(5).joinToString()}")
             val probabilities = softmax(outputData)
             
             // 5. Encontrar la clase con mayor probabilidad
@@ -184,6 +185,12 @@ class PlantDiseaseClassifier(private val context: Context) {
                     maxIndex = i
                 }
             }
+            
+            // Log top 3 predictions for debugging
+            val top3 = probabilities.mapIndexed { i, p -> i to p }
+                .sortedByDescending { it.second }
+                .take(3)
+            Log.d(TAG, "Top 3: ${top3.map { "${it.first}:${String.format("%.2f", it.second * 100)}%" }.joinToString()}")
             
             val elapsedTime = System.currentTimeMillis() - startTime
             Log.d(TAG, "Inferencia completada en ${elapsedTime}ms")
@@ -222,7 +229,7 @@ class PlantDiseaseClassifier(private val context: Context) {
     /**
      * Preprocesa la imagen para el modelo:
      * - Extrae valores RGB
-     * - Normaliza a rango [-1, 1]
+     * - Normaliza a rango [0, 1] (modelo entrenado con rescale=1/255)
      * 
      * @param bitmap Imagen de 224x224
      * @return FloatArray de tamaño 224*224*3
@@ -235,10 +242,10 @@ class PlantDiseaseClassifier(private val context: Context) {
         
         var pixelIndex = 0
         for (pixelValue in intValues) {
-            // Extraer canales RGB y normalizar a [-1, 1]
-            floatArray[pixelIndex++] = ((pixelValue shr 16 and 0xFF) - IMAGE_MEAN) / IMAGE_STD  // R
-            floatArray[pixelIndex++] = ((pixelValue shr 8 and 0xFF) - IMAGE_MEAN) / IMAGE_STD   // G
-            floatArray[pixelIndex++] = ((pixelValue and 0xFF) - IMAGE_MEAN) / IMAGE_STD         // B
+            // Extraer canales RGB y normalizar a [0, 1] (divide by 255)
+            floatArray[pixelIndex++] = (pixelValue shr 16 and 0xFF) / 255.0f  // R
+            floatArray[pixelIndex++] = (pixelValue shr 8 and 0xFF) / 255.0f   // G
+            floatArray[pixelIndex++] = (pixelValue and 0xFF) / 255.0f         // B
         }
         
         return floatArray

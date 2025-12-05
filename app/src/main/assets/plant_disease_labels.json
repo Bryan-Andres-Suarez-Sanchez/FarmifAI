@@ -1,46 +1,232 @@
 {
-  "version": "1.0",
-  "description": "Etiquetas del modelo PlantVillage para clasificación de enfermedades de plantas",
-  "source": "PlantVillage Dataset - 38 clases",
-  "total_classes": 38,
   "labels": [
-    {"id": 0, "name": "Apple___Apple_scab", "display": "Sarna del manzano", "crop": "Manzana"},
-    {"id": 1, "name": "Apple___Black_rot", "display": "Podredumbre negra del manzano", "crop": "Manzana"},
-    {"id": 2, "name": "Apple___Cedar_apple_rust", "display": "Roya del manzano", "crop": "Manzana"},
-    {"id": 3, "name": "Apple___healthy", "display": "Manzana sana", "crop": "Manzana"},
-    {"id": 4, "name": "Blueberry___healthy", "display": "Arándano sano", "crop": "Arándano"},
-    {"id": 5, "name": "Cherry___Powdery_mildew", "display": "Oídio de la cereza", "crop": "Cereza"},
-    {"id": 6, "name": "Cherry___healthy", "display": "Cereza sana", "crop": "Cereza"},
-    {"id": 7, "name": "Corn___Cercospora_leaf_spot_Gray_leaf_spot", "display": "Mancha foliar gris del maíz", "crop": "Maíz"},
-    {"id": 8, "name": "Corn___Common_rust", "display": "Roya común del maíz", "crop": "Maíz"},
-    {"id": 9, "name": "Corn___Northern_Leaf_Blight", "display": "Tizón norteño del maíz", "crop": "Maíz"},
-    {"id": 10, "name": "Corn___healthy", "display": "Maíz sano", "crop": "Maíz"},
-    {"id": 11, "name": "Grape___Black_rot", "display": "Podredumbre negra de la uva", "crop": "Uva"},
-    {"id": 12, "name": "Grape___Esca_(Black_Measles)", "display": "Esca de la vid", "crop": "Uva"},
-    {"id": 13, "name": "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)", "display": "Tizón foliar de la uva", "crop": "Uva"},
-    {"id": 14, "name": "Grape___healthy", "display": "Uva sana", "crop": "Uva"},
-    {"id": 15, "name": "Orange___Haunglongbing_(Citrus_greening)", "display": "Huanglongbing (HLB) del cítrico", "crop": "Naranja"},
-    {"id": 16, "name": "Peach___Bacterial_spot", "display": "Mancha bacteriana del durazno", "crop": "Durazno"},
-    {"id": 17, "name": "Peach___healthy", "display": "Durazno sano", "crop": "Durazno"},
-    {"id": 18, "name": "Pepper___Bacterial_spot", "display": "Mancha bacteriana del pimiento", "crop": "Pimiento"},
-    {"id": 19, "name": "Pepper___healthy", "display": "Pimiento sano", "crop": "Pimiento"},
-    {"id": 20, "name": "Potato___Early_blight", "display": "Tizón temprano de la papa", "crop": "Papa"},
-    {"id": 21, "name": "Potato___Late_blight", "display": "Tizón tardío de la papa", "crop": "Papa"},
-    {"id": 22, "name": "Potato___healthy", "display": "Papa sana", "crop": "Papa"},
-    {"id": 23, "name": "Raspberry___healthy", "display": "Frambuesa sana", "crop": "Frambuesa"},
-    {"id": 24, "name": "Soybean___healthy", "display": "Soya sana", "crop": "Soya"},
-    {"id": 25, "name": "Squash___Powdery_mildew", "display": "Oídio de la calabaza", "crop": "Calabaza"},
-    {"id": 26, "name": "Strawberry___Leaf_scorch", "display": "Quemadura foliar de la fresa", "crop": "Fresa"},
-    {"id": 27, "name": "Strawberry___healthy", "display": "Fresa sana", "crop": "Fresa"},
-    {"id": 28, "name": "Tomato___Bacterial_spot", "display": "Mancha bacteriana del tomate", "crop": "Tomate"},
-    {"id": 29, "name": "Tomato___Early_blight", "display": "Tizón temprano del tomate", "crop": "Tomate"},
-    {"id": 30, "name": "Tomato___Late_blight", "display": "Tizón tardío del tomate", "crop": "Tomate"},
-    {"id": 31, "name": "Tomato___Leaf_Mold", "display": "Moho foliar del tomate", "crop": "Tomate"},
-    {"id": 32, "name": "Tomato___Septoria_leaf_spot", "display": "Septoriosis del tomate", "crop": "Tomate"},
-    {"id": 33, "name": "Tomato___Spider_mites_Two_spotted_spider_mite", "display": "Araña roja del tomate", "crop": "Tomate"},
-    {"id": 34, "name": "Tomato___Target_Spot", "display": "Mancha diana del tomate", "crop": "Tomate"},
-    {"id": 35, "name": "Tomato___Tomato_Yellow_Leaf_Curl_Virus", "display": "Virus del rizado amarillo del tomate", "crop": "Tomate"},
-    {"id": 36, "name": "Tomato___Tomato_mosaic_virus", "display": "Virus del mosaico del tomate", "crop": "Tomate"},
-    {"id": 37, "name": "Tomato___healthy", "display": "Tomate sano", "crop": "Tomate"}
+    {
+      "id": 0,
+      "name": "Apple___Apple_scab",
+      "crop": "Apple",
+      "display": "Sarna del manzano"
+    },
+    {
+      "id": 1,
+      "name": "Apple___Black_rot",
+      "crop": "Apple",
+      "display": "Podredumbre negra"
+    },
+    {
+      "id": 2,
+      "name": "Apple___Cedar_apple_rust",
+      "crop": "Apple",
+      "display": "Roya del manzano"
+    },
+    {
+      "id": 3,
+      "name": "Apple___healthy",
+      "crop": "Apple",
+      "display": "Saludable"
+    },
+    {
+      "id": 4,
+      "name": "Blueberry___healthy",
+      "crop": "Blueberry",
+      "display": "Saludable"
+    },
+    {
+      "id": 5,
+      "name": "Cherry_(including_sour)___Powdery_mildew",
+      "crop": "Cherry",
+      "display": "Oídio"
+    },
+    {
+      "id": 6,
+      "name": "Cherry_(including_sour)___healthy",
+      "crop": "Cherry",
+      "display": "Saludable"
+    },
+    {
+      "id": 7,
+      "name": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+      "crop": "Corn (maize)",
+      "display": "Mancha gris"
+    },
+    {
+      "id": 8,
+      "name": "Corn_(maize)___Common_rust_",
+      "crop": "Corn (maize)",
+      "display": "Roya común"
+    },
+    {
+      "id": 9,
+      "name": "Corn_(maize)___Northern_Leaf_Blight",
+      "crop": "Corn (maize)",
+      "display": "Tizón norteño"
+    },
+    {
+      "id": 10,
+      "name": "Corn_(maize)___healthy",
+      "crop": "Corn (maize)",
+      "display": "Saludable"
+    },
+    {
+      "id": 11,
+      "name": "Grape___Black_rot",
+      "crop": "Grape",
+      "display": "Podredumbre negra"
+    },
+    {
+      "id": 12,
+      "name": "Grape___Esca_(Black_Measles)",
+      "crop": "Grape",
+      "display": "Esca"
+    },
+    {
+      "id": 13,
+      "name": "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+      "crop": "Grape",
+      "display": "Tizón foliar"
+    },
+    {
+      "id": 14,
+      "name": "Grape___healthy",
+      "crop": "Grape",
+      "display": "Saludable"
+    },
+    {
+      "id": 15,
+      "name": "Orange___Haunglongbing_(Citrus_greening)",
+      "crop": "Orange",
+      "display": "Huanglongbing"
+    },
+    {
+      "id": 16,
+      "name": "Peach___Bacterial_spot",
+      "crop": "Peach",
+      "display": "Mancha bacteriana"
+    },
+    {
+      "id": 17,
+      "name": "Peach___healthy",
+      "crop": "Peach",
+      "display": "Saludable"
+    },
+    {
+      "id": 18,
+      "name": "Pepper,_bell___Bacterial_spot",
+      "crop": "Pepper, bell",
+      "display": "Mancha bacteriana"
+    },
+    {
+      "id": 19,
+      "name": "Pepper,_bell___healthy",
+      "crop": "Pepper, bell",
+      "display": "Saludable"
+    },
+    {
+      "id": 20,
+      "name": "Potato___Early_blight",
+      "crop": "Potato",
+      "display": "Tizón temprano"
+    },
+    {
+      "id": 21,
+      "name": "Potato___Late_blight",
+      "crop": "Potato",
+      "display": "Tizón tardío"
+    },
+    {
+      "id": 22,
+      "name": "Potato___healthy",
+      "crop": "Potato",
+      "display": "Saludable"
+    },
+    {
+      "id": 23,
+      "name": "Raspberry___healthy",
+      "crop": "Raspberry",
+      "display": "Saludable"
+    },
+    {
+      "id": 24,
+      "name": "Soybean___healthy",
+      "crop": "Soybean",
+      "display": "Saludable"
+    },
+    {
+      "id": 25,
+      "name": "Squash___Powdery_mildew",
+      "crop": "Squash",
+      "display": "Oídio"
+    },
+    {
+      "id": 26,
+      "name": "Strawberry___Leaf_scorch",
+      "crop": "Strawberry",
+      "display": "Quemadura foliar"
+    },
+    {
+      "id": 27,
+      "name": "Strawberry___healthy",
+      "crop": "Strawberry",
+      "display": "Saludable"
+    },
+    {
+      "id": 28,
+      "name": "Tomato___Bacterial_spot",
+      "crop": "Tomato",
+      "display": "Mancha bacteriana"
+    },
+    {
+      "id": 29,
+      "name": "Tomato___Early_blight",
+      "crop": "Tomato",
+      "display": "Tizón temprano"
+    },
+    {
+      "id": 30,
+      "name": "Tomato___Late_blight",
+      "crop": "Tomato",
+      "display": "Tizón tardío"
+    },
+    {
+      "id": 31,
+      "name": "Tomato___Leaf_Mold",
+      "crop": "Tomato",
+      "display": "Moho foliar"
+    },
+    {
+      "id": 32,
+      "name": "Tomato___Septoria_leaf_spot",
+      "crop": "Tomato",
+      "display": "Septoriosis"
+    },
+    {
+      "id": 33,
+      "name": "Tomato___Spider_mites Two-spotted_spider_mite",
+      "crop": "Tomato",
+      "display": "Ácaros"
+    },
+    {
+      "id": 34,
+      "name": "Tomato___Target_Spot",
+      "crop": "Tomato",
+      "display": "Mancha diana"
+    },
+    {
+      "id": 35,
+      "name": "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
+      "crop": "Tomato",
+      "display": "Virus rizado amarillo"
+    },
+    {
+      "id": 36,
+      "name": "Tomato___Tomato_mosaic_virus",
+      "crop": "Tomato",
+      "display": "Virus del mosaico"
+    },
+    {
+      "id": 37,
+      "name": "Tomato___healthy",
+      "crop": "Tomato",
+      "display": "Saludable"
+    }
   ]
 }

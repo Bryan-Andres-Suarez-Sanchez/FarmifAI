@@ -4,6 +4,8 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -36,6 +38,7 @@ import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -148,6 +151,32 @@ class MainActivity : ComponentActivity() {
             Toast.makeText(this, "Se necesita permiso de cámara para diagnóstico visual", Toast.LENGTH_LONG).show()
         }
     }
+    
+    // Launcher para seleccionar imagen de galería
+    private val pickImageLauncher = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { imageUri ->
+            try {
+                val inputStream = contentResolver.openInputStream(imageUri)
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+                inputStream?.close()
+                if (bitmap != null) {
+                    processCapture(bitmap)
+                    currentMode = AppMode.CAMERA
+                } else {
+                    Toast.makeText(this, "No se pudo cargar la imagen", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Error cargando imagen: ${e.message}", e)
+                Toast.makeText(this, "Error al cargar imagen", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+    
+    fun openGallery() {
+        pickImageLauncher.launch("image/*")
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -203,7 +232,8 @@ class MainActivity : ComponentActivity() {
                     onToggleLlama = { enabled -> toggleLlama(enabled) },
                     onCaptureImage = { bitmap -> processCapture(bitmap) },
                     onClearCapture = { clearCapture() },
-                    onDiagnosisToChat = { result -> diagnosisToChat(result) }
+                    onDiagnosisToChat = { result -> diagnosisToChat(result) },
+                    onOpenGallery = { openGallery() }
                 )
             }
         }
@@ -648,7 +678,8 @@ fun AgroChatApp(
     onToggleLlama: (Boolean) -> Unit,
     onCaptureImage: (Bitmap) -> Unit,
     onClearCapture: () -> Unit,
-    onDiagnosisToChat: (DiseaseResult) -> Unit
+    onDiagnosisToChat: (DiseaseResult) -> Unit,
+    onOpenGallery: () -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -682,7 +713,8 @@ fun AgroChatApp(
                     onCaptureImage = onCaptureImage,
                     onClearCapture = onClearCapture,
                     onDiagnosisToChat = onDiagnosisToChat,
-                    onSwitchToChat = { onModeChange(AppMode.CHAT) }
+                    onSwitchToChat = { onModeChange(AppMode.CHAT) },
+                    onOpenGallery = onOpenGallery
                 )
             }
         }
@@ -1216,7 +1248,8 @@ fun CameraModeScreen(
     onCaptureImage: (Bitmap) -> Unit,
     onClearCapture: () -> Unit,
     onDiagnosisToChat: (DiseaseResult) -> Unit,
-    onSwitchToChat: () -> Unit
+    onSwitchToChat: () -> Unit,
+    onOpenGallery: () -> Unit
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -1342,6 +1375,25 @@ fun CameraModeScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     color = AgroColors.TextPrimary,
                     textAlign = TextAlign.Center
+                )
+            }
+        }
+        
+        // Botón de galería (esquina inferior izquierda)
+        if (capturedBitmap == null) {
+            FloatingActionButton(
+                onClick = onOpenGallery,
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(24.dp)
+                    .navigationBarsPadding(),
+                containerColor = AgroColors.Surface,
+                contentColor = AgroColors.TextPrimary
+            ) {
+                Icon(
+                    Icons.Default.PhotoLibrary,
+                    contentDescription = "Seleccionar de galería",
+                    modifier = Modifier.size(28.dp)
                 )
             }
         }

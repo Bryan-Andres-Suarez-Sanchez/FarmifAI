@@ -52,3 +52,29 @@ plantvillage_dataset/
 
 # Temp llama repo
 temp_llama/
+
+# Datasets grandes
+tools/PlantVillage-Dataset/
+plantvillage.zip
+tools/checkpoints/
+tools/models/
+tools/nohup.out
+training_full_log.txt
+tools/training_full_log.txt
+
+# Modelos temporales/locales
+tools/plant_disease.keras
+tools/plant_disease.ms
+*.keras
+plant_disease_model_old.ms
+app/src/main/assets/plant_disease_model_old.ms
+
+# LLM models
+llm_models/
+
+# VS Code
+.vscode/
+
+# Python scripts de desarrollo
+generate_embeddings.py
+generate_mindspore_compatible_embeddings.py
