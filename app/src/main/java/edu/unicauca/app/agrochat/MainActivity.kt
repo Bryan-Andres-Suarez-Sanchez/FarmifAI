@@ -114,6 +114,8 @@ class MainActivity : ComponentActivity() {
     private var isOnlineMode by mutableStateOf(false)
     private var showSettingsDialog by mutableStateOf(false)
     private var isLlamaEnabled by mutableStateOf(true)  // Toggle para LLM local
+    private var llamaModelStatusText by mutableStateOf("Modelo no disponible")
+    private var llamaModelPathText by mutableStateOf("")
     private val SIMILARITY_THRESHOLD = 0.55f
     
     // Diagnóstico visual
@@ -218,6 +220,8 @@ class MainActivity : ComponentActivity() {
                     isOnlineMode = isOnlineMode,
                     isLlamaEnabled = isLlamaEnabled,
                     isLlamaLoaded = isLlamaLoaded,
+                    llamaModelStatusText = llamaModelStatusText,
+                    llamaModelPathText = llamaModelPathText,
                     showSettingsDialog = showSettingsDialog,
                     isDiagnosticReady = isDiagnosticReady,
                     isDiagnosing = isDiagnosing,
@@ -434,10 +438,25 @@ class MainActivity : ComponentActivity() {
     
     private fun initializeLlama() {
         llamaService = LlamaService.getInstance()
+
+        // Mostrar en UI dónde debe estar el modelo y si hay alguno detectado
+        llamaModelPathText = llamaService?.getModelPath(applicationContext) ?: ""
+        val detectedName = llamaService?.getModelFilename(applicationContext)
+        val detectedSize = llamaService?.getModelSizeMB(applicationContext) ?: 0L
+        Log.i("MainActivity", "Llama model path esperado: $llamaModelPathText")
+        Log.i("MainActivity", "Llama detectado: ${detectedName ?: "(ninguno)"} (${detectedSize}MB)")
+        llamaModelStatusText = if (!detectedName.isNullOrBlank()) {
+            "Detectado: $detectedName (${detectedSize}MB)"
+        } else {
+            "Modelo no disponible"
+        }
         
         // Verificar si el modelo está disponible y cargarlo automáticamente
         if (llamaService?.isModelAvailable(applicationContext) == true) {
-            Log.i("MainActivity", "Modelo Llama disponible (${llamaService?.getModelSizeMB(applicationContext)}MB), cargando automáticamente...")
+            Log.i(
+                "MainActivity",
+                "Modelo Llama disponible (${llamaService?.getModelFilename(applicationContext)} / ${llamaService?.getModelSizeMB(applicationContext)}MB), cargando automáticamente..."
+            )
             
             lifecycleScope.launch {
                 try {
@@ -445,6 +464,7 @@ class MainActivity : ComponentActivity() {
                     val result = llamaService?.load(applicationContext)
                     result?.onSuccess {
                         isLlamaLoaded = true
+                        llamaModelStatusText = "Cargado: ${llamaService?.getModelFilename(applicationContext)} (${llamaService?.getModelSizeMB(applicationContext)}MB)"
                         Log.i("MainActivity", "✓ Llama cargado exitosamente")
                         
                         // Si no hay internet, mostrar que Llama está listo
@@ -462,10 +482,12 @@ class MainActivity : ComponentActivity() {
                     }?.onFailure { e ->
                         Log.w("MainActivity", "Error cargando Llama: ${e.message}")
                         isLlamaLoaded = false
+                        llamaModelStatusText = "Error cargando modelo"
                     }
                 } catch (e: Exception) {
                     Log.e("MainActivity", "Error inicializando Llama", e)
                     isLlamaLoaded = false
+                    llamaModelStatusText = "Error inicializando Llama"
                 }
             }
         } else {
@@ -664,6 +686,8 @@ fun AgroChatApp(
     isOnlineMode: Boolean,
     isLlamaEnabled: Boolean,
     isLlamaLoaded: Boolean,
+    llamaModelStatusText: String,
+    llamaModelPathText: String,
     showSettingsDialog: Boolean,
     isDiagnosticReady: Boolean,
     isDiagnosing: Boolean,
@@ -726,6 +750,8 @@ fun AgroChatApp(
                 onSaveApiKey = onSaveApiKey,
                 isLlamaEnabled = isLlamaEnabled,
                 isLlamaLoaded = isLlamaLoaded,
+                llamaModelStatusText = llamaModelStatusText,
+                llamaModelPathText = llamaModelPathText,
                 onToggleLlama = onToggleLlama
             )
         }
@@ -1098,6 +1124,8 @@ fun SettingsDialog(
     onSaveApiKey: (String) -> Unit,
     isLlamaEnabled: Boolean,
     isLlamaLoaded: Boolean,
+    llamaModelStatusText: String,
+    llamaModelPathText: String,
     onToggleLlama: (Boolean) -> Unit
 ) {
     var apiKey by remember { mutableStateOf("") }
@@ -1144,7 +1172,7 @@ fun SettingsDialog(
                             }
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                if (isLlamaLoaded) "Modelo cargado (770MB)" else "Modelo no disponible",
+                                llamaModelStatusText,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = if (isLlamaLoaded) AgroColors.Accent else AgroColors.TextSecondary
                             )
@@ -1171,7 +1199,11 @@ fun SettingsDialog(
                     )
                 } else if (!isLlamaLoaded) {
                     Text(
-                        "Copia el modelo GGUF a la carpeta de la app para habilitar",
+                        if (llamaModelPathText.isNotBlank()) {
+                            "Copia un .gguf a: $llamaModelPathText"
+                        } else {
+                            "Copia un modelo .gguf a la carpeta de la app para habilitar"
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = AgroColors.TextSecondary
                     )

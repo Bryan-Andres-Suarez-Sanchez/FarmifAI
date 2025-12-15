@@ -14,7 +14,8 @@ class LlamaService private constructor() {
     
     companion object {
         private const val TAG = "LlamaService"
-        private const val MODEL_FILENAME = "llama-3.2-1b-q4.gguf"
+        // Nombre recomendado (pero la app también autodetecta cualquier .gguf en el directorio)
+        private const val DEFAULT_MODEL_FILENAME = "llama-3.2-1b-q4.gguf"
         private const val MAX_TOKENS = 350  // Tokens máximos de generación (aumentado para respuestas completas)
         
         @Volatile
@@ -33,27 +34,41 @@ class LlamaService private constructor() {
      * Verifica si el modelo está disponible en el almacenamiento
      */
     fun isModelAvailable(context: Context): Boolean {
-        val modelPath = getModelPath(context)
-        return File(modelPath).exists()
+        return getModelFile(context) != null
+    }
+
+    /**
+     * Devuelve el archivo de modelo GGUF a usar.
+     * - Primero intenta el nombre por defecto.
+     * - Si no existe, busca cualquier archivo `.gguf` en el directorio de la app y elige el más grande.
+     */
+    private fun getModelFile(context: Context): File? {
+        val dir = context.getExternalFilesDir(null) ?: return null
+
+        val preferred = File(dir, DEFAULT_MODEL_FILENAME)
+        if (preferred.exists()) return preferred
+
+        val candidates = dir.listFiles { f -> f.isFile && f.name.endsWith(".gguf", ignoreCase = true) } ?: emptyArray()
+        return candidates.maxByOrNull { it.length() }
     }
     
     /**
      * Obtiene la ruta del modelo
      */
     fun getModelPath(context: Context): String {
-        return File(context.getExternalFilesDir(null), MODEL_FILENAME).absolutePath
+        val dir = context.getExternalFilesDir(null)
+        val selected = getModelFile(context)
+        return selected?.absolutePath ?: File(dir, DEFAULT_MODEL_FILENAME).absolutePath
     }
+
+    fun getModelFilename(context: Context): String? = getModelFile(context)?.name
     
     /**
      * Obtiene el tamaño del modelo en MB
      */
     fun getModelSizeMB(context: Context): Long {
-        val modelFile = File(getModelPath(context))
-        return if (modelFile.exists()) {
-            modelFile.length() / (1024 * 1024)
-        } else {
-            0L
-        }
+        val modelFile = getModelFile(context) ?: return 0L
+        return modelFile.length() / (1024 * 1024)
     }
     
     /**
@@ -66,14 +81,16 @@ class LlamaService private constructor() {
      */
     suspend fun load(context: Context): Result<Unit> {
         return try {
-            val modelPath = getModelPath(context)
-            Log.i(TAG, "Cargando modelo desde: $modelPath")
-            
-            if (!File(modelPath).exists()) {
-                return Result.failure(Exception("Modelo no encontrado en: $modelPath"))
-            }
-            
-            llama.load(modelPath)
+            val modelFile = getModelFile(context)
+                ?: return Result.failure(
+                    Exception(
+                        "Modelo GGUF no encontrado. Copia un .gguf a: ${context.getExternalFilesDir(null)?.absolutePath}"
+                    )
+                )
+
+            Log.i(TAG, "Cargando modelo: ${modelFile.name} (${modelFile.length() / (1024 * 1024)}MB) desde: ${modelFile.absolutePath}")
+
+            llama.load(modelFile.absolutePath)
             Log.i(TAG, "Modelo cargado exitosamente")
             Result.success(Unit)
             

@@ -1,232 +1,134 @@
 {
+  "version": "colombia_v1.0",
+  "date": "2025-12-09",
+  "num_classes": 21,
+  "input_size": 224,
   "labels": [
     {
       "id": 0,
-      "name": "Apple___Apple_scab",
-      "crop": "Apple",
-      "display": "Sarna del manzano"
+      "name": "Cafe___Cercospora",
+      "crop": "Café",
+      "display": "Cercospora (Ojo de gallo)"
     },
     {
       "id": 1,
-      "name": "Apple___Black_rot",
-      "crop": "Apple",
-      "display": "Podredumbre negra"
+      "name": "Cafe___Minador",
+      "crop": "Café",
+      "display": "Minador de hoja"
     },
     {
       "id": 2,
-      "name": "Apple___Cedar_apple_rust",
-      "crop": "Apple",
-      "display": "Roya del manzano"
+      "name": "Cafe___Phoma",
+      "crop": "Café",
+      "display": "Phoma (Derrite)"
     },
     {
       "id": 3,
-      "name": "Apple___healthy",
-      "crop": "Apple",
-      "display": "Saludable"
+      "name": "Cafe___Roya",
+      "crop": "Café",
+      "display": "Roya del café"
     },
     {
       "id": 4,
-      "name": "Blueberry___healthy",
-      "crop": "Blueberry",
-      "display": "Saludable"
+      "name": "Maiz___Mancha_gris",
+      "crop": "Maíz",
+      "display": "Mancha gris"
     },
     {
       "id": 5,
-      "name": "Cherry_(including_sour)___Powdery_mildew",
-      "crop": "Cherry",
-      "display": "Oídio"
+      "name": "Maiz___Roya_comun",
+      "crop": "Maíz",
+      "display": "Roya común"
     },
     {
       "id": 6,
-      "name": "Cherry_(including_sour)___healthy",
-      "crop": "Cherry",
+      "name": "Maiz___Saludable",
+      "crop": "Maíz",
       "display": "Saludable"
     },
     {
       "id": 7,
-      "name": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
-      "crop": "Corn (maize)",
-      "display": "Mancha gris"
-    },
-    {
-      "id": 8,
-      "name": "Corn_(maize)___Common_rust_",
-      "crop": "Corn (maize)",
-      "display": "Roya común"
-    },
-    {
-      "id": 9,
-      "name": "Corn_(maize)___Northern_Leaf_Blight",
-      "crop": "Corn (maize)",
+      "name": "Maiz___Tizon_norteno",
+      "crop": "Maíz",
       "display": "Tizón norteño"
     },
     {
-      "id": 10,
-      "name": "Corn_(maize)___healthy",
-      "crop": "Corn (maize)",
+      "id": 8,
+      "name": "Papa___Saludable",
+      "crop": "Papa",
       "display": "Saludable"
+    },
+    {
+      "id": 9,
+      "name": "Papa___Tizon_tardio",
+      "crop": "Papa",
+      "display": "Tizón tardío (Gota)"
+    },
+    {
+      "id": 10,
+      "name": "Papa___Tizon_temprano",
+      "crop": "Papa",
+      "display": "Tizón temprano"
     },
     {
       "id": 11,
-      "name": "Grape___Black_rot",
-      "crop": "Grape",
-      "display": "Podredumbre negra"
+      "name": "Pimiento___Mancha_bacteriana",
+      "crop": "Pimiento",
+      "display": "Mancha bacteriana"
     },
     {
       "id": 12,
-      "name": "Grape___Esca_(Black_Measles)",
-      "crop": "Grape",
-      "display": "Esca"
+      "name": "Pimiento___Saludable",
+      "crop": "Pimiento",
+      "display": "Saludable"
     },
     {
       "id": 13,
-      "name": "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
-      "crop": "Grape",
-      "display": "Tizón foliar"
+      "name": "Tomate___Mancha_bacteriana",
+      "crop": "Tomate",
+      "display": "Mancha bacteriana"
     },
     {
       "id": 14,
-      "name": "Grape___healthy",
-      "crop": "Grape",
-      "display": "Saludable"
-    },
-    {
-      "id": 15,
-      "name": "Orange___Haunglongbing_(Citrus_greening)",
-      "crop": "Orange",
-      "display": "Huanglongbing"
-    },
-    {
-      "id": 16,
-      "name": "Peach___Bacterial_spot",
-      "crop": "Peach",
-      "display": "Mancha bacteriana"
-    },
-    {
-      "id": 17,
-      "name": "Peach___healthy",
-      "crop": "Peach",
-      "display": "Saludable"
-    },
-    {
-      "id": 18,
-      "name": "Pepper,_bell___Bacterial_spot",
-      "crop": "Pepper, bell",
-      "display": "Mancha bacteriana"
-    },
-    {
-      "id": 19,
-      "name": "Pepper,_bell___healthy",
-      "crop": "Pepper, bell",
-      "display": "Saludable"
-    },
-    {
-      "id": 20,
-      "name": "Potato___Early_blight",
-      "crop": "Potato",
-      "display": "Tizón temprano"
-    },
-    {
-      "id": 21,
-      "name": "Potato___Late_blight",
-      "crop": "Potato",
-      "display": "Tizón tardío"
-    },
-    {
-      "id": 22,
-      "name": "Potato___healthy",
-      "crop": "Potato",
-      "display": "Saludable"
-    },
-    {
-      "id": 23,
-      "name": "Raspberry___healthy",
-      "crop": "Raspberry",
-      "display": "Saludable"
-    },
-    {
-      "id": 24,
-      "name": "Soybean___healthy",
-      "crop": "Soybean",
-      "display": "Saludable"
-    },
-    {
-      "id": 25,
-      "name": "Squash___Powdery_mildew",
-      "crop": "Squash",
-      "display": "Oídio"
-    },
-    {
-      "id": 26,
-      "name": "Strawberry___Leaf_scorch",
-      "crop": "Strawberry",
-      "display": "Quemadura foliar"
-    },
-    {
-      "id": 27,
-      "name": "Strawberry___healthy",
-      "crop": "Strawberry",
-      "display": "Saludable"
-    },
-    {
-      "id": 28,
-      "name": "Tomato___Bacterial_spot",
-      "crop": "Tomato",
-      "display": "Mancha bacteriana"
-    },
-    {
-      "id": 29,
-      "name": "Tomato___Early_blight",
-      "crop": "Tomato",
-      "display": "Tizón temprano"
-    },
-    {
-      "id": 30,
-      "name": "Tomato___Late_blight",
-      "crop": "Tomato",
-      "display": "Tizón tardío"
-    },
-    {
-      "id": 31,
-      "name": "Tomato___Leaf_Mold",
-      "crop": "Tomato",
-      "display": "Moho foliar"
-    },
-    {
-      "id": 32,
-      "name": "Tomato___Septoria_leaf_spot",
-      "crop": "Tomato",
-      "display": "Septoriosis"
-    },
-    {
-      "id": 33,
-      "name": "Tomato___Spider_mites Two-spotted_spider_mite",
-      "crop": "Tomato",
-      "display": "Ácaros"
-    },
-    {
-      "id": 34,
-      "name": "Tomato___Target_Spot",
-      "crop": "Tomato",
+      "name": "Tomate___Mancha_diana",
+      "crop": "Tomate",
       "display": "Mancha diana"
     },
     {
-      "id": 35,
-      "name": "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
-      "crop": "Tomato",
-      "display": "Virus rizado amarillo"
+      "id": 15,
+      "name": "Tomate___Moho_foliar",
+      "crop": "Tomate",
+      "display": "Moho foliar"
     },
     {
-      "id": 36,
-      "name": "Tomato___Tomato_mosaic_virus",
-      "crop": "Tomato",
-      "display": "Virus del mosaico"
-    },
-    {
-      "id": 37,
-      "name": "Tomato___healthy",
-      "crop": "Tomato",
+      "id": 16,
+      "name": "Tomate___Saludable",
+      "crop": "Tomate",
       "display": "Saludable"
+    },
+    {
+      "id": 17,
+      "name": "Tomate___Septoriosis",
+      "crop": "Tomate",
+      "display": "Septoriosis"
+    },
+    {
+      "id": 18,
+      "name": "Tomate___Tizon_tardio",
+      "crop": "Tomate",
+      "display": "Tizón tardío"
+    },
+    {
+      "id": 19,
+      "name": "Tomate___Tizon_temprano",
+      "crop": "Tomate",
+      "display": "Tizón temprano"
+    },
+    {
+      "id": 20,
+      "name": "Tomate___Virus_mosaico",
+      "crop": "Tomate",
+      "display": "Virus del mosaico"
     }
   ]
 }

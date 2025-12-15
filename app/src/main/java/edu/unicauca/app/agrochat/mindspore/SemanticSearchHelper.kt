@@ -97,6 +97,8 @@ class SemanticSearchHelper(private val context: Context) {
             Log.i(TAG, "  - Preguntas indexadas: ${kbQuestions?.size}")
             Log.i(TAG, "  - Dimensión embeddings: $EMBEDDING_DIM")
             Log.i(TAG, "  - MindSpore encoder: ${if (useMindSporeEncoder) "activo" else "fallback a texto"}")
+
+            verifyTokenizerAndEmbeddingsAlignment()
             
             return true
             
@@ -445,6 +447,36 @@ class SemanticSearchHelper(private val context: Context) {
         } catch (e: Exception) {
             Log.e(TAG, "computeEmbedding: Error: ${e.message}", e)
             return null
+        }
+    }
+
+    /**
+     * Verificación rápida (debug) para detectar desalineación entre:
+     * - `sentence_tokenizer.json` + `sentence_encoder.ms`
+     * - `kb_embeddings.npy` (precalculado)
+     *
+     * Si el tokenizer no corresponde (o el orden de preguntas no coincide), la similitud
+     * entre el embedding calculado de una pregunta de KB y su embedding precomputado
+     * caerá notablemente.
+     */
+    private fun verifyTokenizerAndEmbeddingsAlignment() {
+        if (!useMindSporeEncoder) return
+        val embeddings = kbEmbeddings ?: return
+        val questions = kbQuestions ?: return
+        if (embeddings.isEmpty() || questions.isEmpty()) return
+
+        val idx = 0
+        val q = questions.getOrNull(idx) ?: return
+        val precomputed = embeddings.getOrNull(idx) ?: return
+        val computed = computeEmbedding(q) ?: run {
+            Log.w(TAG, "⚠ Verificación tokenizer: no se pudo computar embedding")
+            return
+        }
+
+        val sim = cosineSimilarity(computed, precomputed)
+        Log.i(TAG, "Verificación tokenizer/KB: cosine(q0, emb0)=${String.format("%.4f", sim)}")
+        if (sim < 0.90f) {
+            Log.w(TAG, "⚠ Posible tokenizer incorrecto o KB desalineada (sim < 0.90).")
         }
     }
     

@@ -99,6 +99,10 @@ class PlantDiseaseClassifier(private val context: Context) {
             
             isInitialized = true
             Log.i(TAG, "✅ Clasificador inicializado con ${labels.size} clases")
+            val crops = labels.map { it.crop }.distinct().sorted()
+            Log.i(TAG, "Cultivos soportados: ${crops.joinToString()}")
+            val hasCoffee = crops.any { it.equals("Café", ignoreCase = true) || it.equals("Cafe", ignoreCase = true) }
+            Log.i(TAG, "Soporta Café: $hasCoffee")
             true
             
         } catch (e: Exception) {
@@ -171,10 +175,20 @@ class PlantDiseaseClassifier(private val context: Context) {
                 Log.e(TAG, "La inferencia devolvió null")
                 return null
             }
+
+            if (outputData.size != labels.size) {
+                Log.w(TAG, "⚠ Tamaño de salida (${outputData.size}) != labels (${labels.size}). Verifica que modelo y labels correspondan.")
+            }
             
-            // 4. Aplicar softmax para convertir logits a probabilidades
-            Log.d(TAG, "Output size: ${outputData.size}, first 5 logits: ${outputData.take(5).joinToString()}")
-            val probabilities = softmax(outputData)
+            // 4. Convertir salida a probabilidades
+            // Algunos modelos ya incluyen softmax en la última capa. Si aplicamos softmax de nuevo,
+            // las probabilidades se "aplanan" y la confianza cae artificialmente.
+            val outputPreview = outputData.take(5).joinToString()
+            val probabilities = toProbabilities(outputData)
+            Log.d(
+                TAG,
+                "Output size: ${outputData.size}, first 5 raw: $outputPreview, probsSum: ${String.format("%.4f", probabilities.sum())}"
+            )
             
             // 5. Encontrar la clase con mayor probabilidad
             var maxIndex = 0
@@ -270,6 +284,28 @@ class PlantDiseaseClassifier(private val context: Context) {
         // Dividir cada exp por la suma
         return FloatArray(logits.size) { i ->
             expValues[i] / sumExp
+        }
+    }
+
+    /**
+     * Convierte la salida del modelo a probabilidades.
+     * - Si la salida ya parece ser probabilidades (0..1 y suma≈1), se usa tal cual.
+     * - Si no, se asume que son logits y se aplica softmax.
+     */
+    private fun toProbabilities(output: FloatArray): FloatArray {
+        if (output.isEmpty()) return output
+
+        val min = output.minOrNull() ?: 0f
+        val max = output.maxOrNull() ?: 0f
+        val sum = output.sum()
+
+        val looksLikeProbabilities =
+            min >= -1e-3f && max <= 1.0f + 1e-3f && kotlin.math.abs(sum - 1.0f) <= 0.02f
+
+        return if (looksLikeProbabilities) {
+            output
+        } else {
+            softmax(output)
         }
     }
     

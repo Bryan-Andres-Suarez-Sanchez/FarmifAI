@@ -75,6 +75,15 @@ llm_models/
 # VS Code
 .vscode/
 
+# Azure ML (secrets / artefactos locales)
+tools/.env.azure
+tools/.azure_job_id
+tools/azure_env/
+
+# Carpetas temporales de análisis
+temp_compatibility/
+assets_old/
+
 # Python scripts de desarrollo
 generate_embeddings.py
 generate_mindspore_compatible_embeddings.py
