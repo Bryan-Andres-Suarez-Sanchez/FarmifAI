@@ -949,8 +949,8 @@ class MainActivity : ComponentActivity() {
         val trimmed = response.trim()
         if (trimmed.isEmpty()) return false
         
-        // Si es muy larga (>150 chars), probablemente está completa
-        if (trimmed.length > 150) return true
+        // Si es muy larga (>300 chars), probablemente está completa
+        if (trimmed.length > 300) return true
         
         // Si termina con puntuación final, está completa
         val lastChar = trimmed.last()
@@ -1154,9 +1154,9 @@ class MainActivity : ComponentActivity() {
             }
         }
         
-        // 3.5 RESPUESTA RÁPIDA: Si el score es muy alto (>0.75) y NO hay LLM disponible,
-        // usar KB directamente sin LLM (modo ultra-rápido, por ejemplo para "roya del café").
-        if (bestMatch != null && bestMatch.similarityScore >= 0.75f && (!isLlamaEnabled || !isLlamaLoaded || llamaService == null)) {
+        // 3.5 RESPUESTA RÁPIDA: Solo si score muy alto (>0.90) y NO hay LLM disponible,
+        // usar KB directamente sin LLM (modo ultra-rápido, respuestas exactas).
+        if (bestMatch != null && bestMatch.similarityScore >= 0.90f && (!isLlamaEnabled || !isLlamaLoaded || llamaService == null)) {
             AppLogger.log("MainActivity", "⚡ Respuesta rápida KB (sin LLM): score=${bestMatch.similarityScore}")
             return@withContext Pair(bestMatch.answer, false)  // false = no usó LLM, no mostrar continuar
         }
@@ -1516,7 +1516,7 @@ fun ChatModeScreen(
                     Column {
                         Text(
                             "FarmifAI",
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = AgroColors.TextPrimary,
                             maxLines = 1,
