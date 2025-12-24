@@ -3,8 +3,13 @@ package edu.unicauca.app.agrochat.llm
 import android.content.Context
 import android.util.Log
 import android.llama.cpp.LLamaAndroid
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.FileOutputStream
+import java.net.HttpURLConnection
+import java.net.URL
 
 /**
  * LlamaService - Servicio de LLM local usando llama.cpp para inferencia offline
@@ -14,9 +19,13 @@ class LlamaService private constructor() {
     
     companion object {
         private const val TAG = "LlamaService"
-        // Nombre recomendado (pero la app también autodetecta cualquier .gguf en el directorio)
-        private const val DEFAULT_MODEL_FILENAME = "llama-3.2-1b-q4.gguf"
-        private const val MAX_TOKENS = 350  // Tokens máximos de generación (aumentado para respuestas completas)
+        // Nombre del modelo a descargar
+        private const val DEFAULT_MODEL_FILENAME = "Llama-3.2-1B-Instruct-Q4_K_M.gguf"
+        private const val MAX_TOKENS = 150  // Tokens para respuestas más extensas
+        
+        // URL de descarga automática desde Hugging Face
+        private const val MODEL_DOWNLOAD_URL = "https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q4_K_M.gguf"
+        private const val MODEL_SIZE_BYTES = 780_000_000L  // ~750MB
         
         @Volatile
         private var instance: LlamaService? = null
@@ -30,6 +39,9 @@ class LlamaService private constructor() {
     
     private val llama: LLamaAndroid = LLamaAndroid.instance()
     
+    // Callback para progreso de descarga
+    var onDownloadProgress: ((progress: Int, downloadedMB: Int, totalMB: Int) -> Unit)? = null
+    
     /**
      * Verifica si el modelo está disponible en el almacenamiento
      */
@@ -39,16 +51,16 @@ class LlamaService private constructor() {
 
     /**
      * Devuelve el archivo de modelo GGUF a usar.
-     * - Primero intenta el nombre por defecto.
-     * - Si no existe, busca cualquier archivo `.gguf` en el directorio de la app y elige el más grande.
      */
     private fun getModelFile(context: Context): File? {
         val dir = context.getExternalFilesDir(null) ?: return null
 
         val preferred = File(dir, DEFAULT_MODEL_FILENAME)
-        if (preferred.exists()) return preferred
+        if (preferred.exists() && preferred.length() > 100_000_000) return preferred
 
-        val candidates = dir.listFiles { f -> f.isFile && f.name.endsWith(".gguf", ignoreCase = true) } ?: emptyArray()
+        val candidates = dir.listFiles { f -> 
+            f.isFile && f.name.endsWith(".gguf", ignoreCase = true) && f.length() > 100_000_000 
+        } ?: emptyArray()
         return candidates.maxByOrNull { it.length() }
     }
     
@@ -75,6 +87,72 @@ class LlamaService private constructor() {
      * Verifica si el modelo está cargado
      */
     fun isLoaded(): Boolean = llama.isLoaded()
+    
+    /**
+     * Descarga el modelo GGUF automáticamente desde Hugging Face
+     */
+    suspend fun downloadModel(context: Context): Result<File> = withContext(Dispatchers.IO) {
+        try {
+            val dir = context.getExternalFilesDir(null) 
+                ?: return@withContext Result.failure(Exception("No se puede acceder al almacenamiento"))
+            
+            val modelFile = File(dir, DEFAULT_MODEL_FILENAME)
+            val tempFile = File(dir, "${DEFAULT_MODEL_FILENAME}.tmp")
+            
+            if (modelFile.exists() && modelFile.length() > 100_000_000) {
+                Log.i(TAG, "Modelo ya existe: ${modelFile.absolutePath}")
+                return@withContext Result.success(modelFile)
+            }
+            
+            Log.i(TAG, "Descargando modelo desde: $MODEL_DOWNLOAD_URL")
+            
+            val url = URL(MODEL_DOWNLOAD_URL)
+            val connection = url.openConnection() as HttpURLConnection
+            connection.connectTimeout = 30_000
+            connection.readTimeout = 60_000
+            connection.setRequestProperty("User-Agent", "AgroChat/1.0")
+            
+            val totalSize = connection.contentLengthLong.takeIf { it > 0 } ?: MODEL_SIZE_BYTES
+            val totalMB = (totalSize / (1024 * 1024)).toInt()
+            
+            connection.inputStream.use { input ->
+                FileOutputStream(tempFile).use { output ->
+                    val buffer = ByteArray(8192)
+                    var downloaded = 0L
+                    var lastProgress = 0
+                    
+                    while (true) {
+                        val bytesRead = input.read(buffer)
+                        if (bytesRead == -1) break
+                        
+                        output.write(buffer, 0, bytesRead)
+                        downloaded += bytesRead
+                        
+                        val progress = ((downloaded * 100) / totalSize).toInt()
+                        if (progress > lastProgress) {
+                            lastProgress = progress
+                            val downloadedMB = (downloaded / (1024 * 1024)).toInt()
+                            onDownloadProgress?.invoke(progress, downloadedMB, totalMB)
+                        }
+                    }
+                }
+            }
+            
+            if (tempFile.exists() && tempFile.length() > 100_000_000) {
+                modelFile.delete()
+                tempFile.renameTo(modelFile)
+                Log.i(TAG, "✅ Modelo descargado: ${modelFile.absolutePath}")
+                Result.success(modelFile)
+            } else {
+                tempFile.delete()
+                Result.failure(Exception("Descarga incompleta"))
+            }
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error descargando modelo: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
     
     /**
      * Carga el modelo GGUF
@@ -119,11 +197,7 @@ class LlamaService private constructor() {
     }
     
     /**
-     * Genera respuesta para chat agrícola con contexto RAG
-     * 
-     * @param userQuery La pregunta del usuario
-     * @param contextFromKB Contexto combinado de la base de conocimiento (múltiples entradas)
-     * @param maxTokens Máximo de tokens a generar
+     * Genera respuesta para chat agrícola con contexto RAG - PROMPTS CORTOS, RESPUESTAS LARGAS
      */
     suspend fun generateAgriResponse(
         userQuery: String,
@@ -131,61 +205,31 @@ class LlamaService private constructor() {
         maxTokens: Int = MAX_TOKENS
     ): Result<String> {
         
-        // Prompt mejorado para que Llama USE la información del JSON
-        val systemPrompt: String
-        val contextPart: String
-        
-        if (!contextFromKB.isNullOrBlank()) {
-            // CON contexto de la base de conocimiento - debe usarlo
-            systemPrompt = """<|start_header_id|>system<|end_header_id|}
+        // Prompt CORTO (~25 chars de instrucción) para generar respuestas EXTENSAS
+        // El contexto de KB proporciona la información base, el LLM la expande
+        val prompt: String = if (!contextFromKB.isNullOrBlank()) {
+            // Truncar contexto si es muy largo (máx 300 chars para dar espacio a la respuesta)
+            val shortContext = if (contextFromKB.length > 300) {
+                contextFromKB.take(300) + "..."
+            } else {
+                contextFromKB
+            }
+            // Prompt corto: solo 12 chars de instrucción
+            """$shortContext
 
-Eres AgroChat, un asistente agrícola experto colombiano. 
-
-INSTRUCCIONES IMPORTANTES:
-1. USA la información de la BASE DE CONOCIMIENTO para responder
-2. Expande y mejora esa información con explicaciones adicionales
-3. Responde siempre en español de forma clara y práctica
-4. Si la base de conocimiento tiene datos específicos (cantidades, tiempos, pasos), INCLÚYELOS en tu respuesta
-<|eot_id|>"""
-            
-            contextPart = """<|start_header_id|>system<|end_header_id|>
-
-BASE DE CONOCIMIENTO (usa esta información para responder):
-$contextFromKB
-<|eot_id|>"""
+$userQuery
+Explica:"""
         } else {
-            // SIN contexto - responder con conocimiento general
-            systemPrompt = """<|start_header_id|>system<|end_header_id|>
-
-Eres AgroChat, un asistente agrícola experto colombiano.
-Responde en español de forma clara, práctica y concisa.
-<|eot_id|>"""
-            
-            contextPart = ""
+            // Sin contexto: prompt mínimo
+            """$userQuery
+Responde:"""
         }
         
-        val userPart = """<|start_header_id|>user<|end_header_id|>
-
-$userQuery<|eot_id|><|start_header_id|>assistant<|end_header_id|>
-
-"""
+        Log.d(TAG, "Prompt: ${prompt.length} chars, maxTokens: $maxTokens")
         
-        val fullPrompt = systemPrompt + contextPart + userPart
+        val result = generateComplete(prompt, maxTokens)
         
-        Log.d(TAG, "RAG Prompt length: ${fullPrompt.length} chars")
-        Log.d(TAG, "Context from KB: ${contextFromKB?.take(200) ?: "null"}")
-        
-        val result = generateComplete(fullPrompt, maxTokens)
-        
-        // Log respuesta raw para debug
-        result.onSuccess { raw ->
-            Log.d(TAG, "Raw response (${raw.length} chars): ${raw.take(200)}")
-        }
-        
-        // Limpiar respuesta de tokens especiales que podrían aparecer
-        return result.map { response ->
-            cleanResponse(response)
-        }
+        return result.map { response -> cleanResponse(response) }
     }
     
     /**
@@ -194,24 +238,18 @@ $userQuery<|eot_id|><|start_header_id|>assistant<|end_header_id|>
     private fun cleanResponse(response: String): String {
         var cleaned = response
         
-        // Solo remover tokens especiales reales de Llama 3 (con delimitadores)
         val specialTokens = listOf(
-            "<|begin_of_text|>",
-            "<|end_of_text|>",
-            "<|start_header_id|>",
-            "<|end_header_id|>",
-            "<|eot_id|>",
-            "<|eom_id|>"
+            "<|begin_of_text|>", "<|end_of_text|>",
+            "<|start_header_id|>", "<|end_header_id|>",
+            "<|eot_id|>", "<|eom_id|>"
         )
         
-        // Primero, remover cualquier token especial al inicio
         for (token in specialTokens) {
             while (cleaned.startsWith(token)) {
                 cleaned = cleaned.removePrefix(token).trimStart()
             }
         }
         
-        // Luego, cortar en el primer token especial que aparezca (indica fin de respuesta)
         for (token in specialTokens) {
             val idx = cleaned.indexOf(token)
             if (idx > 0) {
@@ -220,12 +258,7 @@ $userQuery<|eot_id|><|start_header_id|>assistant<|end_header_id|>
             }
         }
         
-        // Limpiar espacios y saltos de línea extra al inicio y final
-        cleaned = cleaned.trim()
-        
-        Log.d(TAG, "Cleaned response (${cleaned.length} chars): ${cleaned.take(150)}...")
-        
-        return cleaned
+        return cleaned.trim()
     }
     
     /**

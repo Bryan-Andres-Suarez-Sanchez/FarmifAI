@@ -2,8 +2,10 @@ package edu.unicauca.app.agrochat.mindspore
 
 import android.content.Context
 import android.util.Log
+import edu.unicauca.app.agrochat.AppLogger
 import edu.unicauca.app.agrochat.MindSporeHelper
 import edu.unicauca.app.agrochat.UniversalNativeTokenizer
+import edu.unicauca.app.agrochat.models.ModelDownloadService
 import org.json.JSONObject
 import java.io.BufferedInputStream
 import java.io.DataInputStream
@@ -92,6 +94,7 @@ class SemanticSearchHelper(private val context: Context) {
             tryLoadMindSporeEncoder()
             
             isInitialized = true
+            AppLogger.log(TAG, "SemanticSearch OK: KB=${kbEntries?.size}, Q=${kbQuestions?.size}, MindSpore=${useMindSporeEncoder}")
             Log.i(TAG, "SemanticSearchHelper inicializado correctamente")
             Log.i(TAG, "  - Entradas en KB: ${kbEntries?.size}")
             Log.i(TAG, "  - Preguntas indexadas: ${kbQuestions?.size}")
@@ -113,33 +116,40 @@ class SemanticSearchHelper(private val context: Context) {
      */
     private fun tryLoadMindSporeEncoder() {
         try {
-            // Verificar si existe el modelo
-            val assetsList = context.assets.list("") ?: emptyArray()
-            if (MODEL_FILE !in assetsList) {
-                Log.w(TAG, "Modelo $MODEL_FILE no encontrado, usando fallback de texto")
+            AppLogger.log(TAG, "Cargando encoder MindSpore...")
+            
+            // Verificar si existe el modelo en almacenamiento interno (descargado)
+            val modelService = ModelDownloadService.getInstance()
+            val modelPath = modelService.getModelPath(context, MODEL_FILE)
+            if (modelPath == null) {
+                AppLogger.log(TAG, "❌ $MODEL_FILE no disponible en almacenamiento interno")
                 return
             }
+            AppLogger.log(TAG, "✓ Modelo encontrado en: $modelPath")
             
-            // Intentar cargar tokenizador
+            // Intentar cargar tokenizador (permanece en assets)
+            AppLogger.log(TAG, "Cargando tokenizador...")
             tokenizer = UniversalNativeTokenizer(context, TOKENIZER_FILE)
             if (tokenizer?.isReady() != true) {
-                Log.w(TAG, "Tokenizador no disponible, usando fallback de texto")
+                AppLogger.log(TAG, "❌ Tokenizador no listo")
                 tokenizer = null
                 return
             }
+            AppLogger.log(TAG, "✓ Tokenizador OK")
             
             // Cargar modelo MindSpore
-            modelHandle = MindSporeHelper.loadModelFromAssets(context, MODEL_FILE, NUM_THREADS)
+            AppLogger.log(TAG, "Cargando modelo $MODEL_FILE...")
+            modelHandle = MindSporeHelper.loadModelFromFilePath(modelPath, NUM_THREADS)
             if (modelHandle == 0L) {
-                Log.w(TAG, "No se pudo cargar modelo MindSpore, usando fallback de texto")
+                AppLogger.log(TAG, "❌ MindSpore devolvió handle=0")
                 return
             }
             
             useMindSporeEncoder = true
-            Log.i(TAG, "Encoder MindSpore cargado exitosamente")
+            AppLogger.log(TAG, "✓ MindSpore encoder OK (handle=$modelHandle)")
             
         } catch (e: Exception) {
-            Log.w(TAG, "Error cargando encoder MindSpore: ${e.message}, usando fallback")
+            AppLogger.log(TAG, "❌ Error MindSpore: ${e.message}")
             useMindSporeEncoder = false
         }
     }
@@ -301,6 +311,7 @@ class SemanticSearchHelper(private val context: Context) {
         val entries = kbEntries ?: return null
         
         val startTime = System.currentTimeMillis()
+        AppLogger.log(TAG, "findBestMatch: '$userQuery' useMindSpore=$useMindSporeEncoder")
         
         // Calcular embedding de la query o usar fallback
         val queryEmbedding = if (useMindSporeEncoder) {
@@ -313,6 +324,7 @@ class SemanticSearchHelper(private val context: Context) {
         var bestIdx = -1
         
         if (queryEmbedding != null) {
+            AppLogger.log(TAG, "Buscando con embedding (${queryEmbedding.size} dims)")
             // Búsqueda semántica real con embeddings
             for (i in embeddings.indices) {
                 val score = cosineSimilarity(queryEmbedding, embeddings[i])
@@ -322,6 +334,7 @@ class SemanticSearchHelper(private val context: Context) {
                 }
             }
         } else {
+            AppLogger.log(TAG, "Fallback: búsqueda por texto")
             // Fallback: similitud de texto
             val queryLower = userQuery.lowercase().trim()
             
@@ -337,6 +350,7 @@ class SemanticSearchHelper(private val context: Context) {
         }
         
         val elapsedTime = System.currentTimeMillis() - startTime
+        AppLogger.log(TAG, "findBestMatch: bestScore=$bestScore bestIdx=$bestIdx (${elapsedTime}ms)")
         
         if (bestIdx < 0) {
             return null
@@ -365,7 +379,7 @@ class SemanticSearchHelper(private val context: Context) {
             // Tokenizar
             val rawTokenIds = tokenizer!!.encode(text, addSpecialTokens = true)
             if (rawTokenIds.isEmpty()) {
-                Log.w(TAG, "computeEmbedding: tokenIds vacío para '$text'")
+                AppLogger.log(TAG, "computeEmbedding: tokenIds vacío")
                 return null
             }
             
@@ -374,9 +388,11 @@ class SemanticSearchHelper(private val context: Context) {
             val tokenIds = rawTokenIds.filter { it != padTokenId }.toIntArray()
             
             if (tokenIds.isEmpty()) {
-                Log.w(TAG, "computeEmbedding: Solo hay tokens de padding")
+                AppLogger.log(TAG, "computeEmbedding: Solo padding")
                 return null
             }
+            
+            AppLogger.log(TAG, "computeEmbedding: ${tokenIds.size} tokens")
             
             // Preparar entrada con padding
             val inputIds = IntArray(MAX_SEQ_LENGTH) { padTokenId }
@@ -392,9 +408,11 @@ class SemanticSearchHelper(private val context: Context) {
             val output = MindSporeHelper.predictSentenceEncoder(modelHandle, inputIds, attentionMask)
             
             if (output == null) {
-                Log.w(TAG, "computeEmbedding: predictSentenceEncoder devolvió null")
+                AppLogger.log(TAG, "computeEmbedding: MindSpore null")
                 return null
             }
+            
+            AppLogger.log(TAG, "computeEmbedding: output size=${output.size}")
             
             // El output esperado es de 384 elementos (embedding pooled directo)
             val embedding: FloatArray
@@ -403,9 +421,11 @@ class SemanticSearchHelper(private val context: Context) {
                 output.size == EMBEDDING_DIM -> {
                     // Caso ideal: el output ya es el embedding de 384 dims
                     embedding = output.copyOf()
+                    AppLogger.log(TAG, "computeEmbedding: ✓ embedding directo 384d")
                 }
                 output.size == MAX_SEQ_LENGTH * EMBEDDING_DIM -> {
                     // Recibimos last_hidden_state [128, 384] - hacer mean pooling
+                    AppLogger.log(TAG, "computeEmbedding: mean pooling")
                     embedding = FloatArray(EMBEDDING_DIM)
                     var validTokens = 0
                     for (i in 0 until numToCopy) {

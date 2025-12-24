@@ -3,7 +3,9 @@ package edu.unicauca.app.agrochat.vision
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
+import edu.unicauca.app.agrochat.AppLogger
 import edu.unicauca.app.agrochat.MindSporeHelper
+import edu.unicauca.app.agrochat.models.ModelDownloadService
 import org.json.JSONObject
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -71,53 +73,45 @@ class PlantDiseaseClassifier(private val context: Context) {
      */
     fun initialize(): Boolean {
         if (isInitialized) {
-            Log.d(TAG, "Clasificador ya inicializado")
+            AppLogger.log(TAG, "Ya inicializado")
             return true
         }
         
         return try {
-            // Verificar si el modelo existe
-            if (!modelExists()) {
-                Log.w(TAG, "Modelo $MODEL_FILE no encontrado en assets. El diagnóstico visual no estará disponible.")
+            AppLogger.log(TAG, "Inicializando clasificador...")
+            
+            // Verificar si el modelo existe en almacenamiento interno (descargado)
+            val modelService = ModelDownloadService.getInstance()
+            val modelPath = modelService.getModelPath(context, MODEL_FILE)
+            if (modelPath == null) {
+                AppLogger.log(TAG, "❌ $MODEL_FILE no disponible en almacenamiento interno")
                 return false
             }
+            AppLogger.log(TAG, "✓ Modelo encontrado en: $modelPath")
             
             // Cargar etiquetas
             labels = loadLabels()
             if (labels.isEmpty()) {
-                Log.e(TAG, "No se pudieron cargar las etiquetas")
+                AppLogger.log(TAG, "❌ No se cargaron etiquetas")
                 return false
             }
+            AppLogger.log(TAG, "✓ ${labels.size} etiquetas cargadas")
             
             // Cargar modelo MindSpore
-            modelHandle = MindSporeHelper.loadModelFromAssets(context, MODEL_FILE, numThreads = 2)
+            AppLogger.log(TAG, "Cargando modelo MindSpore...")
+            modelHandle = MindSporeHelper.loadModelFromFilePath(modelPath, numThreads = 2)
             
             if (modelHandle == 0L) {
-                Log.e(TAG, "No se pudo cargar el modelo MindSpore")
+                AppLogger.log(TAG, "❌ MindSpore devolvió handle=0")
                 return false
             }
             
             isInitialized = true
-            Log.i(TAG, "✅ Clasificador inicializado con ${labels.size} clases")
-            val crops = labels.map { it.crop }.distinct().sorted()
-            Log.i(TAG, "Cultivos soportados: ${crops.joinToString()}")
-            val hasCoffee = crops.any { it.equals("Café", ignoreCase = true) || it.equals("Cafe", ignoreCase = true) }
-            Log.i(TAG, "Soporta Café: $hasCoffee")
+            AppLogger.log(TAG, "✓ Clasificador OK (handle=$modelHandle, ${labels.size} clases)")
             true
             
         } catch (e: Exception) {
-            Log.e(TAG, "Error inicializando clasificador: ${e.message}", e)
-            false
-        }
-    }
-    
-    /**
-     * Verifica si el modelo existe en assets
-     */
-    private fun modelExists(): Boolean {
-        return try {
-            context.assets.open(MODEL_FILE).use { true }
-        } catch (e: Exception) {
+            AppLogger.log(TAG, "❌ Error: ${e.message}")
             false
         }
     }

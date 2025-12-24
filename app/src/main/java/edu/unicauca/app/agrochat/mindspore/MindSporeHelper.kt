@@ -48,26 +48,40 @@ object MindSporeHelper {
         overwrite: Boolean = false
     ): String? {
         val outputFile = File(context.filesDir, outputFileNameInInternalStorage)
-        // ... (lógica de copia como estaba)
-        if (outputFile.exists() && !overwrite) {
-            Log.i(TAG, "El archivo '${outputFile.name}' ya existe. Usando existente: ${outputFile.absolutePath}")
+        
+        // Verificar si ya existe Y tiene contenido (más de 1KB para modelos)
+        if (outputFile.exists() && !overwrite && outputFile.length() > 1024) {
+            AppLogger.log(TAG, "Usando cache: ${outputFile.name} (${outputFile.length() / 1024 / 1024}MB)")
+            Log.i(TAG, "El archivo '${outputFile.name}' ya existe (${outputFile.length()} bytes). Usando existente.")
             return outputFile.absolutePath
         }
+        
+        // Si existe pero está vacío o muy pequeño, eliminarlo
+        if (outputFile.exists() && outputFile.length() <= 1024) {
+            AppLogger.log(TAG, "Archivo vacío detectado, eliminando...")
+            outputFile.delete()
+        }
+        
         var inputStream: InputStream? = null
         var outputStream: OutputStream? = null
         try {
+            AppLogger.log(TAG, "Copiando $assetName desde assets...")
             Log.d(TAG, "Copiando '$assetName' desde assets a '${outputFile.absolutePath}'...")
             inputStream = context.assets.open(assetName)
             outputStream = FileOutputStream(outputFile)
             val buffer = ByteArray(1024 * 8)
             var read: Int
+            var totalBytes = 0L
             while (inputStream.read(buffer).also { read = it } != -1) {
                 outputStream.write(buffer, 0, read)
+                totalBytes += read
             }
             outputStream.flush()
-            Log.i(TAG, "Archivo '$assetName' copiado exitosamente a '${outputFile.absolutePath}'")
+            AppLogger.log(TAG, "✓ Copiado: ${totalBytes / 1024 / 1024}MB")
+            Log.i(TAG, "Archivo '$assetName' copiado exitosamente ($totalBytes bytes)")
             return outputFile.absolutePath
         } catch (e: IOException) {
+            AppLogger.log(TAG, "❌ Error copiando: ${e.message}")
             Log.e(TAG, "Error al copiar '$assetName' a '${outputFile.name}': ${e.message}", e)
             if (outputFile.exists()) { outputFile.delete() }
             return null
@@ -82,9 +96,9 @@ object MindSporeHelper {
         assetModelPath: String,
         numThreads: Int = 2
     ): Long {
+        AppLogger.log(TAG, "Cargando: $assetModelPath")
         Log.i(TAG, "Solicitud para cargar modelo desde assets: '$assetModelPath' (copia y mapeo)")
         val internalModelFileName = File(assetModelPath).name
-        // ... (lógica de copia y mapeo como estaba) ...
         val modelPathInInternalStorage = copyAssetFileToInternalStorage(
             context,
             assetModelPath,
@@ -93,43 +107,73 @@ object MindSporeHelper {
         )
 
         if (modelPathInInternalStorage == null) {
+            AppLogger.log(TAG, "❌ No se pudo copiar $assetModelPath")
             Log.e(TAG, "Fallo al copiar/ubicar el modelo '$assetModelPath' en almacenamiento interno.")
             return 0L
         }
+        
+        AppLogger.log(TAG, "Copiado a: $modelPathInInternalStorage")
+
+        return loadModelFromFilePath(modelPathInInternalStorage, numThreads)
+    }
+
+    /**
+     * Carga un modelo MindSpore desde una ruta de archivo ya existente en almacenamiento interno.
+     * No realiza ninguna copia desde assets, solo mapea el archivo y llama al JNI.
+     */
+    fun loadModelFromFilePath(
+        modelPath: String,
+        numThreads: Int = 2
+    ): Long {
+        val modelFile = File(modelPath)
+        if (!modelFile.exists() || modelFile.length() <= 1024) {
+            AppLogger.log(TAG, "❌ Archivo de modelo inválido: $modelPath (${modelFile.length()} bytes)")
+            Log.e(TAG, "Archivo de modelo no encontrado o demasiado pequeño: '$modelPath'")
+            return 0L
+        }
+
+        AppLogger.log(TAG, "Cargando modelo desde ruta: $modelPath")
 
         var fileChannel: FileChannel? = null
         var raf: RandomAccessFile? = null // Necesitamos declarar raf aquí para cerrarlo en finally
         try {
-            Log.d(TAG, "Intentando mapear en memoria el archivo: $modelPathInInternalStorage")
-            raf = RandomAccessFile(File(modelPathInInternalStorage), "r")
+            Log.d(TAG, "Intentando mapear en memoria el archivo: $modelPath")
+            raf = RandomAccessFile(modelFile, "r")
             fileChannel = raf.channel
+            
+            val fileSize = fileChannel.size()
+            AppLogger.log(TAG, "Tamaño: ${fileSize / 1024 / 1024}MB")
 
             val mappedByteBuffer: MappedByteBuffer = fileChannel.map(
                 FileChannel.MapMode.READ_ONLY,
                 0,
-                fileChannel.size()
+                fileSize
             )
 
             if (mappedByteBuffer == null) {
-                Log.e(TAG, "Falló el mapeo en memoria del archivo: $modelPathInInternalStorage (MappedByteBuffer es null)")
+                AppLogger.log(TAG, "❌ MappedByteBuffer null")
+                Log.e(TAG, "Falló el mapeo en memoria del archivo: $modelPath (MappedByteBuffer es null)")
                 return 0L
             }
-
+            AppLogger.log(TAG, "Mapeado OK, llamando JNI...")
             Log.i(TAG, "Archivo mapeado exitosamente. Tamaño: ${fileChannel.size()}. Llamando a JNI loadModel...")
             val modelHandle = loadModel(mappedByteBuffer, numThreads)
 
             if (modelHandle == 0L) {
+                AppLogger.log(TAG, "❌ JNI devolvió 0")
                 Log.e(TAG, "JNI loadModel falló al cargar el modelo desde MappedByteBuffer.")
             } else {
+                AppLogger.log(TAG, "✓ JNI OK handle=$modelHandle")
                 Log.i(TAG, "JNI loadModel exitoso con MappedByteBuffer. Handle: $modelHandle")
             }
             return modelHandle
 
         } catch (e: IOException) {
-            Log.e(TAG, "IOException durante el mapeo o carga del modelo desde '$modelPathInInternalStorage': ${e.message}", e)
+            AppLogger.log(TAG, "❌ IOException: ${e.message}")
+            Log.e(TAG, "IOException durante el mapeo o carga del modelo desde '$modelPath': ${e.message}", e)
             return 0L
         } catch (e: Exception) {
-            Log.e(TAG, "Excepción inesperada durante el mapeo o carga desde '$modelPathInInternalStorage': ${e.message}", e)
+            Log.e(TAG, "Excepción inesperada durante el mapeo o carga desde '$modelPath': ${e.message}", e)
             return 0L
         } finally {
             try {

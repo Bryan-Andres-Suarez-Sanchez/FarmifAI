@@ -1,8 +1,15 @@
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
+
+// Generar timestamp para nombre único de APK
+val buildTimestamp: String = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
 
 android {
     namespace = "edu.unicauca.app.agrochat"
@@ -24,7 +31,9 @@ android {
         }
 
         ndk {
-            abiFilters.addAll(setOf("armeabi-v7a", "arm64-v8a"))
+            // Only arm64-v8a to reduce APK size (most modern devices)
+            // Remove armeabi-v7a (~35MB savings) - can add back if needed for older devices
+            abiFilters.addAll(setOf("arm64-v8a"))
         }
     }
 
@@ -44,6 +53,20 @@ android {
                 "proguard-rules.pro"
             )
         }
+        debug {
+            // Nombre de APK con timestamp
+            applicationIdSuffix = ""
+        }
+    }
+    
+    // Nombre único para cada APK generada
+    applicationVariants.all {
+        val variant = this
+        variant.outputs.all {
+            val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            val versionName = variant.versionName ?: "1.0"
+            output.outputFileName = "FarmifAI-${variant.buildType.name}-v${versionName}-${buildTimestamp}.apk"
+        }
     }
 
     compileOptions {
@@ -60,9 +83,12 @@ android {
     }
 
     packaging {
-        // resources { // Comenta o elimina esta sección si el modelo está en assets y se usa
-        //     excludes += "/assets/gpt2_model.ms"
-        // }
+        resources {
+            // Excluir modelos MindSpore grandes de los assets del APK
+            // (la ruta en el APK es "assets/...")
+            excludes += "assets/sentence_encoder.ms"
+            excludes += "assets/plant_disease_model.ms"
+        }
     }
 
     // Esta sección externalNativeBuild se mantiene tal cual si la usas

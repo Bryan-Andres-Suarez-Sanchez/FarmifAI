@@ -128,7 +128,7 @@ class VoiceHelper(private val context: Context) {
         onModelStatus?.invoke("Preparando modelo de voz...")
         Log.d(TAG, "Cargando modelo Vosk: $VOSK_MODEL")
         
-        // Copiar modelo desde assets a files en un hilo separado
+        // Copiar modelo desde assets o downloads a files en un hilo separado
         Thread {
             try {
                 val modelDir = java.io.File(context.filesDir, "vosk-model")
@@ -140,15 +140,34 @@ class VoiceHelper(private val context: Context) {
                     return@Thread
                 }
                 
-                // Copiar modelo desde assets
+                // Check if model was downloaded to filesDir/models/model-es-small
+                val downloadedModelDir = java.io.File(context.filesDir, "models/$VOSK_MODEL")
+                if (downloadedModelDir.exists() && java.io.File(downloadedModelDir, "am/final.mdl").exists()) {
+                    Log.i(TAG, "Usando modelo descargado desde: ${downloadedModelDir.absolutePath}")
+                    android.os.Handler(android.os.Looper.getMainLooper()).post {
+                        onModelStatus?.invoke("Preparando modelo de voz...")
+                    }
+                    // Copy downloaded model to vosk-model dir
+                    copyDirectory(downloadedModelDir, modelDir)
+                    loadVoskModel(modelDir)
+                    return@Thread
+                }
+                
+                // Fallback: copy from assets (if bundled)
                 android.os.Handler(android.os.Looper.getMainLooper()).post {
                     onModelStatus?.invoke("Extrayendo modelo de voz...")
                 }
                 
-                copyAssetFolder(VOSK_MODEL, modelDir)
-                
-                // Cargar el modelo
-                loadVoskModel(modelDir)
+                try {
+                    copyAssetFolder(VOSK_MODEL, modelDir)
+                    loadVoskModel(modelDir)
+                } catch (e: Exception) {
+                    Log.e(TAG, "No se encontró modelo en assets ni descargas: ${e.message}")
+                    android.os.Handler(android.os.Looper.getMainLooper()).post {
+                        onModelStatus?.invoke("Descarga el modelo de voz primero")
+                        onError?.invoke("Modelo de voz no disponible. Descárgalo desde configuración.")
+                    }
+                }
                 
             } catch (e: Exception) {
                 Log.e(TAG, "Error cargando Vosk: ${e.message}")
@@ -158,6 +177,25 @@ class VoiceHelper(private val context: Context) {
                 }
             }
         }.start()
+    }
+    
+    /**
+     * Copy a directory recursively
+     */
+    private fun copyDirectory(src: java.io.File, dest: java.io.File) {
+        dest.mkdirs()
+        src.listFiles()?.forEach { file ->
+            val destFile = java.io.File(dest, file.name)
+            if (file.isDirectory) {
+                copyDirectory(file, destFile)
+            } else {
+                file.inputStream().use { input ->
+                    destFile.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+            }
+        }
     }
     
     /**

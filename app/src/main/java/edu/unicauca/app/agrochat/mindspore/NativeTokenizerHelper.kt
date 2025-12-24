@@ -129,11 +129,17 @@ class UniversalNativeTokenizer(
     }
 
     private fun getPathToTokenizerJsonFromAssets(context: Context, assetFileName: String): String? {
-        val outFile = File(context.cacheDir, assetFileName) // Usar cacheDir es común
+        // Primero intentar cargar desde el directorio de modelos descargados
+        val modelsDir = File(context.filesDir, "models")
+        val downloadedFile = File(modelsDir, assetFileName)
+        if (downloadedFile.exists() && downloadedFile.length() > 1024) {
+            Log.i(TAG, "$assetFileName encontrado en modelos descargados: ${downloadedFile.absolutePath}")
+            return downloadedFile.absolutePath
+        }
+        
+        // Fallback: copiar desde assets si existe ahí
+        val outFile = File(context.cacheDir, assetFileName)
         try {
-            // Asegurarse de que el directorio cache exista (aunque usualmente existe)
-            // outFile.parentFile?.mkdirs() // Descomentar si es necesario
-
             context.assets.open(assetFileName).use { inputStream ->
                 FileOutputStream(outFile).use { outputStream ->
                     inputStream.copyTo(outputStream)
@@ -143,6 +149,7 @@ class UniversalNativeTokenizer(
             return outFile.absolutePath
         } catch (e: IOException) {
             Log.e(TAG, "Error al copiar $assetFileName desde assets: ${e.message}", e)
+            Log.e(TAG, "El tokenizador no está disponible ni en modelos descargados ni en assets")
             return null
         }
     }

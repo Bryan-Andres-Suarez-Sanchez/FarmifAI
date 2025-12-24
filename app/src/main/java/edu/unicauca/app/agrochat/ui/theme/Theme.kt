@@ -56,3 +56,11 @@ fun AgroChatTheme(
         content = content
     )
 }
+
+// Alias for FarmifAI branding
+@Composable
+fun FarmifAITheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    dynamicColor: Boolean = true,
+    content: @Composable () -> Unit
+) = AgroChatTheme(darkTheme, dynamicColor, content)

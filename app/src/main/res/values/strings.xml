@@ -1,3 +1,81 @@
 <resources>
-    <string name="app_name">ARApp</string>
+    <string name="app_name">FarmifAI</string>
+    
+    <!-- General -->
+    <string name="assistant_name">FarmifAI</string>
+    <string name="assistant_subtitle">Asistente Agrícola</string>
+    <string name="loading">Cargando...</string>
+    <string name="error">Error</string>
+    <string name="close">Cerrar</string>
+    <string name="save">Guardar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="copy">Copiar</string>
+    <string name="copied">¡Copiado!</string>
+    
+    <!-- Voice Mode -->
+    <string name="tap_to_speak">Toca para hablar</string>
+    <string name="listening">Escuchando...</string>
+    <string name="processing">Procesando...</string>
+    <string name="voice_placeholder">Toca el micrófono y pregunta sobre agricultura</string>
+    
+    <!-- Chat Mode -->
+    <string name="chat_placeholder">Escribe tu pregunta...</string>
+    <string name="send">Enviar</string>
+    <string name="voice_mode">Modo Voz</string>
+    
+    <!-- Camera Mode -->
+    <string name="visual_diagnosis">Diagnóstico Visual</string>
+    <string name="take_photo">Tomar Foto</string>
+    <string name="gallery">Galería</string>
+    <string name="diagnosing">Diagnosticando...</string>
+    <string name="diagnosis_ready">Listo para diagnosticar</string>
+    
+    <!-- Settings -->
+    <string name="settings">Configuración</string>
+    <string name="language">Idioma</string>
+    <string name="language_label">Idioma / Language</string>
+    <string name="spanish">Español</string>
+    <string name="english">English</string>
+    <string name="local_llm">LLM Local (Llama)</string>
+    <string name="online_llm">LLM Online (Groq)</string>
+    <string name="api_key">API Key de Groq</string>
+    <string name="api_key_hint">gsk_...</string>
+    <string name="api_key_help">Obtén tu key gratis en: console.groq.com</string>
+    <string name="llm_offline_help">Respuestas inteligentes offline con IA generativa</string>
+    <string name="llm_copy_help">Copia un modelo .gguf a la carpeta de la app para habilitar</string>
+    <string name="online_help">Para respuestas más fluidas cuando hay internet.</string>
+    <string name="language_change_hint">La app se reiniciará al cambiar idioma</string>
+    
+    <!-- Logs -->
+    <string name="logs">Logs</string>
+    <string name="debug_logs">Logs de Depuración</string>
+    <string name="clear">Limpiar</string>
+    <string name="refresh">Refrescar</string>
+    <string name="no_logs">No hay logs aún</string>
+    
+    <!-- Status -->
+    <string name="online">Online</string>
+    <string name="offline">Offline</string>
+    <string name="local">Local</string>
+    <string name="llama_ready">Llama listo ✓</string>
+    <string name="loading_ai">Cargando IA...</string>
+    <string name="downloading_llm">Descargando LLM</string>
+    <string name="model_not_available">Modelo no disponible</string>
+    
+    <!-- Welcome message -->
+    <string name="welcome_title">¡Bienvenido a FarmifAI!</string>
+    <string name="welcome_message">¡Hola! Soy FarmifAI 🌱\nTu asistente agrícola con IA.\n\nPregúntame sobre cultivos, plagas, fertilizantes o cualquier tema agrícola.</string>
+    
+    <!-- Empty state -->
+    <string name="empty_chat_hint">Escribe tu pregunta sobre agricultura en el campo de texto de abajo.</string>
+    <string name="initializing">Inicializando...</string>
+    
+    <!-- Chat -->
+    <string name="chat_mode">Modo Chat</string>
+    <string name="camera_mode">Cámara</string>
+    
+    <!-- Errors -->
+    <string name="error_retry">Hubo un error. Intenta de nuevo.</string>
+    <string name="no_local_llm">Sin LLM local</string>
+    <string name="download_failed">No se pudo descargar LLM</string>
 </resources>
