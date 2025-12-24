@@ -197,7 +197,8 @@ class LlamaService private constructor() {
     }
     
     /**
-     * Genera respuesta para chat agrícola con contexto RAG - PROMPTS CORTOS, RESPUESTAS LARGAS
+     * Genera respuesta para chat agrícola con contexto RAG
+     * Usa formato Llama 3.2 con system prompt para respuestas coherentes
      */
     suspend fun generateAgriResponse(
         userQuery: String,
@@ -205,50 +206,74 @@ class LlamaService private constructor() {
         maxTokens: Int = MAX_TOKENS
     ): Result<String> {
         
-        // Prompt conciso para respuestas naturales y directas
-        val prompt: String = if (!contextFromKB.isNullOrBlank()) {
-            // Truncar contexto si es muy largo (máx 250 chars)
-            val shortContext = if (contextFromKB.length > 250) {
-                contextFromKB.take(250) + "..."
+        // System prompt: define el rol del asistente
+        val systemPrompt = "Eres FarmifAI, un asistente agrícola experto. Responde de forma clara, útil y concisa en español. Si tienes información de contexto, úsala para dar una respuesta precisa."
+        
+        // User message: pregunta + contexto opcional
+        val userMessage: String = if (!contextFromKB.isNullOrBlank()) {
+            // Truncar contexto si es muy largo (máx 200 chars)
+            val shortContext = if (contextFromKB.length > 200) {
+                contextFromKB.take(200)
             } else {
                 contextFromKB
             }
-            // Prompt directo: respuesta breve basada en contexto
-            """Info: $shortContext
-
-Pregunta: $userQuery
-Respuesta breve:"""
+            "Contexto: $shortContext\n\nPregunta: $userQuery"
         } else {
-            // Sin contexto: respuesta directa
-            """Pregunta: $userQuery
-Respuesta breve:"""
+            userQuery
         }
         
-        Log.d(TAG, "Prompt: ${prompt.length} chars, maxTokens: $maxTokens")
+        // Formato Llama 3.2 Chat
+        val prompt = """<|begin_of_text|><|start_header_id|>system<|end_header_id|>
+
+$systemPrompt<|eot_id|><|start_header_id|>user<|end_header_id|}
+
+$userMessage<|eot_id|><|start_header_id|>assistant<|end_header_id|>
+
+"""
         
-        val result = generateComplete(prompt, maxTokens)
+        Log.d(TAG, "Prompt Llama3: ${prompt.length} chars, maxTokens: $maxTokens")
+        
+        // formatChat = false porque ya formateamos manualmente
+        val result = generateCompleteRaw(prompt, maxTokens)
         
         return result.map { response -> cleanResponse(response) }
     }
     
     /**
-     * Limpia la respuesta de tokens especiales de Llama
+     * Genera respuesta sin formateo automático (para prompts pre-formateados)
+     */
+    private suspend fun generateCompleteRaw(prompt: String, maxTokens: Int = MAX_TOKENS): Result<String> {
+        return try {
+            val response = llama.sendComplete(prompt, formatChat = false, maxTokens = maxTokens)
+            Result.success(response)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error generando respuesta raw", e)
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Limpia la respuesta de tokens especiales y texto incoherente
      */
     private fun cleanResponse(response: String): String {
         var cleaned = response
         
+        // Tokens especiales de Llama 3
         val specialTokens = listOf(
             "<|begin_of_text|>", "<|end_of_text|>",
             "<|start_header_id|>", "<|end_header_id|>",
-            "<|eot_id|>", "<|eom_id|>"
+            "<|eot_id|>", "<|eom_id|>",
+            "system", "user", "assistant"
         )
         
+        // Eliminar tokens al inicio
         for (token in specialTokens) {
             while (cleaned.startsWith(token)) {
                 cleaned = cleaned.removePrefix(token).trimStart()
             }
         }
         
+        // Cortar en el primer token especial encontrado
         for (token in specialTokens) {
             val idx = cleaned.indexOf(token)
             if (idx > 0) {
@@ -257,7 +282,28 @@ Respuesta breve:"""
             }
         }
         
-        return cleaned.trim()
+        // Eliminar líneas que parecen ser parte del prompt repetido
+        val lines = cleaned.lines().filter { line ->
+            val lower = line.lowercase().trim()
+            !lower.startsWith("info:") &&
+            !lower.startsWith("contexto:") &&
+            !lower.startsWith("pregunta:") &&
+            !lower.startsWith("respuesta:") &&
+            !lower.startsWith("respuesta breve:") &&
+            !lower.contains("soy un cultivo") &&
+            !lower.matches(Regex("^\\d+\\).*"))  // Eliminar "1) ..." "2) ..."
+        }
+        cleaned = lines.joinToString("\n")
+        
+        // Limpiar espacios extras
+        cleaned = cleaned.trim()
+        
+        // Si quedó muy corta o vacía, devolver mensaje genérico
+        if (cleaned.length < 5) {
+            return "Puedo ayudarte con información sobre cultivos, plagas, riego y más. ¿Qué te gustaría saber?"
+        }
+        
+        return cleaned
     }
     
     /**
