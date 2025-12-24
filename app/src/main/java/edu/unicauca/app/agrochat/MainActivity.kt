@@ -1121,7 +1121,20 @@ class MainActivity : ComponentActivity() {
         
         AppLogger.log("MainActivity", "RAG: ${ragContext?.contexts?.size ?: 0} contextos, best=${bestMatch?.similarityScore ?: 0f}")
         
-        // 3. Intentar con Llama local si está cargado Y habilitado (offline pero inteligente)
+        // 2.5 RESPUESTA DIRECTA para saludos y matches muy altos (conversación natural)
+        // Detectar saludos simples para respuesta inmediata de KB
+        val isSimpleGreeting = userQuery.lowercase().trim().let { q ->
+            q in listOf("hola", "hey", "buenas", "buenos días", "buenas tardes", "buenas noches", "gracias", "adiós", "chao", "hasta luego") ||
+            q.length < 15 && (q.startsWith("hola") || q.startsWith("hey") || q.startsWith("gracias"))
+        }
+        
+        // Si es saludo simple O match muy alto (>0.75), usar KB directa para respuesta natural
+        if (bestMatch != null && (isSimpleGreeting || bestMatch.similarityScore >= 0.75f)) {
+            AppLogger.log("MainActivity", "⚡ Respuesta directa KB: score=${bestMatch.similarityScore}, greeting=$isSimpleGreeting")
+            return@withContext Pair(bestMatch.answer, false)  // Respuesta rápida y natural
+        }
+        
+        // 3. Intentar con Llama local si está cargado Y habilitado (para preguntas complejas)
         if (isLlamaEnabled && isLlamaLoaded && llamaService != null) {
             AppLogger.log("MainActivity", "→ Usando Llama LLM")
             usedLlm = true
@@ -1130,7 +1143,7 @@ class MainActivity : ComponentActivity() {
                 val result = llamaService!!.generateAgriResponse(
                     userQuery = userQuery,
                     contextFromKB = combinedKBContext,  // Múltiples contextos
-                    maxTokens = 150  // Más tokens para respuestas extensas
+                    maxTokens = 100  // Tokens moderados para respuestas concisas
                 )
                 
                 result.fold(
@@ -1154,12 +1167,7 @@ class MainActivity : ComponentActivity() {
             }
         }
         
-        // 3.5 RESPUESTA RÁPIDA: Solo si score muy alto (>0.90) y NO hay LLM disponible,
-        // usar KB directamente sin LLM (modo ultra-rápido, respuestas exactas).
-        if (bestMatch != null && bestMatch.similarityScore >= 0.90f && (!isLlamaEnabled || !isLlamaLoaded || llamaService == null)) {
-            AppLogger.log("MainActivity", "⚡ Respuesta rápida KB (sin LLM): score=${bestMatch.similarityScore}")
-            return@withContext Pair(bestMatch.answer, false)  // false = no usó LLM, no mostrar continuar
-        }
+        // (KB rápida ya se manejó arriba en 2.5)
         
         // 4. Fallback final: búsqueda semántica pura (offline)
         AppLogger.log("MainActivity", "→ Fallback: búsqueda semántica")

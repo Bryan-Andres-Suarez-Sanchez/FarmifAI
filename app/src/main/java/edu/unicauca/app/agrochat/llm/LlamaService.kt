@@ -205,24 +205,23 @@ class LlamaService private constructor() {
         maxTokens: Int = MAX_TOKENS
     ): Result<String> {
         
-        // Prompt CORTO (~25 chars de instrucción) para generar respuestas EXTENSAS
-        // El contexto de KB proporciona la información base, el LLM la expande
+        // Prompt conciso para respuestas naturales y directas
         val prompt: String = if (!contextFromKB.isNullOrBlank()) {
-            // Truncar contexto si es muy largo (máx 300 chars para dar espacio a la respuesta)
-            val shortContext = if (contextFromKB.length > 300) {
-                contextFromKB.take(300) + "..."
+            // Truncar contexto si es muy largo (máx 250 chars)
+            val shortContext = if (contextFromKB.length > 250) {
+                contextFromKB.take(250) + "..."
             } else {
                 contextFromKB
             }
-            // Prompt corto: solo 12 chars de instrucción
-            """$shortContext
+            // Prompt directo: respuesta breve basada en contexto
+            """Info: $shortContext
 
-$userQuery
-Explica:"""
+Pregunta: $userQuery
+Respuesta breve:"""
         } else {
-            // Sin contexto: prompt mínimo
-            """$userQuery
-Responde:"""
+            // Sin contexto: respuesta directa
+            """Pregunta: $userQuery
+Respuesta breve:"""
         }
         
         Log.d(TAG, "Prompt: ${prompt.length} chars, maxTokens: $maxTokens")
