@@ -57,14 +57,14 @@
     <string name="online">Online</string>
     <string name="offline">Offline</string>
     <string name="local">Local</string>
-    <string name="llama_ready">Llama listo ✓</string>
+    <string name="llama_ready">Llama listo</string>
     <string name="loading_ai">Cargando IA...</string>
     <string name="downloading_llm">Descargando LLM</string>
     <string name="model_not_available">Modelo no disponible</string>
     
     <!-- Welcome message -->
     <string name="welcome_title">¡Bienvenido a FarmifAI!</string>
-    <string name="welcome_message">¡Hola! Soy FarmifAI 🌱\nTu asistente agrícola con IA.\n\nPregúntame sobre cultivos, plagas, fertilizantes o cualquier tema agrícola.</string>
+    <string name="welcome_message">¡Hola! Soy FarmifAI\nTu asistente agrícola con IA.\n\nPregúntame sobre cultivos, plagas, fertilizantes o cualquier tema agrícola.</string>
     
     <!-- Empty state -->
     <string name="empty_chat_hint">Escribe tu pregunta sobre agricultura en el campo de texto de abajo.</string>

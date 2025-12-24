@@ -55,6 +55,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -414,7 +415,7 @@ class MainActivity : ComponentActivity() {
         // Modelo LLM
         if (!llamaService.isModelAvailable(applicationContext)) {
             downloadItems.add(DownloadItem(
-                name = "🦙 Asistente Inteligente",
+                name = "Asistente Inteligente",
                 description = "Modelo de lenguaje para respuestas naturales",
                 sizeMB = 750
             ))
@@ -535,16 +536,16 @@ class MainActivity : ComponentActivity() {
         // Verificar DESPUÉS de descargar si el modelo existe
         // (por si result.isSuccess falla pero el archivo sí se descargó)
         if (result.isSuccess) {
-            AppLogger.log("MainActivity", "✅ Descarga LLM exitosa")
+            AppLogger.log("MainActivity", "Descarga LLM exitosa")
             return true
         } else {
             // Doble verificación: puede que el archivo se haya descargado correctamente
             val exists = llamaService.isModelAvailable(applicationContext)
             if (exists) {
-                AppLogger.log("MainActivity", "✅ Modelo LLM existe después de descarga (verificación secundaria)")
+                AppLogger.log("MainActivity", "Modelo LLM existe después de descarga (verificación secundaria)")
                 return true
             }
-            AppLogger.log("MainActivity", "❌ Error descargando LLM: ${result.exceptionOrNull()?.message}")
+            AppLogger.log("MainActivity", "Error descargando LLM: ${result.exceptionOrNull()?.message}")
             return false
         }
     }
@@ -585,7 +586,7 @@ class MainActivity : ComponentActivity() {
 
         withContext(Dispatchers.Main) {
             uiStatus = if (success) {
-                "Modelos IA listos ✓"
+                "Modelos IA listos"
             } else {
                 "Error descargando modelos IA"
             }
@@ -602,13 +603,13 @@ class MainActivity : ComponentActivity() {
                 withContext(Dispatchers.Main) {
                     isDiagnosticReady = success
                     if (success) {
-                        AppLogger.log("MainActivity", "✅ Diagnóstico visual inicializado")
+                        AppLogger.log("MainActivity", "Diagnóstico visual inicializado")
                     } else {
-                        AppLogger.log("MainActivity", "⚠️ Modelo diagnóstico NO disponible")
+                        AppLogger.log("MainActivity", "Modelo diagnóstico NO disponible")
                     }
                 }
             } catch (e: Exception) {
-                AppLogger.log("MainActivity", "❌ Error diagnóstico: ${e.message}")
+                AppLogger.log("MainActivity", "Error diagnóstico: ${e.message}")
                 withContext(Dispatchers.Main) {
                     isDiagnosticReady = false
                 }
@@ -633,7 +634,7 @@ class MainActivity : ComponentActivity() {
         lastDiagnosis = null
         
         if (!isDiagnosticReady) {
-            AppLogger.log("MainActivity", "⚠️ Diagnóstico no listo, mostrando toast")
+            AppLogger.log("MainActivity", "Diagnóstico no listo, mostrando toast")
             Toast.makeText(this, "Modelo de diagnóstico no disponible", Toast.LENGTH_SHORT).show()
             return
         }
@@ -650,7 +651,7 @@ class MainActivity : ComponentActivity() {
                 
                 lastDiagnosis = result
                 uiStatus = if (result != null) {
-                    "Diagnóstico completado ✓"
+                    "Diagnóstico completado"
                 } else {
                     "No se pudo identificar la planta"
                 }
@@ -673,7 +674,7 @@ class MainActivity : ComponentActivity() {
     private fun diagnosisToChat(result: DiseaseResult) {
         // Añadir mensaje visual al chat con la imagen y diagnóstico
         chatMessages.add(ChatMessage(
-            text = "📸 Diagnóstico visual: ${result.displayName}",
+            text = "Diagnóstico visual: ${result.displayName}",
             isUser = true,
             imageBitmap = capturedBitmap,
             diseaseResult = result
@@ -692,14 +693,14 @@ class MainActivity : ComponentActivity() {
                 val (response, _) = findResponseWithMeta(query)
                 
                 val fullResponse = buildString {
-                    append("🔍 **${result.displayName}**\n")
-                    append("🌿 Cultivo: ${result.crop}\n")
-                    append("📊 Confianza: ${(result.confidence * 100).toInt()}%\n\n")
+                    append("**${result.displayName}**\n")
+                    append("Cultivo: ${result.crop}\n")
+                    append("Confianza: ${(result.confidence * 100).toInt()}%\n\n")
                     
                     if (result.isHealthy) {
-                        append("✅ La planta se ve saludable.\n\n")
+                        append("La planta se ve saludable.\n\n")
                     } else {
-                        append("⚠️ Enfermedad detectada.\n\n")
+                        append("Enfermedad detectada.\n\n")
                     }
                     
                     append("**Recomendación:**\n")
@@ -874,8 +875,8 @@ class MainActivity : ComponentActivity() {
                     updateOnlineStatus()
                     if (!isOnlineMode && isLlamaEnabled) {
                         withContext(Dispatchers.Main) {
-                            uiStatus = "Llama listo ✓"
-                            Toast.makeText(applicationContext, "🦙 LLM Local listo", Toast.LENGTH_SHORT).show()
+                            uiStatus = "Llama listo"
+                            Toast.makeText(applicationContext, "LLM Local listo", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }?.onFailure { e ->
@@ -925,7 +926,7 @@ class MainActivity : ComponentActivity() {
             if (success) {
                 isModelReady = true
                 uiStatus = "Toca para hablar"
-                lastResponse = "¡Hola! Soy FarmifAI 🌱\nTu asistente agrícola con IA.\n\nPregúntame sobre cultivos, plagas, fertilizantes o cualquier tema agrícola."
+                lastResponse = "¡Hola! Soy FarmifAI\nTu asistente agrícola con IA.\n\nPregúntame sobre cultivos, plagas, fertilizantes o cualquier tema agrícola."
                 AppLogger.log("MainActivity", "✅ SemanticSearch inicializado")
             } else {
                 uiStatus = "Error al cargar"
@@ -1056,7 +1057,7 @@ class MainActivity : ComponentActivity() {
                             // Verificar si esta continuación está completa
                             val isComplete = isResponseComplete(cleanResponse)
                             // Agregar como continuación
-                            chatMessages.add(ChatMessage("📝 $cleanResponse", isUser = false, canContinue = !isComplete))
+                            chatMessages.add(ChatMessage("$cleanResponse", isUser = false, canContinue = !isComplete))
                             lastResponse = cleanResponse
                             voiceHelper?.speak(cleanResponse)
                         }
@@ -1120,13 +1121,6 @@ class MainActivity : ComponentActivity() {
         
         AppLogger.log("MainActivity", "RAG: ${ragContext?.contexts?.size ?: 0} contextos, best=${bestMatch?.similarityScore ?: 0f}")
         
-        // 2.5 RESPUESTA RÁPIDA: Si el score es muy alto (>0.75), usar KB directamente sin LLM
-        // Esto es MUCHO más rápido para preguntas exactas como "roya del café"
-        if (bestMatch != null && bestMatch.similarityScore >= 0.75f) {
-            AppLogger.log("MainActivity", "⚡ Respuesta rápida KB: score=${bestMatch.similarityScore}")
-            return@withContext Pair(bestMatch.answer, false)  // false = no usó LLM, no mostrar continuar
-        }
-        
         // 3. Intentar con Llama local si está cargado Y habilitado (offline pero inteligente)
         if (isLlamaEnabled && isLlamaLoaded && llamaService != null) {
             AppLogger.log("MainActivity", "→ Usando Llama LLM")
@@ -1160,6 +1154,13 @@ class MainActivity : ComponentActivity() {
             }
         }
         
+        // 3.5 RESPUESTA RÁPIDA: Si el score es muy alto (>0.75) y NO hay LLM disponible,
+        // usar KB directamente sin LLM (modo ultra-rápido, por ejemplo para "roya del café").
+        if (bestMatch != null && bestMatch.similarityScore >= 0.75f && (!isLlamaEnabled || !isLlamaLoaded || llamaService == null)) {
+            AppLogger.log("MainActivity", "⚡ Respuesta rápida KB (sin LLM): score=${bestMatch.similarityScore}")
+            return@withContext Pair(bestMatch.answer, false)  // false = no usó LLM, no mostrar continuar
+        }
+        
         // 4. Fallback final: búsqueda semántica pura (offline)
         AppLogger.log("MainActivity", "→ Fallback: búsqueda semántica")
         if (bestMatch == null) {
@@ -1169,7 +1170,7 @@ class MainActivity : ComponentActivity() {
         if (bestMatch.similarityScore < SIMILARITY_THRESHOLD) {
             AppLogger.log("MainActivity", "⚠ Score bajo: ${bestMatch.similarityScore} < $SIMILARITY_THRESHOLD")
             // Dar respuesta genérica pero amigable
-            return@withContext Pair("¡Hola! Soy tu asistente agrícola. Puedo ayudarte con:\n\n• 🌱 Cultivos y siembra\n• 🐛 Control de plagas\n• 💧 Riego\n• 🌿 Fertilización\n\n¿Qué te gustaría saber?", false)
+            return@withContext Pair("¡Hola! Soy tu asistente agrícola. Puedo ayudarte con:\n\n• Cultivos y siembra\n• Control de plagas\n• Riego\n• Fertilización\n\n¿Qué te gustaría saber?", false)
         }
         AppLogger.log("MainActivity", "✓ KB match: ${bestMatch.matchedQuestion} (${bestMatch.similarityScore})")
         return@withContext Pair(bestMatch.answer, false)
@@ -1335,7 +1336,14 @@ fun VoiceModeScreen(
                 )
                 Spacer(Modifier.width(8.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("FarmifAI", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = AgroColors.TextPrimary)
+                    Text(
+                        "FarmifAI",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = AgroColors.TextPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                     Text(stringResource(R.string.assistant_subtitle), style = MaterialTheme.typography.bodySmall, color = AgroColors.TextSecondary)
                 }
                 // Indicador online/offline + settings
@@ -1506,7 +1514,14 @@ fun ChatModeScreen(
                         modifier = Modifier.size(36.dp)
                     )
                     Column {
-                        Text("FarmifAI", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = AgroColors.TextPrimary)
+                        Text(
+                            "FarmifAI",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = AgroColors.TextPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                         Text(statusMessage, style = MaterialTheme.typography.bodySmall, color = AgroColors.TextSecondary)
                     }
                 }
@@ -2677,7 +2692,7 @@ fun WelcomeDownloadScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            "✨ FarmifAI",
+                            "FarmifAI",
                             style = MaterialTheme.typography.labelMedium,
                             color = AgroColors.Accent,
                             fontWeight = FontWeight.Bold
