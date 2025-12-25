@@ -41,6 +41,8 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -218,6 +220,15 @@ class MainActivity : ComponentActivity() {
     private var hasCameraPermission by mutableStateOf(false)
     private var capturedBitmap by mutableStateOf<Bitmap?>(null)
     private var lastDiagnosis by mutableStateOf<DiseaseResult?>(null)
+    
+    // ===== CONFIGURACIÓN AVANZADA =====
+    private var advancedMaxTokens by mutableStateOf(100)
+    private var advancedSimilarityThreshold by mutableStateOf(0.40f)
+    private var advancedKbFastPathThreshold by mutableStateOf(0.75f)
+    private var advancedSystemPrompt by mutableStateOf("Eres FarmifAI, un asistente agrícola experto. Responde de forma clara, útil y concisa en español.")
+    private var advancedUseLlmForAll by mutableStateOf(false)  // Usar LLM para todo, incluso saludos
+    private var advancedContextLength by mutableStateOf(200)
+    private var advancedDetectGreetings by mutableStateOf(true)  // Detectar saludos para KB directa
     private var isDiagnosing by mutableStateOf(false)
     
     // Logs viewer
@@ -362,7 +373,26 @@ class MainActivity : ComponentActivity() {
                         onOpenGallery = { openGallery() },
                         showLogsDialog = showLogsDialog,
                         onShowLogs = { showLogsDialog = true },
-                        onDismissLogs = { showLogsDialog = false }
+                        onDismissLogs = { showLogsDialog = false },
+                        // Configuración avanzada
+                        advancedMaxTokens = advancedMaxTokens,
+                        advancedSimilarityThreshold = advancedSimilarityThreshold,
+                        advancedKbFastPathThreshold = advancedKbFastPathThreshold,
+                        advancedSystemPrompt = advancedSystemPrompt,
+                        advancedUseLlmForAll = advancedUseLlmForAll,
+                        advancedContextLength = advancedContextLength,
+                        advancedDetectGreetings = advancedDetectGreetings,
+                        onSaveAdvancedSettings = { maxTok, simThresh, kbThresh, sysPrompt, llmAll, ctxLen, detectGreet ->
+                            advancedMaxTokens = maxTok
+                            advancedSimilarityThreshold = simThresh
+                            advancedKbFastPathThreshold = kbThresh
+                            advancedSystemPrompt = sysPrompt
+                            advancedUseLlmForAll = llmAll
+                            advancedContextLength = ctxLen
+                            advancedDetectGreetings = detectGreet
+                            saveAdvancedPreferences()
+                            Toast.makeText(this, "Configuración guardada", Toast.LENGTH_SHORT).show()
+                        }
                     )
                 }
             }
@@ -766,6 +796,30 @@ class MainActivity : ComponentActivity() {
     private fun loadPreferences() {
         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         isLlamaEnabled = prefs.getBoolean(KEY_LLAMA_ENABLED, true)
+        
+        // Configuración avanzada
+        advancedMaxTokens = prefs.getInt("advanced_max_tokens", 100)
+        advancedSimilarityThreshold = prefs.getFloat("advanced_similarity_threshold", 0.40f)
+        advancedKbFastPathThreshold = prefs.getFloat("advanced_kb_fast_path_threshold", 0.75f)
+        advancedSystemPrompt = prefs.getString("advanced_system_prompt", 
+            "Eres FarmifAI, un asistente agrícola experto. Responde de forma clara, útil y concisa en español.") ?: advancedSystemPrompt
+        advancedUseLlmForAll = prefs.getBoolean("advanced_use_llm_for_all", false)
+        advancedContextLength = prefs.getInt("advanced_context_length", 200)
+        advancedDetectGreetings = prefs.getBoolean("advanced_detect_greetings", true)
+    }
+    
+    private fun saveAdvancedPreferences() {
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().apply {
+            putInt("advanced_max_tokens", advancedMaxTokens)
+            putFloat("advanced_similarity_threshold", advancedSimilarityThreshold)
+            putFloat("advanced_kb_fast_path_threshold", advancedKbFastPathThreshold)
+            putString("advanced_system_prompt", advancedSystemPrompt)
+            putBoolean("advanced_use_llm_for_all", advancedUseLlmForAll)
+            putInt("advanced_context_length", advancedContextLength)
+            putBoolean("advanced_detect_greetings", advancedDetectGreetings)
+            apply()
+        }
     }
     
     private fun toggleLlama(enabled: Boolean) {
@@ -1110,7 +1164,7 @@ class MainActivity : ComponentActivity() {
         val ragContext = semanticSearchHelper?.findTopKContexts(
             userQuery = userQuery,
             topK = 3,
-            minScore = 0.35f  // Threshold más bajo para capturar más matches
+            minScore = advancedSimilarityThreshold  // Usar threshold configurable
         )
         
         val combinedKBContext = ragContext?.combinedContext
@@ -1122,28 +1176,30 @@ class MainActivity : ComponentActivity() {
         AppLogger.log("MainActivity", "RAG: ${ragContext?.contexts?.size ?: 0} contextos, best=${bestMatch?.similarityScore ?: 0f}")
         
         // 2.5 RESPUESTA DIRECTA para saludos y matches muy altos (conversación natural)
-        // Detectar saludos simples para respuesta inmediata de KB
-        val isSimpleGreeting = userQuery.lowercase().trim().let { q ->
+        // Detectar saludos simples para respuesta inmediata de KB (si está habilitado)
+        val isSimpleGreeting = advancedDetectGreetings && userQuery.lowercase().trim().let { q ->
             q in listOf("hola", "hey", "buenas", "buenos días", "buenas tardes", "buenas noches", "gracias", "adiós", "chao", "hasta luego") ||
             q.length < 15 && (q.startsWith("hola") || q.startsWith("hey") || q.startsWith("gracias"))
         }
         
-        // Si es saludo simple O match muy alto (>0.75), usar KB directa para respuesta natural
-        if (bestMatch != null && (isSimpleGreeting || bestMatch.similarityScore >= 0.75f)) {
-            AppLogger.log("MainActivity", "⚡ Respuesta directa KB: score=${bestMatch.similarityScore}, greeting=$isSimpleGreeting")
+        // Si NO está "usar LLM para todo" activado, y (es saludo O match muy alto), usar KB directa
+        if (!advancedUseLlmForAll && bestMatch != null && (isSimpleGreeting || bestMatch.similarityScore >= advancedKbFastPathThreshold)) {
+            AppLogger.log("MainActivity", "⚡ Respuesta directa KB: score=${bestMatch.similarityScore}, greeting=$isSimpleGreeting, threshold=$advancedKbFastPathThreshold")
             return@withContext Pair(bestMatch.answer, false)  // Respuesta rápida y natural
         }
         
         // 3. Intentar con Llama local si está cargado Y habilitado (para preguntas complejas)
         if (isLlamaEnabled && isLlamaLoaded && llamaService != null) {
-            AppLogger.log("MainActivity", "→ Usando Llama LLM")
+            AppLogger.log("MainActivity", "→ Usando Llama LLM (maxTokens=$advancedMaxTokens, ctxLen=$advancedContextLength)")
             usedLlm = true
             
             try {
                 val result = llamaService!!.generateAgriResponse(
                     userQuery = userQuery,
-                    contextFromKB = combinedKBContext,  // Múltiples contextos
-                    maxTokens = 100  // Tokens moderados para respuestas concisas
+                    contextFromKB = combinedKBContext,
+                    maxTokens = advancedMaxTokens,
+                    maxContextLength = advancedContextLength,
+                    systemPrompt = advancedSystemPrompt
                 )
                 
                 result.fold(
@@ -1232,7 +1288,16 @@ fun AgroChatApp(
     onOpenGallery: () -> Unit,
     showLogsDialog: Boolean,
     onShowLogs: () -> Unit,
-    onDismissLogs: () -> Unit
+    onDismissLogs: () -> Unit,
+    // Configuración avanzada
+    advancedMaxTokens: Int,
+    advancedSimilarityThreshold: Float,
+    advancedKbFastPathThreshold: Float,
+    advancedSystemPrompt: String,
+    advancedUseLlmForAll: Boolean,
+    advancedContextLength: Int,
+    advancedDetectGreetings: Boolean,
+    onSaveAdvancedSettings: (Int, Float, Float, String, Boolean, Int, Boolean) -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -1300,7 +1365,16 @@ fun AgroChatApp(
                 llamaDownloadFailed = llamaDownloadFailed,
                 onToggleLlama = onToggleLlama,
                 onRetryLlamaDownload = onRetryLlamaDownload,
-                onShowLogs = onShowLogs
+                onShowLogs = onShowLogs,
+                // Configuración avanzada
+                advancedMaxTokens = advancedMaxTokens,
+                advancedSimilarityThreshold = advancedSimilarityThreshold,
+                advancedKbFastPathThreshold = advancedKbFastPathThreshold,
+                advancedSystemPrompt = advancedSystemPrompt,
+                advancedUseLlmForAll = advancedUseLlmForAll,
+                advancedContextLength = advancedContextLength,
+                advancedDetectGreetings = advancedDetectGreetings,
+                onSaveAdvancedSettings = onSaveAdvancedSettings
             )
         }
     }
@@ -1742,7 +1816,16 @@ fun SettingsDialog(
     llamaDownloadFailed: Boolean,
     onToggleLlama: (Boolean) -> Unit,
     onRetryLlamaDownload: () -> Unit,
-    onShowLogs: () -> Unit
+    onShowLogs: () -> Unit,
+    // Configuración avanzada
+    advancedMaxTokens: Int,
+    advancedSimilarityThreshold: Float,
+    advancedKbFastPathThreshold: Float,
+    advancedSystemPrompt: String,
+    advancedUseLlmForAll: Boolean,
+    advancedContextLength: Int,
+    advancedDetectGreetings: Boolean,
+    onSaveAdvancedSettings: (Int, Float, Float, String, Boolean, Int, Boolean) -> Unit
 ) {
     var apiKey by remember { mutableStateOf("") }
     val context = LocalContext.current
@@ -1752,6 +1835,16 @@ fun SettingsDialog(
                 .getString("language", "es") ?: "es"
         )
     }
+    
+    // Estados locales para configuración avanzada (se sincronizan al guardar)
+    var showAdvanced by remember { mutableStateOf(false) }
+    var localMaxTokens by remember { mutableStateOf(advancedMaxTokens) }
+    var localSimThreshold by remember { mutableStateOf(advancedSimilarityThreshold) }
+    var localKbThreshold by remember { mutableStateOf(advancedKbFastPathThreshold) }
+    var localSystemPrompt by remember { mutableStateOf(advancedSystemPrompt) }
+    var localUseLlmForAll by remember { mutableStateOf(advancedUseLlmForAll) }
+    var localContextLength by remember { mutableStateOf(advancedContextLength) }
+    var localDetectGreetings by remember { mutableStateOf(advancedDetectGreetings) }
     
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1976,6 +2069,178 @@ fun SettingsDialog(
                         unfocusedTextColor = AgroColors.TextPrimary
                     )
                 )
+                
+                HorizontalDivider(color = AgroColors.SurfaceLight)
+                
+                // ===== SECCIÓN CONFIGURACIÓN AVANZADA (colapsable) =====
+                Surface(
+                    color = AgroColors.SurfaceLight,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.clickable { showAdvanced = !showAdvanced }
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("⚙️", fontSize = 18.sp)
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    "Configuración Avanzada",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = AgroColors.TextPrimary
+                                )
+                            }
+                            Icon(
+                                imageVector = if (showAdvanced) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                contentDescription = if (showAdvanced) "Colapsar" else "Expandir",
+                                tint = AgroColors.TextSecondary
+                            )
+                        }
+                        
+                        // Contenido expandible
+                        AnimatedVisibility(visible = showAdvanced) {
+                            Column(
+                                modifier = Modifier.padding(top = 16.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                // Max Tokens
+                                Text("Longitud de respuestas", style = MaterialTheme.typography.labelMedium, color = AgroColors.TextSecondary)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Slider(
+                                        value = localMaxTokens.toFloat(),
+                                        onValueChange = { localMaxTokens = it.toInt() },
+                                        valueRange = 50f..300f,
+                                        steps = 4,
+                                        modifier = Modifier.weight(1f),
+                                        colors = SliderDefaults.colors(
+                                            thumbColor = AgroColors.Accent,
+                                            activeTrackColor = AgroColors.Accent
+                                        )
+                                    )
+                                    Text("$localMaxTokens", style = MaterialTheme.typography.bodySmall, color = AgroColors.TextPrimary, modifier = Modifier.width(40.dp))
+                                }
+                                
+                                // Context Length
+                                Text("Longitud de contexto KB", style = MaterialTheme.typography.labelMedium, color = AgroColors.TextSecondary)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Slider(
+                                        value = localContextLength.toFloat(),
+                                        onValueChange = { localContextLength = it.toInt() },
+                                        valueRange = 100f..500f,
+                                        steps = 7,
+                                        modifier = Modifier.weight(1f),
+                                        colors = SliderDefaults.colors(
+                                            thumbColor = AgroColors.Accent,
+                                            activeTrackColor = AgroColors.Accent
+                                        )
+                                    )
+                                    Text("$localContextLength", style = MaterialTheme.typography.bodySmall, color = AgroColors.TextPrimary, modifier = Modifier.width(40.dp))
+                                }
+                                
+                                // KB Fast Path Threshold
+                                Text("Umbral KB directa (sin LLM): ${String.format("%.2f", localKbThreshold)}", style = MaterialTheme.typography.labelMedium, color = AgroColors.TextSecondary)
+                                Slider(
+                                    value = localKbThreshold,
+                                    onValueChange = { localKbThreshold = it },
+                                    valueRange = 0.5f..0.95f,
+                                    colors = SliderDefaults.colors(
+                                        thumbColor = AgroColors.Accent,
+                                        activeTrackColor = AgroColors.Accent
+                                    )
+                                )
+                                Text("Mayor = más uso del LLM", style = MaterialTheme.typography.bodySmall, color = AgroColors.TextSecondary)
+                                
+                                // Similarity Threshold
+                                Text("Umbral mínimo similitud: ${String.format("%.2f", localSimThreshold)}", style = MaterialTheme.typography.labelMedium, color = AgroColors.TextSecondary)
+                                Slider(
+                                    value = localSimThreshold,
+                                    onValueChange = { localSimThreshold = it },
+                                    valueRange = 0.2f..0.6f,
+                                    colors = SliderDefaults.colors(
+                                        thumbColor = AgroColors.Accent,
+                                        activeTrackColor = AgroColors.Accent
+                                    )
+                                )
+                                
+                                HorizontalDivider(color = AgroColors.Surface)
+                                
+                                // Toggles
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Detectar saludos (KB directa)", style = MaterialTheme.typography.bodySmall, color = AgroColors.TextPrimary)
+                                    Switch(
+                                        checked = localDetectGreetings,
+                                        onCheckedChange = { localDetectGreetings = it },
+                                        colors = SwitchDefaults.colors(
+                                            checkedThumbColor = AgroColors.Accent,
+                                            checkedTrackColor = AgroColors.Accent.copy(alpha = 0.5f)
+                                        )
+                                    )
+                                }
+                                
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Usar LLM para todo", style = MaterialTheme.typography.bodySmall, color = AgroColors.TextPrimary)
+                                    Switch(
+                                        checked = localUseLlmForAll,
+                                        onCheckedChange = { localUseLlmForAll = it },
+                                        colors = SwitchDefaults.colors(
+                                            checkedThumbColor = AgroColors.Accent,
+                                            checkedTrackColor = AgroColors.Accent.copy(alpha = 0.5f)
+                                        )
+                                    )
+                                }
+                                
+                                HorizontalDivider(color = AgroColors.Surface)
+                                
+                                // System Prompt
+                                Text("System Prompt del LLM", style = MaterialTheme.typography.labelMedium, color = AgroColors.TextSecondary)
+                                OutlinedTextField(
+                                    value = localSystemPrompt,
+                                    onValueChange = { localSystemPrompt = it },
+                                    modifier = Modifier.fillMaxWidth().height(100.dp),
+                                    textStyle = MaterialTheme.typography.bodySmall,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = AgroColors.Accent,
+                                        unfocusedBorderColor = AgroColors.SurfaceLight,
+                                        cursorColor = AgroColors.Accent,
+                                        focusedTextColor = AgroColors.TextPrimary,
+                                        unfocusedTextColor = AgroColors.TextPrimary
+                                    )
+                                )
+                                
+                                // Botón guardar avanzado
+                                Button(
+                                    onClick = {
+                                        onSaveAdvancedSettings(
+                                            localMaxTokens,
+                                            localSimThreshold,
+                                            localKbThreshold,
+                                            localSystemPrompt,
+                                            localUseLlmForAll,
+                                            localContextLength,
+                                            localDetectGreetings
+                                        )
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(containerColor = AgroColors.Accent)
+                                ) {
+                                    Text("💾 Guardar configuración avanzada")
+                                }
+                            }
+                        }
+                    }
+                }
                 
                 HorizontalDivider(color = AgroColors.SurfaceLight)
                 

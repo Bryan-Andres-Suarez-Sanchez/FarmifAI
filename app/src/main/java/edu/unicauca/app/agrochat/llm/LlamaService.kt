@@ -199,21 +199,25 @@ class LlamaService private constructor() {
     /**
      * Genera respuesta para chat agrícola con contexto RAG
      * Usa formato Llama 3.2 con system prompt para respuestas coherentes
+     * @param userQuery La pregunta del usuario
+     * @param contextFromKB Contexto de la base de conocimiento (opcional)
+     * @param maxTokens Máximo de tokens a generar
+     * @param maxContextLength Longitud máxima del contexto a incluir
+     * @param systemPrompt Prompt del sistema personalizable
      */
     suspend fun generateAgriResponse(
         userQuery: String,
         contextFromKB: String? = null,
-        maxTokens: Int = MAX_TOKENS
+        maxTokens: Int = MAX_TOKENS,
+        maxContextLength: Int = 200,
+        systemPrompt: String = "Eres FarmifAI, un asistente agrícola experto. Responde de forma clara, útil y concisa en español. Si tienes información de contexto, úsala para dar una respuesta precisa."
     ): Result<String> {
-        
-        // System prompt: define el rol del asistente
-        val systemPrompt = "Eres FarmifAI, un asistente agrícola experto. Responde de forma clara, útil y concisa en español. Si tienes información de contexto, úsala para dar una respuesta precisa."
         
         // User message: pregunta + contexto opcional
         val userMessage: String = if (!contextFromKB.isNullOrBlank()) {
-            // Truncar contexto si es muy largo (máx 200 chars)
-            val shortContext = if (contextFromKB.length > 200) {
-                contextFromKB.take(200)
+            // Truncar contexto según configuración
+            val shortContext = if (contextFromKB.length > maxContextLength) {
+                contextFromKB.take(maxContextLength)
             } else {
                 contextFromKB
             }
