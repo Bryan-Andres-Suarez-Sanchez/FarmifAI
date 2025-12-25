@@ -222,12 +222,13 @@ class MainActivity : ComponentActivity() {
     private var lastDiagnosis by mutableStateOf<DiseaseResult?>(null)
     
     // ===== CONFIGURACIÓN AVANZADA =====
-    private var advancedMaxTokens by mutableStateOf(100)
-    private var advancedSimilarityThreshold by mutableStateOf(0.40f)
-    private var advancedKbFastPathThreshold by mutableStateOf(0.75f)
-    private var advancedSystemPrompt by mutableStateOf("Eres FarmifAI, un asistente agrícola experto. Responde de forma clara, útil y concisa en español.")
+    private var advancedMaxTokens by mutableStateOf(150)
+    private var advancedSimilarityThreshold by mutableStateOf(0.35f)  // Threshold para buscar en KB
+    private var advancedKbFastPathThreshold by mutableStateOf(0.85f)  // Threshold para usar KB directo sin LLM
+    private var advancedContextRelevanceThreshold by mutableStateOf(0.55f)  // Threshold para pasar contexto al LLM
+    private var advancedSystemPrompt by mutableStateOf("Eres FarmifAI, un asistente agrícola experto. Responde sobre agricultura basándote en tu conocimiento. Si hay contexto proporcionado, úsalo SOLO si es relevante a la pregunta. Si el contexto no es relevante, ignóralo y responde con tu conocimiento general.")
     private var advancedUseLlmForAll by mutableStateOf(false)  // Usar LLM para todo, incluso saludos
-    private var advancedContextLength by mutableStateOf(200)
+    private var advancedContextLength by mutableStateOf(300)
     private var advancedDetectGreetings by mutableStateOf(true)  // Detectar saludos para KB directa
     private var isDiagnosing by mutableStateOf(false)
     
@@ -378,14 +379,16 @@ class MainActivity : ComponentActivity() {
                         advancedMaxTokens = advancedMaxTokens,
                         advancedSimilarityThreshold = advancedSimilarityThreshold,
                         advancedKbFastPathThreshold = advancedKbFastPathThreshold,
+                        advancedContextRelevanceThreshold = advancedContextRelevanceThreshold,
                         advancedSystemPrompt = advancedSystemPrompt,
                         advancedUseLlmForAll = advancedUseLlmForAll,
                         advancedContextLength = advancedContextLength,
                         advancedDetectGreetings = advancedDetectGreetings,
-                        onSaveAdvancedSettings = { maxTok, simThresh, kbThresh, sysPrompt, llmAll, ctxLen, detectGreet ->
+                        onSaveAdvancedSettings = { maxTok, simThresh, kbThresh, ctxRelThresh, sysPrompt, llmAll, ctxLen, detectGreet ->
                             advancedMaxTokens = maxTok
                             advancedSimilarityThreshold = simThresh
                             advancedKbFastPathThreshold = kbThresh
+                            advancedContextRelevanceThreshold = ctxRelThresh
                             advancedSystemPrompt = sysPrompt
                             advancedUseLlmForAll = llmAll
                             advancedContextLength = ctxLen
@@ -798,13 +801,14 @@ class MainActivity : ComponentActivity() {
         isLlamaEnabled = prefs.getBoolean(KEY_LLAMA_ENABLED, true)
         
         // Configuración avanzada
-        advancedMaxTokens = prefs.getInt("advanced_max_tokens", 100)
-        advancedSimilarityThreshold = prefs.getFloat("advanced_similarity_threshold", 0.40f)
-        advancedKbFastPathThreshold = prefs.getFloat("advanced_kb_fast_path_threshold", 0.75f)
+        advancedMaxTokens = prefs.getInt("advanced_max_tokens", 150)
+        advancedSimilarityThreshold = prefs.getFloat("advanced_similarity_threshold", 0.35f)
+        advancedKbFastPathThreshold = prefs.getFloat("advanced_kb_fast_path_threshold", 0.85f)
+        advancedContextRelevanceThreshold = prefs.getFloat("advanced_context_relevance_threshold", 0.55f)
         advancedSystemPrompt = prefs.getString("advanced_system_prompt", 
-            "Eres FarmifAI, un asistente agrícola experto. Responde de forma clara, útil y concisa en español.") ?: advancedSystemPrompt
+            "Eres FarmifAI, un asistente agrícola experto. Responde sobre agricultura basándote en tu conocimiento. Si hay contexto proporcionado, úsalo SOLO si es relevante a la pregunta. Si el contexto no es relevante, ignóralo y responde con tu conocimiento general.") ?: advancedSystemPrompt
         advancedUseLlmForAll = prefs.getBoolean("advanced_use_llm_for_all", false)
-        advancedContextLength = prefs.getInt("advanced_context_length", 200)
+        advancedContextLength = prefs.getInt("advanced_context_length", 300)
         advancedDetectGreetings = prefs.getBoolean("advanced_detect_greetings", true)
     }
     
@@ -814,6 +818,7 @@ class MainActivity : ComponentActivity() {
             putInt("advanced_max_tokens", advancedMaxTokens)
             putFloat("advanced_similarity_threshold", advancedSimilarityThreshold)
             putFloat("advanced_kb_fast_path_threshold", advancedKbFastPathThreshold)
+            putFloat("advanced_context_relevance_threshold", advancedContextRelevanceThreshold)
             putString("advanced_system_prompt", advancedSystemPrompt)
             putBoolean("advanced_use_llm_for_all", advancedUseLlmForAll)
             putInt("advanced_context_length", advancedContextLength)
@@ -1190,13 +1195,23 @@ class MainActivity : ComponentActivity() {
         
         // 3. Intentar con Llama local si está cargado Y habilitado (para preguntas complejas)
         if (isLlamaEnabled && isLlamaLoaded && llamaService != null) {
-            AppLogger.log("MainActivity", "→ Usando Llama LLM (maxTokens=$advancedMaxTokens, ctxLen=$advancedContextLength)")
+            // IMPORTANTE: Solo pasar contexto si el score es suficientemente alto
+            // Si el contexto no es relevante, dejamos que el LLM use su conocimiento general
+            val contextToPass = if (bestMatch != null && bestMatch.similarityScore >= advancedContextRelevanceThreshold) {
+                AppLogger.log("MainActivity", "→ Contexto relevante (${bestMatch.similarityScore} >= $advancedContextRelevanceThreshold)")
+                combinedKBContext
+            } else {
+                AppLogger.log("MainActivity", "→ Contexto descartado (score=${bestMatch?.similarityScore ?: 0f} < $advancedContextRelevanceThreshold)")
+                null  // No pasar contexto, LLM usará conocimiento propio
+            }
+            
+            AppLogger.log("MainActivity", "→ Usando Llama LLM (maxTokens=$advancedMaxTokens, ctxLen=$advancedContextLength, conCtx=${contextToPass != null})")
             usedLlm = true
             
             try {
                 val result = llamaService!!.generateAgriResponse(
                     userQuery = userQuery,
-                    contextFromKB = combinedKBContext,
+                    contextFromKB = contextToPass,  // Solo contexto si es relevante
                     maxTokens = advancedMaxTokens,
                     maxContextLength = advancedContextLength,
                     systemPrompt = advancedSystemPrompt
@@ -1293,11 +1308,12 @@ fun AgroChatApp(
     advancedMaxTokens: Int,
     advancedSimilarityThreshold: Float,
     advancedKbFastPathThreshold: Float,
+    advancedContextRelevanceThreshold: Float,
     advancedSystemPrompt: String,
     advancedUseLlmForAll: Boolean,
     advancedContextLength: Int,
     advancedDetectGreetings: Boolean,
-    onSaveAdvancedSettings: (Int, Float, Float, String, Boolean, Int, Boolean) -> Unit
+    onSaveAdvancedSettings: (Int, Float, Float, Float, String, Boolean, Int, Boolean) -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -1370,6 +1386,7 @@ fun AgroChatApp(
                 advancedMaxTokens = advancedMaxTokens,
                 advancedSimilarityThreshold = advancedSimilarityThreshold,
                 advancedKbFastPathThreshold = advancedKbFastPathThreshold,
+                advancedContextRelevanceThreshold = advancedContextRelevanceThreshold,
                 advancedSystemPrompt = advancedSystemPrompt,
                 advancedUseLlmForAll = advancedUseLlmForAll,
                 advancedContextLength = advancedContextLength,
@@ -1821,11 +1838,12 @@ fun SettingsDialog(
     advancedMaxTokens: Int,
     advancedSimilarityThreshold: Float,
     advancedKbFastPathThreshold: Float,
+    advancedContextRelevanceThreshold: Float,
     advancedSystemPrompt: String,
     advancedUseLlmForAll: Boolean,
     advancedContextLength: Int,
     advancedDetectGreetings: Boolean,
-    onSaveAdvancedSettings: (Int, Float, Float, String, Boolean, Int, Boolean) -> Unit
+    onSaveAdvancedSettings: (Int, Float, Float, Float, String, Boolean, Int, Boolean) -> Unit
 ) {
     var apiKey by remember { mutableStateOf("") }
     val context = LocalContext.current
@@ -1841,6 +1859,7 @@ fun SettingsDialog(
     var localMaxTokens by remember { mutableStateOf(advancedMaxTokens) }
     var localSimThreshold by remember { mutableStateOf(advancedSimilarityThreshold) }
     var localKbThreshold by remember { mutableStateOf(advancedKbFastPathThreshold) }
+    var localCtxRelThreshold by remember { mutableStateOf(advancedContextRelevanceThreshold) }
     var localSystemPrompt by remember { mutableStateOf(advancedSystemPrompt) }
     var localUseLlmForAll by remember { mutableStateOf(advancedUseLlmForAll) }
     var localContextLength by remember { mutableStateOf(advancedContextLength) }
@@ -2166,6 +2185,19 @@ fun SettingsDialog(
                                     )
                                 )
                                 
+                                // Context Relevance Threshold (NUEVO)
+                                Text("Umbral contexto relevante: ${String.format("%.2f", localCtxRelThreshold)}", style = MaterialTheme.typography.labelMedium, color = AgroColors.TextSecondary)
+                                Slider(
+                                    value = localCtxRelThreshold,
+                                    onValueChange = { localCtxRelThreshold = it },
+                                    valueRange = 0.4f..0.8f,
+                                    colors = SliderDefaults.colors(
+                                        thumbColor = AgroColors.Accent,
+                                        activeTrackColor = AgroColors.Accent
+                                    )
+                                )
+                                Text("Si KB score < este valor, LLM usa su conocimiento propio", style = MaterialTheme.typography.bodySmall, color = AgroColors.TextSecondary)
+                                
                                 HorizontalDivider(color = AgroColors.Surface)
                                 
                                 // Toggles
@@ -2226,6 +2258,7 @@ fun SettingsDialog(
                                             localMaxTokens,
                                             localSimThreshold,
                                             localKbThreshold,
+                                            localCtxRelThreshold,
                                             localSystemPrompt,
                                             localUseLlmForAll,
                                             localContextLength,
