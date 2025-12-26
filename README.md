@@ -439,6 +439,527 @@ Grant all permissions for full functionality.
 
 ---
 
+## Model Implementation, Training, Inference & Deployment
+
+### 1. Vision Model (Plant Disease Classification)
+
+#### Implementation
+
+The vision model uses **MobileNetV2** as the backbone architecture:
+
+- **Base Model**: MobileNetV2 pre-trained on ImageNet
+- **Input**: 224x224x3 RGB images
+- **Output**: 21-class softmax probabilities
+- **Framework**: TensorFlow/Keras (training) → MindSpore Lite (inference)
+
+**Architecture modifications:**
+
+\`\`\`python
+# Base model with frozen initial layers
+base_model = MobileNetV2(input_shape=(224, 224, 3), 
+                         include_top=False, 
+                         weights='imagenet')
+
+# Custom classification head
+x = GlobalAveragePooling2D()(base_model.output)
+x = BatchNormalization()(x)
+x = Dropout(0.4)(x)
+x = Dense(512, activation='relu', kernel_regularizer=l2(0.01))(x)
+x = Dropout(0.4)(x)
+output = Dense(NUM_CLASSES, activation='softmax')(x)
+
+model = Model(inputs=base_model.input, outputs=output)
+\`\`\`
+
+#### Training
+
+**Two-phase training approach:**
+
+**Phase 1: Feature Extractor Training (25 epochs)**
+\`\`\`python
+# Freeze base model layers
+for layer in base_model.layers:
+    layer.trainable = False
+
+# Train only classification head
+optimizer = Adam(learning_rate=1e-3)
+model.compile(
+    optimizer=optimizer,
+    loss='categorical_crossentropy',
+    metrics=['accuracy', 'top_3_accuracy']
+)
+
+# Data augmentation
+train_datagen = ImageDataGenerator(
+    rescale=1./255,
+    rotation_range=40,
+    width_shift_range=0.3,
+    height_shift_range=0.3,
+    shear_range=0.2,
+    zoom_range=0.3,
+    horizontal_flip=True,
+    vertical_flip=True,
+    brightness_range=[0.6, 1.4],
+    fill_mode='reflect'
+)
+\`\`\`
+
+**Phase 2: Fine-tuning (35 epochs)**
+\`\`\`python
+# Unfreeze all layers for fine-tuning
+for layer in base_model.layers:
+    layer.trainable = True
+
+# Lower learning rate for fine-tuning
+optimizer = Adam(learning_rate=1e-5)
+model.compile(
+    optimizer=optimizer,
+    loss=CategoricalCrossentropy(label_smoothing=0.1),
+    metrics=['accuracy']
+)
+\`\`\`
+
+**Training script:**
+\`\`\`bash
+# Train on Google Colab or Azure ML
+python tools/training_script/train_colombia.py
+
+# Output: SavedModel format
+# Location: ./outputs/colombia_v1.0/
+\`\`\`
+
+#### Inference
+
+**On-device inference pipeline:**
+
+1. **Image Preprocessing:**
+   \`\`\`kotlin
+   fun preprocessImage(bitmap: Bitmap): ByteBuffer {
+       val scaled = Bitmap.createScaledBitmap(bitmap, 224, 224, true)
+       val buffer = ByteBuffer.allocateDirect(224 * 224 * 3 * 4)
+       buffer.order(ByteOrder.nativeOrder())
+       
+       for (y in 0 until 224) {
+           for (x in 0 until 224) {
+               val pixel = scaled.getPixel(x, y)
+               // Normalize to [-1, 1]
+               buffer.putFloat(((pixel shr 16 and 0xFF) - 127.5f) / 127.5f)
+               buffer.putFloat(((pixel shr 8 and 0xFF) - 127.5f) / 127.5f)
+               buffer.putFloat(((pixel and 0xFF) - 127.5f) / 127.5f)
+           }
+       }
+       return buffer
+   }
+   \`\`\`
+
+2. **MindSpore Lite Inference:**
+   \`\`\`kotlin
+   // Load model
+   modelHandle = MindSporeHelper.loadModel(context, MODEL_FILE)
+   
+   // Run inference
+   val outputBuffer = MindSporeHelper.runInference(modelHandle, inputBuffer)
+   
+   // Post-process
+   val probabilities = softmax(outputBuffer)
+   val topClass = probabilities.indices.maxByOrNull { probabilities[it] }
+   \`\`\`
+
+**Inference time:** 200-400ms on mid-range devices (Snapdragon 6xx series)
+
+#### Deployment
+
+**Step 1: Convert TensorFlow to MindSpore**
+
+\`\`\`bash
+# Using MindSpore Converter
+python tools/export_trained_model.py \\
+  --model_path outputs/colombia_v1.0/ \\
+  --output plant_disease_model.ms \\
+  --framework TF
+
+# Verify conversion
+python verify_mindspore_model.py plant_disease_model.ms
+\`\`\`
+
+**Step 2: Deploy to App Assets**
+
+\`\`\`bash
+# Copy model and labels
+cp plant_disease_model.ms app/src/main/assets/
+cp plant_disease_labels.json app/src/main/assets/
+
+# Commit with Git LFS
+git lfs track "*.ms"
+git add plant_disease_model.ms
+git commit -m "chore: update vision model"
+\`\`\`
+
+**Step 3: Version Control**
+
+\`\`\`json
+// plant_disease_labels.json includes version tracking
+{
+  "version": "colombia_v1.0",
+  "date": "2025-12-09",
+  "num_classes": 21,
+  "input_size": 224,
+  "labels": [...]
+}
+\`\`\`
+
+---
+
+### 2. NLP Model (Semantic Search & RAG)
+
+#### Implementation
+
+**Sentence Encoder Model:**
+
+- **Architecture**: paraphrase-multilingual-MiniLM-L12-v2
+- **Input**: Text sequences (max 128 tokens)
+- **Output**: 384-dimensional embeddings
+- **Pooling**: Mean pooling over token embeddings
+
+\`\`\`python
+from transformers import AutoTokenizer, AutoModel
+
+MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+model = AutoModel.from_pretrained(MODEL_NAME)
+\`\`\`
+
+#### Training
+
+The sentence encoder is **pre-trained** (not trained from scratch). We use it for:
+
+1. **Knowledge Base Embedding Generation** (offline):
+   \`\`\`python
+   def encode_questions(questions):
+       inputs = tokenizer(
+           questions,
+           padding="max_length",
+           truncation=True,
+           max_length=128,
+           return_tensors="pt"
+       )
+       
+       with torch.no_grad():
+           outputs = model(**inputs)
+           
+           # Mean pooling
+           attention_mask = inputs['attention_mask']
+           token_embeddings = outputs.last_hidden_state
+           input_mask_expanded = attention_mask.unsqueeze(-1).expand(
+               token_embeddings.size()
+           ).float()
+           
+           sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, 1)
+           sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)
+           embeddings = sum_embeddings / sum_mask
+           
+           # L2 normalization
+           embeddings = F.normalize(embeddings, p=2, dim=1)
+           
+       return embeddings.cpu().numpy()
+   \`\`\`
+
+2. **Generate embeddings for 517 questions**:
+   \`\`\`bash
+   python generate_mindspore_compatible_embeddings.py
+   
+   # Output: kb_embeddings.npy (517 x 384 float32)
+   \`\`\`
+
+#### Inference
+
+**Runtime semantic search:**
+
+1. **Tokenize user query**:
+   \`\`\`kotlin
+   val inputIds = tokenizer.encode(userQuery, maxLength = 128)
+   val attentionMask = IntArray(128) { if (it < inputIds.size) 1 else 0 }
+   \`\`\`
+
+2. **Generate query embedding**:
+   \`\`\`kotlin
+   val embedding = MindSporeHelper.predictSentenceEncoder(
+       modelHandle, 
+       inputIds, 
+       attentionMask
+   )
+   // Output: FloatArray(384) normalized
+   \`\`\`
+
+3. **Cosine similarity search**:
+   \`\`\`kotlin
+   fun cosineSimilarity(a: FloatArray, b: FloatArray): Float {
+       var dot = 0f
+       var normA = 0f
+       var normB = 0f
+       for (i in a.indices) {
+           dot += a[i] * b[i]
+           normA += a[i] * a[i]
+           normB += b[i] * b[i]
+       }
+       return dot / (sqrt(normA) * sqrt(normB) + 1e-8f)
+   }
+   
+   val topResults = kbEmbeddings.mapIndexed { i, emb ->
+       i to cosineSimilarity(queryEmbedding, emb)
+   }.filter { it.second >= 0.4f }
+    .sortedByDescending { it.second }
+    .take(3)
+   \`\`\`
+
+**Inference time:** 50-150ms per query
+
+#### Deployment
+
+**Step 1: Export encoder to MindSpore**
+
+\`\`\`python
+# Export sentence encoder
+from mindspore import export, context
+import mindspore.nn as nn
+
+# Convert PyTorch model to MindSpore
+# (or use pre-converted model)
+export(model, inputs, file_name="sentence_encoder", file_format="MINDIR")
+\`\`\`
+
+**Step 2: Generate and package embeddings**
+
+\`\`\`bash
+# Generate embeddings
+python generate_mindspore_compatible_embeddings.py
+
+# Verify dimensions
+python - <<EOF
+import numpy as np
+emb = np.load('app/src/main/assets/kb_embeddings.npy')
+print(f"Shape: {emb.shape}")  # Should be (517, 384)
+print(f"Dtype: {emb.dtype}")  # Should be float32
+EOF
+
+# Copy to assets
+cp kb_embeddings.npy app/src/main/assets/
+cp sentence_encoder.ms app/src/main/assets/
+cp sentence_tokenizer.json app/src/main/assets/
+\`\`\`
+
+---
+
+### 3. LLM Model (Local Language Model)
+
+#### Implementation
+
+**Architecture**: Llama 3.2 1B Instruct
+
+- **Quantization**: Q4_K_M (4-bit quantization)
+- **Context length**: 128K tokens (limited to 2048 in practice)
+- **Vocabulary size**: 128,256
+- **Parameters**: ~1B (quantized to ~750MB)
+
+**Inference engine**: llama.cpp (Android JNI bindings)
+
+\`\`\`cpp
+// Native inference (simplified)
+struct llama_context * ctx = llama_new_context_with_model(model, ctx_params);
+
+// Tokenize
+std::vector<llama_token> tokens = llama_tokenize(ctx, prompt, true);
+
+// Generate
+for (int i = 0; i < max_tokens; i++) {
+    llama_token next = llama_sample_token(ctx, tokens);
+    if (next == llama_token_eos(model)) break;
+    tokens.push_back(next);
+    
+    // Stream to Kotlin
+    std::string token_str = llama_token_to_piece(ctx, next);
+    callback(token_str);
+}
+\`\`\`
+
+#### Training
+
+**Note**: We use a **pre-trained and pre-quantized** model. No training is performed.
+
+- **Base model**: Meta Llama 3.2 1B Instruct
+- **Quantization**: Performed by community (bartowski on HuggingFace)
+- **Format**: GGUF (GPT-Generated Unified Format)
+
+For custom fine-tuning (advanced):
+\`\`\`bash
+# Fine-tune on agricultural data (requires GPU cluster)
+python -m llama_recipes.finetuning \\
+  --model_name meta-llama/Llama-3.2-1B-Instruct \\
+  --dataset agricultural_qa \\
+  --batch_size 4 \\
+  --num_epochs 3 \\
+  --use_peft \\
+  --peft_method lora
+
+# Convert to GGUF
+python convert-hf-to-gguf.py ./fine_tuned_model
+
+# Quantize
+./quantize ./model.gguf ./model_q4.gguf Q4_K_M
+\`\`\`
+
+#### Inference
+
+**Prompt construction:**
+
+\`\`\`kotlin
+fun buildPrompt(context: String, query: String): String {
+    return """<|begin_of_text|><|start_header_id|>system<|end_header_id|>
+
+You are FarmifAI, an expert agricultural assistant.
+Respond clearly in Spanish using the provided context.<|eot_id|><|start_header_id|>user<|end_header_id|>
+
+Context: $context
+
+Question: $query<|eot_id|><|start_header_id|>assistant<|end_header_id|>
+
+"""
+}
+\`\`\`
+
+**Streaming generation:**
+
+\`\`\`kotlin
+suspend fun generate(prompt: String, maxTokens: Int = 150): Flow<String> {
+    return llama.generate(prompt).map { token ->
+        // Filter control tokens
+        token.replace("<|eot_id|>", "").trim()
+    }.takeWhile { !it.contains("<|end") }
+}
+\`\`\`
+
+**Inference time:** 2-5 seconds for 150 tokens (~30 tokens/sec on mid-range devices)
+
+#### Deployment
+
+**Step 1: Download model**
+
+\`\`\`bash
+# Download from HuggingFace
+wget https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q4_K_M.gguf
+
+# Verify integrity
+sha256sum Llama-3.2-1B-Instruct-Q4_K_M.gguf
+\`\`\`
+
+**Step 2: Deploy to device**
+
+\`\`\`bash
+# Option A: Manual push
+adb push Llama-3.2-1B-Instruct-Q4_K_M.gguf \\
+  /sdcard/Android/data/edu.unicauca.app.agrochat/files/
+
+# Option B: Use deployment script
+./tools/push_llama_model_to_device.sh Llama-3.2-1B-Instruct-Q4_K_M.gguf
+
+# Option C: In-app download
+# Users can download directly from the app settings
+\`\`\`
+
+**Step 3: Verify deployment**
+
+\`\`\`bash
+# Check file size
+adb shell ls -lh /sdcard/Android/data/edu.unicauca.app.agrochat/files/*.gguf
+
+# Should show ~750MB file
+
+# Test loading
+adb logcat -s LlamaService | grep "Model loaded"
+\`\`\`
+
+---
+
+### 4. Voice Models (STT/TTS)
+
+#### Implementation - Speech-to-Text (Vosk)
+
+- **Architecture**: Kaldi-based neural network
+- **Model**: Lightweight Spanish model (~50MB)
+- **Sampling rate**: 16kHz
+- **Output format**: JSON with text and confidence
+
+#### Implementation - Text-to-Speech
+
+- **Engine**: Android system TTS
+- **Language**: Spanish (es-ES or es-MX)
+- **Fallback**: Generic Spanish if regional variant unavailable
+
+#### Inference
+
+\`\`\`kotlin
+// STT Setup
+val recognizer = Recognizer(voskModel, 16000.0f)
+val speechService = SpeechService(recognizer, 16000.0f)
+
+speechService.startListening(object : RecognitionListener {
+    override fun onResult(hypothesis: String?) {
+        val json = JSONObject(hypothesis)
+        val text = json.getString("text")
+        onTranscription(text)
+    }
+})
+
+// TTS Setup
+tts = TextToSpeech(context) { status ->
+    if (status == TextToSpeech.SUCCESS) {
+        tts?.setLanguage(Locale("es", "ES"))
+        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "utterance_id")
+    }
+}
+\`\`\`
+
+#### Deployment
+
+\`\`\`bash
+# Vosk model is included in assets
+cp -r model-es-small/ app/src/main/assets/
+
+# Git LFS tracking
+git lfs track "app/src/main/assets/model-es-small/**"
+git add app/src/main/assets/model-es-small/
+git commit -m "chore: add Vosk Spanish model"
+\`\`\`
+
+---
+
+### Model Update Workflow
+
+**When updating any model:**
+
+1. **Train/convert new model**
+2. **Validate performance** (accuracy, inference time, size)
+3. **Update version in labels/metadata**
+4. **Test on representative devices**
+5. **Commit with Git LFS**
+6. **Update documentation**
+7. **Tag release** with version number
+
+\`\`\`bash
+# Example workflow
+git checkout -b model/vision-v1.1
+python train_model.py
+python convert_to_mindspore.py
+python validate_model.py
+cp new_model.ms app/src/main/assets/plant_disease_model.ms
+git add -f app/src/main/assets/plant_disease_model.ms
+git commit -m "feat: vision model v1.1 - improved coffee detection"
+git tag -a v1.1-vision -m "Vision model v1.1"
+git push origin model/vision-v1.1 --tags
+\`\`\`
+
+---
+
 ## Key Code Snippets
 
 ### Semantic Search (SemanticSearchHelper.kt)
