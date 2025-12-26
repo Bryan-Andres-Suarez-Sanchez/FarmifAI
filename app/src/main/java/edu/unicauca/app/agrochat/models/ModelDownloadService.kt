@@ -244,7 +244,7 @@ class ModelDownloadService private constructor() {
         
         // Verificar si ya existe
         if (isModelAvailable(context, modelName)) {
-            AppLogger.log(TAG, "✓ Modelo ya existe: $modelName")
+            AppLogger.log(TAG, "Model exists: $modelName")
             onProgress?.invoke(DownloadProgress(modelName, 100, modelInfo.sizeMB, modelInfo.sizeMB, DownloadStatus.ALREADY_EXISTS))
             return@withContext Result.success(File(getModelsDir(context), modelName))
         }
@@ -336,7 +336,7 @@ class ModelDownloadService private constructor() {
                 tempFile.delete()
             }
             
-            AppLogger.log(TAG, "✓ Modelo descargado: $modelName (${modelFile.length() / (1024*1024)}MB)")
+            AppLogger.log(TAG, "Model downloaded: $modelName (${modelFile.length() / (1024*1024)}MB)")
             onProgress?.invoke(DownloadProgress(modelName, 100, modelInfo.sizeMB, modelInfo.sizeMB, DownloadStatus.COMPLETED))
             onComplete?.invoke(modelName, true)
             
@@ -357,7 +357,7 @@ class ModelDownloadService private constructor() {
     suspend fun downloadAllMissingModels(context: Context): Boolean {
         val missing = getMissingModels(context)
         if (missing.isEmpty()) {
-            AppLogger.log(TAG, "✓ Todos los modelos disponibles")
+            AppLogger.log(TAG, "All models available")
             return true
         }
         

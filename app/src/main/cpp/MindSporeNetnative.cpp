@@ -447,9 +447,14 @@ Java_edu_unicauca_app_agrochat_MindSporeHelper_runNetSentenceEncoder(JNIEnv *env
     MS_PRINT("runNetSentenceEncoder: Model returned %zu outputs", outputs.size());
 
     // 8. Procesar Tensores de Salida
-    // Para sentence encoder, buscamos el tensor de embeddings pooled (normalmente [1, 384])
+    // Para sentence encoder con mean pooling, necesitamos last_hidden_state [1, 128, 384]
+    // NO el pooler_output [1, 384] ya que mean pooling da mejores resultados semánticos
     const mindspore::MSTensor *best_output = nullptr;
+    const mindspore::MSTensor *hidden_state_output = nullptr;
+    const mindspore::MSTensor *pooler_output = nullptr;
     const size_t EXPECTED_EMBEDDING_DIM = 384;
+    const size_t EXPECTED_SEQ_LEN = 128;
+    const size_t EXPECTED_HIDDEN_STATE_ELEMENTS = EXPECTED_SEQ_LEN * EXPECTED_EMBEDDING_DIM; // 49152
     
     for (size_t i = 0; i < outputs.size(); i++) {
         const auto &out = outputs[i];
@@ -463,27 +468,31 @@ Java_edu_unicauca_app_agrochat_MindSporeHelper_runNetSentenceEncoder(JNIEnv *env
                  i, out.Name().c_str(), shapeStr.c_str(), 
                  static_cast<int>(out.DataType()), out.ElementNum());
         
-        // Prioridad 1: Buscar tensor con exactamente EMBEDDING_DIM elementos (el pooled output)
+        // Detectar last_hidden_state (49152 elementos = 128 * 384)
+        if (out.ElementNum() == EXPECTED_HIDDEN_STATE_ELEMENTS) {
+            hidden_state_output = &out;
+            MS_PRINT("runNetSentenceEncoder: Found last_hidden_state output[%zu] '%s' - %zu elements", 
+                     i, out.Name().c_str(), EXPECTED_HIDDEN_STATE_ELEMENTS);
+        }
+        
+        // Detectar pooler_output (384 elementos)
         if (out.ElementNum() == EXPECTED_EMBEDDING_DIM) {
-            best_output = &out;
-            MS_PRINT("runNetSentenceEncoder: Selected output[%zu] '%s' - has exactly %zu elements (pooled embedding)", 
+            pooler_output = &out;
+            MS_PRINT("runNetSentenceEncoder: Found pooler_output output[%zu] '%s' - %zu elements", 
                      i, out.Name().c_str(), EXPECTED_EMBEDDING_DIM);
-            break; // Este es el que queremos
         }
-        
-        // Prioridad 2: Buscar por nombre (sentence_embedding, pooler_output)
-        std::string name = out.Name();
-        if (name.find("sentence") != std::string::npos || 
-            name.find("pooler") != std::string::npos ||
-            name.find("embedding") != std::string::npos) {
-            best_output = &out;
-            MS_PRINT("runNetSentenceEncoder: Selected output '%s' by name match", name.c_str());
-        }
-        
-        // Fallback: usar el primer output si no encontramos mejor
-        if (!best_output) {
-            best_output = &out;
-        }
+    }
+    
+    // PRIORIZAR last_hidden_state para hacer mean pooling en Kotlin (mejores resultados semánticos)
+    if (hidden_state_output) {
+        best_output = hidden_state_output;
+        MS_PRINT("runNetSentenceEncoder: SELECTED last_hidden_state for mean pooling (better semantic results)");
+    } else if (pooler_output) {
+        best_output = pooler_output;
+        MS_PRINT("runNetSentenceEncoder: Fallback to pooler_output (no hidden state available)");
+    } else if (!outputs.empty()) {
+        best_output = &outputs[0];
+        MS_PRINT("runNetSentenceEncoder: Fallback to first output");
     }
 
     if (!best_output) {

@@ -122,34 +122,34 @@ class SemanticSearchHelper(private val context: Context) {
             val modelService = ModelDownloadService.getInstance()
             val modelPath = modelService.getModelPath(context, MODEL_FILE)
             if (modelPath == null) {
-                AppLogger.log(TAG, "❌ $MODEL_FILE no disponible en almacenamiento interno")
+                AppLogger.log(TAG, "$MODEL_FILE not available in internal storage")
                 return
             }
-            AppLogger.log(TAG, "✓ Modelo encontrado en: $modelPath")
+            AppLogger.log(TAG, "Model found: $modelPath")
             
             // Intentar cargar tokenizador (permanece en assets)
             AppLogger.log(TAG, "Cargando tokenizador...")
             tokenizer = UniversalNativeTokenizer(context, TOKENIZER_FILE)
             if (tokenizer?.isReady() != true) {
-                AppLogger.log(TAG, "❌ Tokenizador no listo")
+                AppLogger.log(TAG, "Tokenizer not ready")
                 tokenizer = null
                 return
             }
-            AppLogger.log(TAG, "✓ Tokenizador OK")
+            AppLogger.log(TAG, "Tokenizer ready")
             
             // Cargar modelo MindSpore
             AppLogger.log(TAG, "Cargando modelo $MODEL_FILE...")
             modelHandle = MindSporeHelper.loadModelFromFilePath(modelPath, NUM_THREADS)
             if (modelHandle == 0L) {
-                AppLogger.log(TAG, "❌ MindSpore devolvió handle=0")
+                AppLogger.log(TAG, "MindSpore returned handle=0")
                 return
             }
             
             useMindSporeEncoder = true
-            AppLogger.log(TAG, "✓ MindSpore encoder OK (handle=$modelHandle)")
+            AppLogger.log(TAG, "MindSpore encoder loaded (handle=$modelHandle)")
             
         } catch (e: Exception) {
-            AppLogger.log(TAG, "❌ Error MindSpore: ${e.message}")
+            AppLogger.log(TAG, "MindSpore error: ${e.message}")
             useMindSporeEncoder = false
         }
     }
@@ -421,7 +421,7 @@ class SemanticSearchHelper(private val context: Context) {
                 output.size == EMBEDDING_DIM -> {
                     // Caso ideal: el output ya es el embedding de 384 dims
                     embedding = output.copyOf()
-                    AppLogger.log(TAG, "computeEmbedding: ✓ embedding directo 384d")
+                    AppLogger.log(TAG, "computeEmbedding: direct 384d embedding")
                 }
                 output.size == MAX_SEQ_LENGTH * EMBEDDING_DIM -> {
                     // Recibimos last_hidden_state [128, 384] - hacer mean pooling
@@ -773,17 +773,17 @@ class SemanticSearchHelper(private val context: Context) {
     
     /**
      * Construye un contexto combinado formateado para el LLM
+     * NOTA: Se evita incluir las preguntas del KB para que el LLM no las repita
      */
     private fun buildCombinedContext(results: List<MatchResult>): String {
         if (results.isEmpty()) return ""
         
         val sb = StringBuilder()
-        sb.append("Base de conocimiento agrícola relevante:\n\n")
+        sb.append("Información agrícola relevante:\n\n")
         
         results.forEachIndexed { index, result ->
             sb.append("【${index + 1}】 ${result.category.uppercase()}\n")
-            sb.append("Tema: ${result.matchedQuestion}\n")
-            sb.append("Información: ${result.answer}\n")
+            sb.append("${result.answer}\n")
             if (index < results.size - 1) {
                 sb.append("\n---\n\n")
             }

@@ -222,14 +222,17 @@ class MainActivity : ComponentActivity() {
     private var lastDiagnosis by mutableStateOf<DiseaseResult?>(null)
     
     // ===== CONFIGURACIÓN AVANZADA =====
-    private var advancedMaxTokens by mutableStateOf(150)
-    private var advancedSimilarityThreshold by mutableStateOf(0.35f)  // Threshold para buscar en KB
-    private var advancedKbFastPathThreshold by mutableStateOf(0.85f)  // Threshold para usar KB directo sin LLM
-    private var advancedContextRelevanceThreshold by mutableStateOf(0.55f)  // Threshold para pasar contexto al LLM
+    // Valores por defecto ajustados al máximo permitido por la UI
+    private var advancedMaxTokens by mutableStateOf(300) // Slider max 300
+    private var advancedSimilarityThreshold by mutableStateOf(0.60f)  // Máximo slider 0.6
+    private var advancedKbFastPathThreshold by mutableStateOf(0.95f)  // Máximo slider 0.95
+    private var advancedContextRelevanceThreshold by mutableStateOf(0.80f)  // Máximo slider 0.8
     private var advancedSystemPrompt by mutableStateOf("Eres FarmifAI, un asistente agrícola experto. Responde sobre agricultura basándote en tu conocimiento. Si hay contexto proporcionado, úsalo SOLO si es relevante a la pregunta. Si el contexto no es relevante, ignóralo y responde con tu conocimiento general.")
-    private var advancedUseLlmForAll by mutableStateOf(false)  // Usar LLM para todo, incluso saludos
-    private var advancedContextLength by mutableStateOf(300)
-    private var advancedDetectGreetings by mutableStateOf(true)  // Detectar saludos para KB directa
+    private var advancedUseLlmForAll by mutableStateOf(true)  // Usar LLM para todo, incluso saludos (activado)
+    private var advancedContextLength by mutableStateOf(500) // Slider max 500
+    private var advancedDetectGreetings by mutableStateOf(true)  // Detectar saludos para KB directa (activado)
+    private var advancedChatHistoryEnabled by mutableStateOf(true)  // Usar historial del chat como contexto (activado)
+    private var advancedChatHistorySize by mutableStateOf(10)  // Máximo slider 10 mensajes anteriores
     private var isDiagnosing by mutableStateOf(false)
     
     // Logs viewer
@@ -384,7 +387,9 @@ class MainActivity : ComponentActivity() {
                         advancedUseLlmForAll = advancedUseLlmForAll,
                         advancedContextLength = advancedContextLength,
                         advancedDetectGreetings = advancedDetectGreetings,
-                        onSaveAdvancedSettings = { maxTok, simThresh, kbThresh, ctxRelThresh, sysPrompt, llmAll, ctxLen, detectGreet ->
+                        advancedChatHistoryEnabled = advancedChatHistoryEnabled,
+                        advancedChatHistorySize = advancedChatHistorySize,
+                        onSaveAdvancedSettings = { maxTok, simThresh, kbThresh, ctxRelThresh, sysPrompt, llmAll, ctxLen, detectGreet, chatHistEnabled, chatHistSize ->
                             advancedMaxTokens = maxTok
                             advancedSimilarityThreshold = simThresh
                             advancedKbFastPathThreshold = kbThresh
@@ -393,6 +398,8 @@ class MainActivity : ComponentActivity() {
                             advancedUseLlmForAll = llmAll
                             advancedContextLength = ctxLen
                             advancedDetectGreetings = detectGreet
+                            advancedChatHistoryEnabled = chatHistEnabled
+                            advancedChatHistorySize = chatHistSize
                             saveAdvancedPreferences()
                             Toast.makeText(this, "Configuración guardada", Toast.LENGTH_SHORT).show()
                         }
@@ -800,16 +807,17 @@ class MainActivity : ComponentActivity() {
         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         isLlamaEnabled = prefs.getBoolean(KEY_LLAMA_ENABLED, true)
         
-        // Configuración avanzada
-        advancedMaxTokens = prefs.getInt("advanced_max_tokens", 150)
-        advancedSimilarityThreshold = prefs.getFloat("advanced_similarity_threshold", 0.35f)
-        advancedKbFastPathThreshold = prefs.getFloat("advanced_kb_fast_path_threshold", 0.85f)
-        advancedContextRelevanceThreshold = prefs.getFloat("advanced_context_relevance_threshold", 0.55f)
+        // Configuración avanzada (valores por defecto al máximo de la UI)
+        advancedMaxTokens = prefs.getInt("advanced_max_tokens", 300)
+        advancedSimilarityThreshold = prefs.getFloat("advanced_similarity_threshold", 0.60f)
+        advancedKbFastPathThreshold = prefs.getFloat("advanced_kb_fast_path_threshold", 0.95f)
+        advancedContextRelevanceThreshold = prefs.getFloat("advanced_context_relevance_threshold", 0.80f)
         advancedSystemPrompt = prefs.getString("advanced_system_prompt", 
             "Eres FarmifAI, un asistente agrícola experto. Responde sobre agricultura basándote en tu conocimiento. Si hay contexto proporcionado, úsalo SOLO si es relevante a la pregunta. Si el contexto no es relevante, ignóralo y responde con tu conocimiento general.") ?: advancedSystemPrompt
-        advancedUseLlmForAll = prefs.getBoolean("advanced_use_llm_for_all", false)
-        advancedContextLength = prefs.getInt("advanced_context_length", 300)
+        advancedUseLlmForAll = prefs.getBoolean("advanced_use_llm_for_all", true)
+        advancedContextLength = prefs.getInt("advanced_context_length", 500)
         advancedDetectGreetings = prefs.getBoolean("advanced_detect_greetings", true)
+        advancedChatHistorySize = prefs.getInt("advanced_chat_history_size", 10)
     }
     
     private fun saveAdvancedPreferences() {
@@ -897,12 +905,12 @@ class MainActivity : ComponentActivity() {
                 
                 val result = llamaService?.downloadModel(applicationContext)
                 result?.onSuccess { file ->
-                    Log.i("MainActivity", "✅ Modelo descargado: ${file.absolutePath}")
+                    Log.i("MainActivity", "Model downloaded: ${file.absolutePath}")
                     llamaModelStatusText = "Descargado: ${file.name}"
                     isLlamaDownloading = false
                     loadLlamaModel()
                 }?.onFailure { e ->
-                    Log.e("MainActivity", "❌ Error descargando: ${e.message}")
+                    Log.e("MainActivity", "Download error: ${e.message}")
                     llamaModelStatusText = "Error descarga - Toca para reintentar"
                     llamaDownloadFailed = true
                     isLlamaDownloading = false
@@ -929,7 +937,7 @@ class MainActivity : ComponentActivity() {
                 result?.onSuccess {
                     isLlamaLoaded = true
                     llamaModelStatusText = "Cargado: ${llamaService?.getModelFilename(applicationContext)} (${llamaService?.getModelSizeMB(applicationContext)}MB)"
-                    Log.i("MainActivity", "✓ Llama cargado exitosamente")
+                    Log.i("MainActivity", "Llama model loaded")
                     
                     updateOnlineStatus()
                     if (!isOnlineMode && isLlamaEnabled) {
@@ -986,14 +994,14 @@ class MainActivity : ComponentActivity() {
                 isModelReady = true
                 uiStatus = "Toca para hablar"
                 lastResponse = "¡Hola! Soy FarmifAI\nTu asistente agrícola con IA.\n\nPregúntame sobre cultivos, plagas, fertilizantes o cualquier tema agrícola."
-                AppLogger.log("MainActivity", "✅ SemanticSearch inicializado")
+                AppLogger.log("MainActivity", "SemanticSearch initialized")
             } else {
                 uiStatus = "Error al cargar"
-                AppLogger.log("MainActivity", "❌ SemanticSearch falló")
+                AppLogger.log("MainActivity", "SemanticSearch init failed")
             }
         } catch (e: Throwable) {
             uiStatus = "Error: ${e.message}"
-            AppLogger.log("MainActivity", "❌ Error SemanticSearch: ${e.message}")
+            AppLogger.log("MainActivity", "SemanticSearch error: ${e.message}")
         }
     }
 
@@ -1033,6 +1041,173 @@ class MainActivity : ComponentActivity() {
         return false
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Validación de calidad de respuestas
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    data class ResponseQualityReport(
+        val isComplete: Boolean,
+        val isCoherent: Boolean,
+        val isAppropriateLength: Boolean,
+        val answersQuestion: Boolean,
+        val issues: List<String>,
+        val suggestions: List<String>,
+        val qualityScore: Float  // 0.0 a 1.0
+    )
+    
+    /**
+     * Evalúa la calidad de una respuesta antes de entregarla al usuario.
+     */
+    private fun evaluateResponseQuality(
+        response: String,
+        userQuery: String,
+        chatHistory: List<ChatMessage>
+    ): ResponseQualityReport {
+        val issues = mutableListOf<String>()
+        val suggestions = mutableListOf<String>()
+        var score = 1.0f
+        
+        // 1. VERIFICAR COMPLETITUD
+        val incompleteIndicators = listOf(
+            response.endsWith("...") && !response.endsWith("etc..."),
+            response.endsWith(","),
+            response.endsWith(":"),
+            response.count { it == '.' } < 1 && response.length > 50,
+            response.contains("continuar") && response.contains("si deseas"),
+            Regex("\\d+\\.\\s*$").containsMatchIn(response),
+            response.trim().endsWith("-")
+        )
+        val isComplete = incompleteIndicators.none { it }
+        if (!isComplete) {
+            issues.add("Respuesta incompleta")
+            score -= 0.15f
+        }
+        
+        // 2. VERIFICAR LONGITUD APROPIADA
+        val isAppropriateLength = when {
+            response.length < 20 -> {
+                issues.add("Respuesta muy corta")
+                false
+            }
+            response.length > 2000 -> {
+                issues.add("Respuesta muy larga")
+                score -= 0.1f
+                false
+            }
+            else -> true
+        }
+        
+        // 3. VERIFICAR COHERENCIA CON LA PREGUNTA
+        val queryWords = userQuery.lowercase().split(" ").filter { it.length > 3 }
+        val responseWords = response.lowercase()
+        val relevantWordsInResponse = queryWords.count { responseWords.contains(it) }
+        val coherenceRatio = if (queryWords.isNotEmpty()) relevantWordsInResponse.toFloat() / queryWords.size else 1f
+        val isCoherent = coherenceRatio >= 0.3f || response.length > 100
+        if (!isCoherent) {
+            issues.add("Respuesta no relacionada con la pregunta")
+            score -= 0.25f
+        }
+        
+        // 4. VERIFICAR QUE RESPONDE LA PREGUNTA (no evade)
+        val evasivePatterns = listOf(
+            "no puedo responder", "no tengo información", "no sé sobre",
+            "fuera de mi conocimiento", "no estoy seguro", "deberías consultar"
+        )
+        val isEvasive = evasivePatterns.any { response.lowercase().contains(it) }
+        val answersQuestion = !isEvasive
+        if (isEvasive) {
+            issues.add("Respuesta evasiva")
+            score -= 0.1f
+        }
+        
+        // 5. VERIFICAR CONTINUIDAD CON CHAT ANTERIOR
+        val lastBotMessage = chatHistory.lastOrNull { !it.isUser }?.text ?: ""
+        val isContinuationRequest = userQuery.lowercase().let { q ->
+            q in listOf("continúa", "continua", "sigue", "más", "mas", "y qué más", "y que mas", "explica más") ||
+            q.startsWith("y ") || q.startsWith("pero ") || q.startsWith("entonces ")
+        }
+        
+        if (isContinuationRequest && lastBotMessage.isNotEmpty()) {
+            val lastTopicWords = lastBotMessage.lowercase().split(" ").filter { it.length > 4 }.take(10)
+            val newResponseWords = response.lowercase()
+            val topicContinuity = lastTopicWords.count { newResponseWords.contains(it) }
+            if (topicContinuity < 2 && lastTopicWords.size > 3) {
+                issues.add("Pérdida de contexto")
+                score -= 0.2f
+            }
+        }
+        
+        // 6. DETECTAR RESPUESTAS REPETITIVAS
+        if (lastBotMessage.isNotEmpty()) {
+            val similarity = calculateTextSimilarity(response, lastBotMessage)
+            if (similarity > 0.7f) {
+                issues.add("Respuesta repetitiva")
+                score -= 0.15f
+            }
+        }
+        
+        // 7. VERIFICAR FORMATO
+        val hasStructure = response.contains("\n") || response.contains("•") || 
+                          response.contains("-") || response.contains("1.")
+        if (response.length > 300 && !hasStructure) {
+            score -= 0.05f
+        }
+        
+        score = score.coerceIn(0f, 1f)
+        
+        // Log resumido
+        AppLogger.log("MainActivity", "Quality: ${String.format("%.0f", score * 100)}% | complete=$isComplete coherent=$isCoherent issues=${issues.size}")
+        
+        return ResponseQualityReport(
+            isComplete = isComplete,
+            isCoherent = isCoherent,
+            isAppropriateLength = isAppropriateLength,
+            answersQuestion = answersQuestion,
+            issues = issues,
+            suggestions = suggestions,
+            qualityScore = score
+        )
+    }
+    
+    /**
+     * Calcula similitud simple entre dos textos (Jaccard)
+     */
+    private fun calculateTextSimilarity(text1: String, text2: String): Float {
+        val words1 = text1.lowercase().split(Regex("\\s+")).filter { it.length > 3 }.toSet()
+        val words2 = text2.lowercase().split(Regex("\\s+")).filter { it.length > 3 }.toSet()
+        if (words1.isEmpty() || words2.isEmpty()) return 0f
+        val intersection = words1.intersect(words2).size
+        val union = words1.union(words2).size
+        return intersection.toFloat() / union.toFloat()
+    }
+    
+    /**
+     * Mejora una respuesta basándose en el reporte de calidad
+     */
+    private fun improveResponseIfNeeded(
+        response: String,
+        qualityReport: ResponseQualityReport,
+        userQuery: String
+    ): String {
+        var improved = response
+        
+        // Si hay problemas graves, añadir indicadores
+        if (!qualityReport.isComplete && response.length > 50) {
+            // No modificar, pero el canContinue ya manejará esto
+        }
+        
+        // Limpiar respuestas que terminan mal
+        improved = improved.trim()
+        if (improved.endsWith(",") || improved.endsWith(":")) {
+            improved = improved.dropLast(1).trim()
+            if (!improved.endsWith(".") && !improved.endsWith("!") && !improved.endsWith("?")) {
+                improved += "."
+            }
+        }
+        
+        return improved
+    }
+
     private fun sendMessage(userMessage: String) {
         if (userMessage.isBlank() || !isModelReady || isProcessing) return
         chatMessages.add(ChatMessage(userMessage, isUser = true))
@@ -1056,12 +1231,32 @@ class MainActivity : ComponentActivity() {
             
             try {
                 val (response, usedLlm) = findResponseWithMeta(userMessage)
-                // Si usó LLM local Y la respuesta parece incompleta, permitir "Continuar"
-                val isResponseComplete = isResponseComplete(response)
-                val canContinue = usedLlm && isLlamaEnabled && isLlamaLoaded && !isResponseComplete
-                chatMessages.add(ChatMessage(response, isUser = false, canContinue = canContinue))
-                lastResponse = response
-                AppLogger.log("MainActivity", "Respuesta: ${response.take(50)}...")
+                
+                // ═══════════════════════════════════════════════════════════════
+                // SISTEMA DE AUTOCONSCIENCIA - Evaluar calidad antes de entregar
+                // ═══════════════════════════════════════════════════════════════
+                val qualityReport = evaluateResponseQuality(
+                    response = response,
+                    userQuery = userMessage,
+                    chatHistory = chatMessages.toList()
+                )
+                
+                // Mejorar respuesta si es necesario
+                val improvedResponse = improveResponseIfNeeded(response, qualityReport, userMessage)
+                
+                // Determinar si puede continuar basándose en autoconsciencia
+                val canContinue = usedLlm && isLlamaEnabled && isLlamaLoaded && 
+                                  (!qualityReport.isComplete || qualityReport.qualityScore < 0.7f)
+                
+                chatMessages.add(ChatMessage(improvedResponse, isUser = false, canContinue = canContinue))
+                lastResponse = improvedResponse
+                
+                // Log resumen de calidad
+                AppLogger.log("MainActivity", "📊 Calidad: ${String.format("%.0f", qualityReport.qualityScore * 100)}% | " +
+                    "Completa: ${qualityReport.isComplete} | Coherente: ${qualityReport.isCoherent} | " +
+                    "Puede continuar: $canContinue")
+                
+                AppLogger.log("MainActivity", "Respuesta: ${improvedResponse.take(50)}...")
                 
                 // Actualizar status final
                 uiStatus = when {
@@ -1154,7 +1349,7 @@ class MainActivity : ComponentActivity() {
             
             result.fold(
                 onSuccess = { response ->
-                    AppLogger.log("MainActivity", "✓ Groq OK")
+                    AppLogger.log("MainActivity", "Groq online OK")
                     return@withContext Pair(response, false)
                 },
                 onFailure = { error ->
@@ -1164,12 +1359,17 @@ class MainActivity : ComponentActivity() {
             )
         }
         
+        // ═══════════════════════════════════════════════════════════════════════
         // 2. RAG: Obtener múltiples contextos relevantes de la KB (Top-3)
-        AppLogger.log("MainActivity", "Buscando RAG para: '$userQuery'")
+        // ═══════════════════════════════════════════════════════════════════════
+        AppLogger.log("MainActivity", "════════════════════════════════════════════════════════════")
+        AppLogger.log("MainActivity", "🔍 BÚSQUEDA RAG - Query: '$userQuery'")
+        AppLogger.log("MainActivity", "════════════════════════════════════════════════════════════")
+        
         val ragContext = semanticSearchHelper?.findTopKContexts(
             userQuery = userQuery,
             topK = 3,
-            minScore = advancedSimilarityThreshold  // Usar threshold configurable
+            minScore = advancedSimilarityThreshold
         )
         
         val combinedKBContext = ragContext?.combinedContext
@@ -1178,40 +1378,70 @@ class MainActivity : ComponentActivity() {
         // Guardar contexto para posible "Continuar"
         lastContext = combinedKBContext
         
-        AppLogger.log("MainActivity", "RAG: ${ragContext?.contexts?.size ?: 0} contextos, best=${bestMatch?.similarityScore ?: 0f}")
+        // Log resumido de resultados KB
+        val kbResults = ragContext?.contexts?.take(3)?.joinToString(" | ") { 
+            "${String.format("%.2f", it.similarityScore)}:'${it.matchedQuestion.take(30)}'" 
+        } ?: "none"
+        AppLogger.log("MainActivity", "KB search: threshold=$advancedSimilarityThreshold results=$kbResults")
         
-        // 2.5 RESPUESTA DIRECTA para saludos y matches muy altos (conversación natural)
-        // Detectar saludos simples para respuesta inmediata de KB (si está habilitado)
+        // Detectar saludos simples
         val isSimpleGreeting = advancedDetectGreetings && userQuery.lowercase().trim().let { q ->
             q in listOf("hola", "hey", "buenas", "buenos días", "buenas tardes", "buenas noches", "gracias", "adiós", "chao", "hasta luego") ||
             q.length < 15 && (q.startsWith("hola") || q.startsWith("hey") || q.startsWith("gracias"))
         }
         
-        // Si NO está "usar LLM para todo" activado, y (es saludo O match muy alto), usar KB directa
+        // KB directa sin LLM si: saludo O match muy alto
         if (!advancedUseLlmForAll && bestMatch != null && (isSimpleGreeting || bestMatch.similarityScore >= advancedKbFastPathThreshold)) {
-            AppLogger.log("MainActivity", "⚡ Respuesta directa KB: score=${bestMatch.similarityScore}, greeting=$isSimpleGreeting, threshold=$advancedKbFastPathThreshold")
-            return@withContext Pair(bestMatch.answer, false)  // Respuesta rápida y natural
+            val reason = if (isSimpleGreeting) "greeting" else "highScore(${String.format("%.2f", bestMatch.similarityScore)})"
+            AppLogger.log("MainActivity", "Decision: KB_DIRECT reason=$reason q='${bestMatch.matchedQuestion}' id=${bestMatch.entryId}")
+            return@withContext Pair(bestMatch.answer, false)
         }
         
-        // 3. Intentar con Llama local si está cargado Y habilitado (para preguntas complejas)
+        // Construir contexto del historial del chat
+        var chatHistoryContext: String? = null
+        if (advancedChatHistoryEnabled && chatMessages.isNotEmpty()) {
+            val recentMessages = chatMessages.takeLast(advancedChatHistorySize * 2)
+            if (recentMessages.isNotEmpty()) {
+                chatHistoryContext = recentMessages.joinToString("\n") { msg ->
+                    if (msg.isUser) "Usuario: ${msg.text}" else "Asistente: ${msg.text.take(200)}"
+                }
+            }
+        }
+        
+        // Intentar con Llama local
         if (isLlamaEnabled && isLlamaLoaded && llamaService != null) {
-            // IMPORTANTE: Solo pasar contexto si el score es suficientemente alto
-            // Si el contexto no es relevante, dejamos que el LLM use su conocimiento general
-            val contextToPass = if (bestMatch != null && bestMatch.similarityScore >= advancedContextRelevanceThreshold) {
-                AppLogger.log("MainActivity", "→ Contexto relevante (${bestMatch.similarityScore} >= $advancedContextRelevanceThreshold)")
-                combinedKBContext
-            } else {
-                AppLogger.log("MainActivity", "→ Contexto descartado (score=${bestMatch?.similarityScore ?: 0f} < $advancedContextRelevanceThreshold)")
-                null  // No pasar contexto, LLM usará conocimiento propio
+            var contextToPass: String? = null
+            val hasKbContext = bestMatch != null && bestMatch.similarityScore >= advancedContextRelevanceThreshold
+            
+            val contextParts = mutableListOf<String>()
+            if (chatHistoryContext != null) {
+                contextParts.add("=== HISTORIAL ===\n$chatHistoryContext")
+            }
+            if (hasKbContext && combinedKBContext != null) {
+                contextParts.add("=== KB ===\n$combinedKBContext")
+            }
+            if (contextParts.isNotEmpty()) {
+                contextToPass = contextParts.joinToString("\n\n")
             }
             
-            AppLogger.log("MainActivity", "→ Usando Llama LLM (maxTokens=$advancedMaxTokens, ctxLen=$advancedContextLength, conCtx=${contextToPass != null})")
+            val mode = when {
+                hasKbContext && chatHistoryContext != null -> "RAG+Chat"
+                hasKbContext -> "RAG"
+                chatHistoryContext != null -> "Chat"
+                else -> "LLM_only"
+            }
+            AppLogger.log("MainActivity", "Decision: LLM mode=$mode kbScore=${String.format("%.2f", bestMatch?.similarityScore ?: 0f)} ctxLen=${contextToPass?.length ?: 0}")
+            
+            withContext(Dispatchers.Main) {
+                uiStatus = "Generando respuesta..."
+            }
+            
             usedLlm = true
             
             try {
                 val result = llamaService!!.generateAgriResponse(
                     userQuery = userQuery,
-                    contextFromKB = contextToPass,  // Solo contexto si es relevante
+                    contextFromKB = contextToPass,
                     maxTokens = advancedMaxTokens,
                     maxContextLength = advancedContextLength,
                     systemPrompt = advancedSystemPrompt
@@ -1220,38 +1450,48 @@ class MainActivity : ComponentActivity() {
                 result.fold(
                     onSuccess = { response ->
                         val cleanResponse = response.trim()
-                        // Verificar que la respuesta tenga contenido significativo (más de 10 chars)
                         if (cleanResponse.length > 10) {
-                            AppLogger.log("MainActivity", "✓ Llama OK (${cleanResponse.length} chars)")
+                            AppLogger.log("MainActivity", "LLM response: ${cleanResponse.length} chars mode=$mode")
                             return@withContext Pair(cleanResponse, true)
                         } else {
-                            AppLogger.log("MainActivity", "✗ Llama respuesta corta")
+                            AppLogger.log("MainActivity", "LLM response too short (${cleanResponse.length}), fallback to KB")
                         }
                     },
                     onFailure = { error ->
-                        AppLogger.log("MainActivity", "✗ Llama falló: ${error.message}")
+                        AppLogger.log("MainActivity", "LLM error: ${error.message}")
                     }
                 )
             } catch (e: Exception) {
-                AppLogger.log("MainActivity", "❌ Error Llama: ${e.message}")
-                // Continuar con búsqueda semántica
+                AppLogger.log("MainActivity", "LLM exception: ${e.message}")
+            }
+        } else {
+            AppLogger.log("MainActivity", "LLM unavailable: enabled=$isLlamaEnabled loaded=$isLlamaLoaded")
+            AppLogger.log("MainActivity", "════════════════════════════════════════════════════════════")
+            
+            withContext(Dispatchers.Main) {
+                uiStatus = "LLM no disponible, usando KB..."
             }
         }
         
-        // (KB rápida ya se manejó arriba en 2.5)
+        // Fallback: KB directa
+        AppLogger.log("MainActivity", "Fallback: KB direct search")
         
-        // 4. Fallback final: búsqueda semántica pura (offline)
-        AppLogger.log("MainActivity", "→ Fallback: búsqueda semántica")
+        withContext(Dispatchers.Main) {
+            uiStatus = "Usando KB directa..."
+        }
+        
         if (bestMatch == null) {
-            AppLogger.log("MainActivity", "❌ No hay match en KB")
+            AppLogger.log("MainActivity", "Fallback: no KB match, generic response")
             return@withContext Pair("No pude procesar tu pregunta. Intenta reformularla.", false)
         }
+        
         if (bestMatch.similarityScore < SIMILARITY_THRESHOLD) {
-            AppLogger.log("MainActivity", "⚠ Score bajo: ${bestMatch.similarityScore} < $SIMILARITY_THRESHOLD")
-            // Dar respuesta genérica pero amigable
+            AppLogger.log("MainActivity", "Fallback: low score ${String.format("%.2f", bestMatch.similarityScore)} < $SIMILARITY_THRESHOLD")
             return@withContext Pair("¡Hola! Soy tu asistente agrícola. Puedo ayudarte con:\n\n• Cultivos y siembra\n• Control de plagas\n• Riego\n• Fertilización\n\n¿Qué te gustaría saber?", false)
         }
-        AppLogger.log("MainActivity", "✓ KB match: ${bestMatch.matchedQuestion} (${bestMatch.similarityScore})")
+        
+        AppLogger.log("MainActivity", "Fallback: KB answer id=${bestMatch.entryId} score=${String.format("%.2f", bestMatch.similarityScore)} q='${bestMatch.matchedQuestion.take(40)}'")
+        
         return@withContext Pair(bestMatch.answer, false)
     }
 
@@ -1313,7 +1553,9 @@ fun AgroChatApp(
     advancedUseLlmForAll: Boolean,
     advancedContextLength: Int,
     advancedDetectGreetings: Boolean,
-    onSaveAdvancedSettings: (Int, Float, Float, Float, String, Boolean, Int, Boolean) -> Unit
+    advancedChatHistoryEnabled: Boolean,
+    advancedChatHistorySize: Int,
+    onSaveAdvancedSettings: (Int, Float, Float, Float, String, Boolean, Int, Boolean, Boolean, Int) -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -1391,6 +1633,8 @@ fun AgroChatApp(
                 advancedUseLlmForAll = advancedUseLlmForAll,
                 advancedContextLength = advancedContextLength,
                 advancedDetectGreetings = advancedDetectGreetings,
+                advancedChatHistoryEnabled = advancedChatHistoryEnabled,
+                advancedChatHistorySize = advancedChatHistorySize,
                 onSaveAdvancedSettings = onSaveAdvancedSettings
             )
         }
@@ -1843,7 +2087,9 @@ fun SettingsDialog(
     advancedUseLlmForAll: Boolean,
     advancedContextLength: Int,
     advancedDetectGreetings: Boolean,
-    onSaveAdvancedSettings: (Int, Float, Float, Float, String, Boolean, Int, Boolean) -> Unit
+    advancedChatHistoryEnabled: Boolean,
+    advancedChatHistorySize: Int,
+    onSaveAdvancedSettings: (Int, Float, Float, Float, String, Boolean, Int, Boolean, Boolean, Int) -> Unit
 ) {
     var apiKey by remember { mutableStateOf("") }
     val context = LocalContext.current
@@ -1864,6 +2110,8 @@ fun SettingsDialog(
     var localUseLlmForAll by remember { mutableStateOf(advancedUseLlmForAll) }
     var localContextLength by remember { mutableStateOf(advancedContextLength) }
     var localDetectGreetings by remember { mutableStateOf(advancedDetectGreetings) }
+    var localChatHistoryEnabled by remember { mutableStateOf(advancedChatHistoryEnabled) }
+    var localChatHistorySize by remember { mutableStateOf(advancedChatHistorySize) }
     
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -2235,6 +2483,44 @@ fun SettingsDialog(
                                 
                                 HorizontalDivider(color = AgroColors.Surface)
                                 
+                                // Configuración del historial del chat
+                                Text("💬 Contexto del Chat", style = MaterialTheme.typography.labelMedium, color = AgroColors.Accent)
+                                
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Usar historial del chat", style = MaterialTheme.typography.bodySmall, color = AgroColors.TextPrimary)
+                                    Switch(
+                                        checked = localChatHistoryEnabled,
+                                        onCheckedChange = { localChatHistoryEnabled = it },
+                                        colors = SwitchDefaults.colors(
+                                            checkedThumbColor = AgroColors.Accent,
+                                            checkedTrackColor = AgroColors.Accent.copy(alpha = 0.5f)
+                                        )
+                                    )
+                                }
+                                Text("Permite continuar conversaciones y dar contexto", style = MaterialTheme.typography.bodySmall, color = AgroColors.TextSecondary)
+                                
+                                if (localChatHistoryEnabled) {
+                                    Spacer(Modifier.height(8.dp))
+                                    Text("Mensajes de historial: ${localChatHistorySize}", style = MaterialTheme.typography.bodySmall, color = AgroColors.TextPrimary)
+                                    Slider(
+                                        value = localChatHistorySize.toFloat(),
+                                        onValueChange = { localChatHistorySize = it.toInt() },
+                                        valueRange = 2f..10f,
+                                        steps = 7,
+                                        colors = SliderDefaults.colors(
+                                            thumbColor = AgroColors.Accent,
+                                            activeTrackColor = AgroColors.Accent
+                                        )
+                                    )
+                                    Text("Cuántos mensajes anteriores incluir como contexto", style = MaterialTheme.typography.bodySmall, color = AgroColors.TextSecondary)
+                                }
+                                
+                                HorizontalDivider(color = AgroColors.Surface)
+                                
                                 // System Prompt
                                 Text("System Prompt del LLM", style = MaterialTheme.typography.labelMedium, color = AgroColors.TextSecondary)
                                 OutlinedTextField(
@@ -2262,7 +2548,9 @@ fun SettingsDialog(
                                             localSystemPrompt,
                                             localUseLlmForAll,
                                             localContextLength,
-                                            localDetectGreetings
+                                            localDetectGreetings,
+                                            localChatHistoryEnabled,
+                                            localChatHistorySize
                                         )
                                     },
                                     modifier = Modifier.fillMaxWidth(),
@@ -2461,13 +2749,24 @@ fun CameraModeScreen(
                 color = AgroColors.Surface.copy(alpha = 0.9f),
                 shape = RoundedCornerShape(16.dp)
             ) {
-                Text(
-                    "Enfoca una hoja de la planta y toca para capturar",
+                Column(
                     modifier = Modifier.padding(16.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = AgroColors.TextPrimary,
-                    textAlign = TextAlign.Center
-                )
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        "Enfoca una hoja de la planta y toca para capturar",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = AgroColors.TextPrimary,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        "Cultivos: Café • Maíz • Papa • Pimiento • Tomate",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AgroColors.TextSecondary,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
         
@@ -2522,7 +2821,7 @@ fun CameraPreview(
                                 previewView = this,
                                 callback = object : CameraHelper.CameraCallback {
                                     override fun onCameraReady() {
-                                        Log.d("CameraPreview", "✅ Cámara lista")
+                                        Log.d("CameraPreview", "Camera ready")
                                         onCameraReady()
                                     }
                                     override fun onCameraError(message: String) {
@@ -2554,12 +2853,12 @@ fun CameraPreview(
                         cameraHelper.captureImage(object : CameraHelper.CaptureCallback {
                             override fun onImageCaptured(bitmap: Bitmap) {
                                 isCapturing = false
-                                Log.d("CameraPreview", "✅ Imagen capturada: ${bitmap.width}x${bitmap.height}")
+                                Log.d("CameraPreview", "Image captured: ${bitmap.width}x${bitmap.height}")
                                 onCapture(bitmap)
                             }
                             override fun onCaptureError(message: String) {
                                 isCapturing = false
-                                Log.e("CameraPreview", "❌ Error capturando: $message")
+                                Log.e("CameraPreview", "Capture error: $message")
                             }
                         })
                     },
