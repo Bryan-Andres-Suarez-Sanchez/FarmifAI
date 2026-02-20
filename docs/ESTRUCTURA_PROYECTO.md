@@ -1,5 +1,8 @@
 # Estructura y flujo del proyecto AgroChat
 
+Mapa de ubicacion rapido: `docs/MAPA_ARCHIVOS.md`
+Desglose didactico de flujos y terminos: `docs/DESGLOSE_FLUJOS_EXPLICADO.md`
+
 ## 1) Rama mas actualizada
 
 Consulta realizada con refs locales de Git (no fue posible ejecutar `git fetch --all --prune` por falta de credenciales en este entorno).
