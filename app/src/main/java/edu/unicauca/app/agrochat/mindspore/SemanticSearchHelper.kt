@@ -6,11 +6,15 @@ import edu.unicauca.app.agrochat.AppLogger
 import edu.unicauca.app.agrochat.MindSporeHelper
 import edu.unicauca.app.agrochat.UniversalNativeTokenizer
 import edu.unicauca.app.agrochat.models.ModelDownloadService
+import org.apache.commons.text.similarity.FuzzyScore
+import org.apache.commons.text.similarity.JaccardSimilarity
+import org.apache.commons.text.similarity.JaroWinklerSimilarity
 import org.json.JSONObject
 import java.io.BufferedInputStream
 import java.io.DataInputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.Locale
 import kotlin.math.sqrt
 
 /**
@@ -48,6 +52,11 @@ class SemanticSearchHelper(private val context: Context) {
     private var modelHandle: Long = 0L
     private var tokenizer: UniversalNativeTokenizer? = null
     private var useMindSporeEncoder = false  // Flag para usar MindSpore o fallback
+    
+    // Librería externa para similitud textual (fallback cuando embeddings no están disponibles)
+    private val jaccardSimilarity = JaccardSimilarity()
+    private val jaroWinklerSimilarity = JaroWinklerSimilarity()
+    private val fuzzyScore = FuzzyScore(Locale("es", "ES"))
     
     // Estado
     private var isInitialized = false
@@ -508,15 +517,15 @@ class SemanticSearchHelper(private val context: Context) {
         val norm1 = normalizeText(text1)
         val norm2 = normalizeText(text2)
         
+        if (norm1.isBlank() || norm2.isBlank()) return 0f
+        
         val words1 = norm1.split(Regex("\\s+")).filter { it.isNotEmpty() }.toSet()
         val words2 = norm2.split(Regex("\\s+")).filter { it.isNotEmpty() }.toSet()
         
         if (words1.isEmpty() || words2.isEmpty()) return 0f
         
-        // 1. Similitud Jaccard básica
-        val intersection = words1.intersect(words2).size.toFloat()
-        val union = words1.union(words2).size.toFloat()
-        val jaccard = if (union > 0) intersection / union else 0f
+        // 1. Similitud Jaccard usando librería Apache Commons Text
+        val jaccard = (jaccardSimilarity.apply(norm1, norm2)).toFloat().coerceIn(0f, 1f)
         
         // 2. Bonus por palabras clave coincidentes
         val keywordScore = calculateKeywordBonus(words1, words2)
@@ -524,8 +533,14 @@ class SemanticSearchHelper(private val context: Context) {
         // 3. Bonus por sinónimos
         val synonymScore = calculateSynonymBonus(words1, words2)
         
-        // 4. Bonus por subcadena contenida
-        val substringBonus = if (norm1.contains(norm2) || norm2.contains(norm1)) 0.3f else 0f
+        // 4. Similitud de forma de cadena usando librería (Jaro-Winkler + FuzzyScore)
+        val jaroScore = (jaroWinklerSimilarity.apply(norm1, norm2)).toFloat().coerceIn(0f, 1f)
+        val fuzzyRaw = fuzzyScore.fuzzyScore(norm1, norm2).toFloat()
+        val maxLen = maxOf(norm1.length, norm2.length).coerceAtLeast(1)
+        val fuzzyNormalized = (fuzzyRaw / maxLen).coerceIn(0f, 1f)
+        
+        // Mantener un bonus explícito cuando una frase contiene a la otra
+        val substringBonus = if (norm1.contains(norm2) || norm2.contains(norm1)) 0.20f else 0f
         
         // 5. Bonus por bigramas compartidos
         val bigram1 = generateBigrams(norm1)
@@ -535,11 +550,13 @@ class SemanticSearchHelper(private val context: Context) {
         } else 0f
         
         // Combinar métricas con pesos
-        val finalScore = (jaccard * 0.25f + 
-                         keywordScore * 0.30f + 
+        val finalScore = (jaccard * 0.20f + 
+                         keywordScore * 0.25f + 
                          synonymScore * 0.20f + 
-                         bigramScore * 0.15f +
-                         substringBonus * 0.10f).coerceIn(0f, 1f)
+                         bigramScore * 0.10f +
+                         jaroScore * 0.15f +
+                         fuzzyNormalized * 0.10f +
+                         substringBonus).coerceIn(0f, 1f)
         
         return finalScore
     }
