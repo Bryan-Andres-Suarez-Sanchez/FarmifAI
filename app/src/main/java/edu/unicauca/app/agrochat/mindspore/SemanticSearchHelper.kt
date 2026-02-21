@@ -47,6 +47,7 @@ class SemanticSearchHelper(private val context: Context) {
     private var kbQuestions: List<String>? = null
     private var kbEntryIds: List<Int>? = null
     private var kbEntries: Map<Int, KnowledgeEntry>? = null
+    private var kbInformativeVocabulary: Set<String> = emptySet()
     
     // Modelo y tokenizador para búsqueda semántica real
     private var modelHandle: Long = 0L
@@ -57,9 +58,66 @@ class SemanticSearchHelper(private val context: Context) {
     private val jaccardSimilarity = JaccardSimilarity()
     private val jaroWinklerSimilarity = JaroWinklerSimilarity()
     private val fuzzyScore = FuzzyScore(Locale("es", "ES"))
+    private val discoursePrefixes = listOf(
+        Regex("^y\\s+que\\s+me\\s+dices\\s+de\\s+"),
+        Regex("^que\\s+me\\s+dices\\s+de\\s+"),
+        Regex("^me\\s+puedes\\s+hablar\\s+de\\s+"),
+        Regex("^hablame\\s+de\\s+"),
+        Regex("^dime\\s+sobre\\s+"),
+        Regex("^acerca\\s+de\\s+"),
+        Regex("^sobre\\s+"),
+        Regex("^amplia\\s+y\\s+continua\\s+la\\s+explicacion\\s+sobre\\s+"),
+        Regex("^mas\\s+sobre\\s+")
+    )
+    private val stopWords = setOf(
+        "de", "del", "la", "las", "el", "los", "y", "o", "a", "en", "con",
+        "por", "para", "al", "un", "una", "unos", "unas", "que", "me", "te",
+        "se", "mi", "tu", "su", "sobre", "acerca", "dices"
+    )
+    private val tokenCanonicalMap = mapOf(
+        "fertilizante" to "fertilizacion",
+        "fertilizantes" to "fertilizacion",
+        "fertilizar" to "fertilizacion",
+        "abono" to "fertilizacion",
+        "abonos" to "fertilizacion",
+        "abonar" to "fertilizacion",
+        "nutriente" to "fertilizacion",
+        "nutrientes" to "fertilizacion",
+        "riego" to "riego",
+        "regar" to "riego",
+        "irrigacion" to "riego",
+        "plagas" to "plaga",
+        "insectos" to "plaga",
+        "enfermedades" to "enfermedad",
+        "hongos" to "hongo",
+        "siembra" to "siembra",
+        "sembrar" to "siembra",
+        "plantar" to "siembra",
+        "cosechar" to "cosecha",
+        "cosechas" to "cosecha"
+    )
+    private val intentKeywords = mapOf(
+        "fertilizacion" to setOf("fertilizacion", "npk", "urea", "nitrogeno", "fosforo", "potasio"),
+        "riego" to setOf("riego", "goteo", "agua", "irrigacion"),
+        "plaga" to setOf("plaga", "gusano", "mosca", "pulgon", "trips", "minador"),
+        "enfermedad" to setOf("enfermedad", "hongo", "virus", "bacteria", "tizon", "roya", "pudricion", "mancha"),
+        "siembra" to setOf("siembra", "cultivo", "cosecha", "semilla")
+    )
+    private val genericIntentTokens: Set<String> = run {
+        val tokens = mutableSetOf<String>()
+        intentKeywords.values.forEach { tokens.addAll(it) }
+        tokens.addAll(
+            setOf(
+                "como", "cuando", "donde", "porque", "cual", "cuales", "informacion",
+                "saber", "tema", "sobre", "acerca", "explicacion"
+            )
+        )
+        tokens
+    }
     
     // Estado
     private var isInitialized = false
+    private var forceTextOnlyMode = false
     
     data class KnowledgeEntry(
         val id: Int,
@@ -78,8 +136,25 @@ class SemanticSearchHelper(private val context: Context) {
     
     data class ContextResult(
         val contexts: List<MatchResult>,
-        val combinedContext: String
+        val combinedContext: String,
+        val groundingAssessment: GroundingAssessment? = null
     )
+
+    data class GroundingAssessment(
+        val supportScore: Float,
+        val lexicalCoverage: Float,
+        val entityCoverage: Float,
+        val unknownTokenRatio: Float,
+        val queryTokens: Set<String>,
+        val missingEntityTokens: Set<String>,
+        val unknownQueryTokens: Set<String>,
+        val hasStrongSupport: Boolean
+    )
+
+    fun setForceTextOnlyMode(enabled: Boolean) {
+        forceTextOnlyMode = enabled
+        AppLogger.log(TAG, "forceTextOnlyMode=$forceTextOnlyMode")
+    }
     
     /**
      * Inicializa el sistema cargando embeddings y base de conocimiento
@@ -191,6 +266,7 @@ class SemanticSearchHelper(private val context: Context) {
         }
         
         kbEntries = entriesMap
+        kbInformativeVocabulary = buildKbVocabulary(entriesMap)
         Log.d(TAG, "Base de conocimiento cargada: ${entriesMap.size} entradas")
     }
     
@@ -320,10 +396,11 @@ class SemanticSearchHelper(private val context: Context) {
         val entries = kbEntries ?: return null
         
         val startTime = System.currentTimeMillis()
-        AppLogger.log(TAG, "findBestMatch: '$userQuery' useMindSpore=$useMindSporeEncoder")
+        val shouldUseEncoder = useMindSporeEncoder && !forceTextOnlyMode
+        AppLogger.log(TAG, "findBestMatch: '$userQuery' useMindSpore=$shouldUseEncoder")
         
         // Calcular embedding de la query o usar fallback
-        val queryEmbedding = if (useMindSporeEncoder) {
+        val queryEmbedding = if (shouldUseEncoder) {
             computeEmbedding(userQuery)
         } else {
             null
@@ -331,12 +408,14 @@ class SemanticSearchHelper(private val context: Context) {
         
         var bestScore = -1f
         var bestIdx = -1
+        val queryLower = normalizeQueryForSearch(userQuery)
         
         if (queryEmbedding != null) {
-            AppLogger.log(TAG, "Buscando con embedding (${queryEmbedding.size} dims)")
-            // Búsqueda semántica real con embeddings
+            AppLogger.log(TAG, "Buscando con scoring híbrido (embedding + texto)")
             for (i in embeddings.indices) {
-                val score = cosineSimilarity(queryEmbedding, embeddings[i])
+                val semanticScore = cosineSimilarity(queryEmbedding, embeddings[i])
+                val textScore = calculateTextSimilarity(queryLower, questions[i].lowercase())
+                val score = combineScores(semanticScore, textScore)
                 if (score > bestScore) {
                     bestScore = score
                     bestIdx = i
@@ -344,9 +423,6 @@ class SemanticSearchHelper(private val context: Context) {
             }
         } else {
             AppLogger.log(TAG, "Fallback: búsqueda por texto")
-            // Fallback: similitud de texto
-            val queryLower = userQuery.lowercase().trim()
-            
             for (i in questions.indices) {
                 val questionLower = questions[i].lowercase()
                 val score = calculateTextSimilarity(queryLower, questionLower)
@@ -507,6 +583,10 @@ class SemanticSearchHelper(private val context: Context) {
         if (sim < 0.90f) {
             Log.w(TAG, "⚠ Posible tokenizer incorrecto o KB desalineada (sim < 0.90).")
         }
+        if (sim < 0.70f) {
+            useMindSporeEncoder = false
+            AppLogger.log(TAG, "Tokenizer/KB desalineados (sim=$sim). Se desactiva encoder y se usa fallback textual.")
+        }
     }
     
     /**
@@ -523,6 +603,11 @@ class SemanticSearchHelper(private val context: Context) {
         val words2 = norm2.split(Regex("\\s+")).filter { it.isNotEmpty() }.toSet()
         
         if (words1.isEmpty() || words2.isEmpty()) return 0f
+
+        val informative1 = extractInformativeTokens(words1)
+        val informative2 = extractInformativeTokens(words2)
+        val queryEntities = informative1.filterNot { it in genericIntentTokens }.toSet()
+        val candidateEntities = informative2.filterNot { it in genericIntentTokens }.toSet()
         
         // 1. Similitud Jaccard usando librería Apache Commons Text
         val jaccard = (jaccardSimilarity.apply(norm1, norm2)).toFloat().coerceIn(0f, 1f)
@@ -549,16 +634,41 @@ class SemanticSearchHelper(private val context: Context) {
             bigram1.intersect(bigram2).size.toFloat() / bigram1.union(bigram2).size.toFloat()
         } else 0f
         
+        val tokenCoverage = if (informative1.isNotEmpty()) {
+            informative1.intersect(informative2).size.toFloat() / informative1.size.toFloat()
+        } else 0f
+        val entityCoverage = if (queryEntities.isNotEmpty()) {
+            queryEntities.intersect(candidateEntities).size.toFloat() / queryEntities.size.toFloat()
+        } else 1f
+        val queryIntents = detectIntents(informative1)
+        val candidateIntents = detectIntents(informative2)
+        val missesIntent = queryIntents.isNotEmpty() && queryIntents.intersect(candidateIntents).isEmpty()
+        val sharesIntent = queryIntents.isNotEmpty() && queryIntents.intersect(candidateIntents).isNotEmpty()
+        
         // Combinar métricas con pesos
-        val finalScore = (jaccard * 0.20f + 
+        var finalScore = (jaccard * 0.20f + 
                          keywordScore * 0.25f + 
                          synonymScore * 0.20f + 
                          bigramScore * 0.10f +
                          jaroScore * 0.15f +
                          fuzzyNormalized * 0.10f +
-                         substringBonus).coerceIn(0f, 1f)
+                         substringBonus +
+                         tokenCoverage * 0.20f).coerceIn(0f, 1f)
+
+        if (sharesIntent) {
+            finalScore = (finalScore + 0.08f).coerceIn(0f, 1f)
+        }
+        if (missesIntent) {
+            finalScore *= 0.70f
+        }
+        if (queryEntities.isNotEmpty()) {
+            finalScore *= if (entityCoverage == 0f) 0.45f else (0.70f + entityCoverage * 0.30f)
+        }
+        if (informative1.size >= 3 && tokenCoverage < 0.34f) {
+            finalScore *= 0.72f
+        }
         
-        return finalScore
+        return finalScore.coerceIn(0f, 1f)
     }
     
     /**
@@ -572,6 +682,33 @@ class SemanticSearchHelper(private val context: Context) {
             .replace(Regex("\\s+"), " ")
             .trim()
     }
+
+    private fun normalizeQueryForSearch(userQuery: String): String {
+        val normalized = normalizeText(userQuery)
+        var refined = normalized
+        for (pattern in discoursePrefixes) {
+            refined = refined.replace(pattern, "")
+        }
+        return if (refined.isNotBlank()) refined.trim() else normalized
+    }
+
+    private fun informativeTokensFromText(text: String): Set<String> {
+        val normalized = normalizeText(text)
+        if (normalized.isBlank()) return emptySet()
+        val words = normalized.split(Regex("\\s+")).filter { it.isNotBlank() }.toSet()
+        return extractInformativeTokens(words)
+    }
+
+    private fun buildKbVocabulary(entries: Map<Int, KnowledgeEntry>): Set<String> {
+        val vocab = mutableSetOf<String>()
+        entries.values.forEach { entry ->
+            entry.questions.forEach { question ->
+                vocab.addAll(informativeTokensFromText(question))
+            }
+            vocab.addAll(informativeTokensFromText(entry.answer))
+        }
+        return vocab
+    }
     
     /**
      * Genera bigramas de un texto
@@ -580,6 +717,27 @@ class SemanticSearchHelper(private val context: Context) {
         val words = text.split(Regex("\\s+")).filter { it.isNotEmpty() }
         if (words.size < 2) return emptySet()
         return words.zipWithNext { a, b -> "$a $b" }.toSet()
+    }
+
+    private fun extractInformativeTokens(words: Set<String>): Set<String> {
+        return words
+            .asSequence()
+            .map { tokenCanonicalMap[it] ?: it }
+            .map {
+                when {
+                    it.length > 4 && it.endsWith("es") -> it.dropLast(2)
+                    it.length > 3 && it.endsWith("s") -> it.dropLast(1)
+                    else -> it
+                }
+            }
+            .filter { it.length >= 3 && it !in stopWords }
+            .toSet()
+    }
+
+    private fun detectIntents(tokens: Set<String>): Set<String> {
+        return intentKeywords
+            .filter { (_, keywords) -> tokens.any { it in keywords } }
+            .keys
     }
     
     /**
@@ -597,6 +755,7 @@ class SemanticSearchHelper(private val context: Context) {
             "plaga", "enfermedad", "hongo", "virus", "bacteria", "gusano", "mosca", "arana",
             "pulgon", "trips", "minador", "marchitez", "pudricion", "mancha", "amarillo",
             "amarillamiento", "secas", "marchitas", "caidas", "manchadas",
+            "tizon", "norteno",
             // Recursos
             "fertilizante", "abono", "npk", "organico", "riego", "goteo", "agua", "suelo",
             "tierra", "sustrato", "semilla", "nutriente", "nitrogeno", "fosforo", "potasio",
@@ -634,6 +793,7 @@ class SemanticSearchHelper(private val context: Context) {
             setOf("raiz", "raices", "radicular"),
             setOf("fruto", "frutos", "frutas", "produccion"),
             setOf("hongo", "hongos", "fungico", "fungica"),
+            setOf("tizon", "blight", "norteno", "northern"),
             setOf("control", "controlar", "combatir", "eliminar", "tratamiento", "tratar"),
             setOf("tomate", "tomates", "jitomate"),
             setOf("maiz", "elote", "choclo"),
@@ -673,6 +833,14 @@ class SemanticSearchHelper(private val context: Context) {
         val denominator = sqrt(norm1) * sqrt(norm2)
         return if (denominator > 0) dotProduct / denominator else 0f
     }
+
+    /**
+     * Mezcla score semántico y textual para estabilizar retrieval cuando embeddings
+     * no están perfectamente alineados.
+     */
+    private fun combineScores(semanticScore: Float, textScore: Float): Float {
+        return (semanticScore * 0.65f + textScore * 0.35f).coerceIn(0f, 1f)
+    }
     
     /**
      * Busca los K mejores contextos para RAG (Retrieval Augmented Generation)
@@ -686,18 +854,19 @@ class SemanticSearchHelper(private val context: Context) {
     fun findTopKContexts(userQuery: String, topK: Int = 3, minScore: Float = 0.4f): ContextResult {
         if (!isInitialized) {
             Log.e(TAG, "SemanticSearchHelper no inicializado")
-            return ContextResult(emptyList(), "")
+            return ContextResult(emptyList(), "", null)
         }
         
-        val embeddings = kbEmbeddings ?: return ContextResult(emptyList(), "")
-        val questions = kbQuestions ?: return ContextResult(emptyList(), "")
-        val entryIds = kbEntryIds ?: return ContextResult(emptyList(), "")
-        val entries = kbEntries ?: return ContextResult(emptyList(), "")
+        val embeddings = kbEmbeddings ?: return ContextResult(emptyList(), "", null)
+        val questions = kbQuestions ?: return ContextResult(emptyList(), "", null)
+        val entryIds = kbEntryIds ?: return ContextResult(emptyList(), "", null)
+        val entries = kbEntries ?: return ContextResult(emptyList(), "", null)
         
         val startTime = System.currentTimeMillis()
         
         // Calcular embedding de la query o usar fallback
-        val queryEmbedding = if (useMindSporeEncoder) {
+        val shouldUseEncoder = useMindSporeEncoder && !forceTextOnlyMode
+        val queryEmbedding = if (shouldUseEncoder) {
             computeEmbedding(userQuery)
         } else {
             null
@@ -709,13 +878,16 @@ class SemanticSearchHelper(private val context: Context) {
         // Variable para tracking del mejor score semántico
         var bestSemanticScore = -1f
         var bestSemanticIdx = -1
+        val queryLower = normalizeQueryForSearch(userQuery)
         
         if (queryEmbedding != null) {
-            // Búsqueda semántica real con embeddings
+            // Búsqueda semántica + textual (híbrida)
             for (i in embeddings.indices) {
-                val score = cosineSimilarity(queryEmbedding, embeddings[i])
-                if (score > bestSemanticScore) {
-                    bestSemanticScore = score
+                val semanticScore = cosineSimilarity(queryEmbedding, embeddings[i])
+                val textScore = calculateTextSimilarity(queryLower, questions[i].lowercase())
+                val score = combineScores(semanticScore, textScore)
+                if (semanticScore > bestSemanticScore) {
+                    bestSemanticScore = semanticScore
                     bestSemanticIdx = i
                 }
                 if (score >= minScore) {
@@ -724,10 +896,9 @@ class SemanticSearchHelper(private val context: Context) {
             }
             Log.d(TAG, "Búsqueda semántica: mejor score=$bestSemanticScore, pregunta='${if (bestSemanticIdx >= 0) questions[bestSemanticIdx] else "N/A"}'")
             
-            // Si no hay buenos matches semánticos, usar fallback de texto
+            // Si no hay matches por umbral, fallback textual con umbral suave
             if (scores.isEmpty()) {
-                Log.d(TAG, "Sin matches semánticos (minScore=$minScore), usando fallback de texto")
-                val queryLower = userQuery.lowercase().trim()
+                Log.d(TAG, "Sin matches híbridos (minScore=$minScore), usando fallback de texto")
                 var bestTextScore = 0f
                 var bestTextQuestion = ""
                 for (i in questions.indices) {
@@ -745,7 +916,6 @@ class SemanticSearchHelper(private val context: Context) {
             }
         } else {
             // Fallback: similitud de texto
-            val queryLower = userQuery.lowercase().trim()
             for (i in questions.indices) {
                 val questionLower = questions[i].lowercase()
                 val score = calculateTextSimilarity(queryLower, questionLower)
@@ -753,6 +923,16 @@ class SemanticSearchHelper(private val context: Context) {
                     scores.add(i to score)
                 }
             }
+        }
+
+        // Garantizar al menos top-k por similitud textual cuando no hay ninguno por umbral.
+        if (scores.isEmpty()) {
+            Log.d(TAG, "Sin resultados >= umbral, recuperando top-$topK textual forzado")
+            val fallbackAll = questions.indices
+                .map { idx -> idx to calculateTextSimilarity(queryLower, questions[idx].lowercase()) }
+                .sortedByDescending { it.second }
+                .take(topK.coerceAtLeast(1))
+            scores.addAll(fallbackAll)
         }
         
         // Ordenar por score descendente y tomar top K
@@ -784,8 +964,19 @@ class SemanticSearchHelper(private val context: Context) {
         
         // Construir contexto combinado para el LLM
         val combinedContext = buildCombinedContext(uniqueResults)
+        val groundingAssessment = buildGroundingAssessment(userQuery, uniqueResults.firstOrNull())
+
+        if (groundingAssessment != null) {
+            AppLogger.log(
+                TAG,
+                "Grounding: support=${String.format("%.2f", groundingAssessment.supportScore)} " +
+                    "coverage=${String.format("%.2f", groundingAssessment.lexicalCoverage)} " +
+                    "entity=${String.format("%.2f", groundingAssessment.entityCoverage)} " +
+                    "unknown=${String.format("%.2f", groundingAssessment.unknownTokenRatio)}"
+            )
+        }
         
-        return ContextResult(uniqueResults, combinedContext)
+        return ContextResult(uniqueResults, combinedContext, groundingAssessment)
     }
     
     /**
@@ -794,19 +985,85 @@ class SemanticSearchHelper(private val context: Context) {
      */
     private fun buildCombinedContext(results: List<MatchResult>): String {
         if (results.isEmpty()) return ""
-        
+
         val sb = StringBuilder()
-        sb.append("Información agrícola relevante:\n\n")
-        
+        sb.append("Informacion agricola relevante:\n")
         results.forEachIndexed { index, result ->
-            sb.append("【${index + 1}】 ${result.category.uppercase()}\n")
-            sb.append("${result.answer}\n")
+            sb.append("\n[${index + 1}] ${result.category.uppercase()}\n")
+            sb.append(result.answer.trim())
             if (index < results.size - 1) {
-                sb.append("\n---\n\n")
+                sb.append("\n---\n")
             }
         }
-        
-        return sb.toString()
+        return sb.toString().trim()
+    }
+
+    private fun buildGroundingAssessment(
+        userQuery: String,
+        topMatch: MatchResult?
+    ): GroundingAssessment? {
+        val queryTokens = informativeTokensFromText(normalizeQueryForSearch(userQuery))
+        if (queryTokens.isEmpty()) return null
+
+        if (topMatch == null) {
+            return GroundingAssessment(
+                supportScore = 0f,
+                lexicalCoverage = 0f,
+                entityCoverage = 0f,
+                unknownTokenRatio = 1f,
+                queryTokens = queryTokens,
+                missingEntityTokens = queryTokens,
+                unknownQueryTokens = queryTokens,
+                hasStrongSupport = false
+            )
+        }
+
+        val evidenceTokens = informativeTokensFromText("${topMatch.matchedQuestion} ${topMatch.answer}")
+        val overlap = queryTokens.intersect(evidenceTokens)
+        val lexicalCoverage = overlap.size.toFloat() / queryTokens.size.toFloat()
+        val queryEntities = queryTokens.filterNot { it in genericIntentTokens }.toSet()
+        val evidenceEntities = evidenceTokens.filterNot { it in genericIntentTokens }.toSet()
+        val matchedEntities = queryEntities.intersect(evidenceEntities)
+        val entityCoverage = if (queryEntities.isNotEmpty()) {
+            matchedEntities.size.toFloat() / queryEntities.size.toFloat()
+        } else {
+            lexicalCoverage
+        }
+
+        val unknownQueryTokens = if (kbInformativeVocabulary.isNotEmpty()) {
+            queryTokens.filter { it !in kbInformativeVocabulary }.toSet()
+        } else {
+            emptySet()
+        }
+        val unknownTokenRatio = if (queryTokens.isNotEmpty()) {
+            unknownQueryTokens.size.toFloat() / queryTokens.size.toFloat()
+        } else {
+            0f
+        }
+
+        val supportScore = (
+            topMatch.similarityScore * 0.55f +
+                lexicalCoverage * 0.30f +
+                entityCoverage * 0.20f -
+                unknownTokenRatio * 0.35f
+            ).coerceIn(0f, 1f)
+
+        val hasStrongSupport =
+            supportScore >= 0.55f &&
+                lexicalCoverage >= 0.34f &&
+                (queryEntities.isEmpty() || entityCoverage >= 0.45f) &&
+                unknownTokenRatio <= 0.45f
+
+        return GroundingAssessment(
+            supportScore = supportScore,
+            lexicalCoverage = lexicalCoverage,
+            entityCoverage = entityCoverage,
+            unknownTokenRatio = unknownTokenRatio,
+            queryTokens = queryTokens,
+            missingEntityTokens = queryEntities - matchedEntities,
+            unknownQueryTokens = unknownQueryTokens,
+            hasStrongSupport = hasStrongSupport
+        )
     }
     
     /**
@@ -824,6 +1081,7 @@ class SemanticSearchHelper(private val context: Context) {
         kbQuestions = null
         kbEntryIds = null
         kbEntries = null
+        kbInformativeVocabulary = emptySet()
         isInitialized = false
         useMindSporeEncoder = false
         

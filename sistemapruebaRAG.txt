@@ -1,0 +1,8 @@
+/tmp/llama-build/bin/llama-server \
+  -m /home/user/versionoriginalARApp/AgroChat_Project/llm_models/llama-3.2-1b-q4.gguf \
+  --host 127.0.0.1 --port 8080 \
+  -c 1024 -t 4 -b 256 -ub 128 -np 1
+
+
+cd /home/user/Escritorio/proyectos/HuaweiProject/AgroChat_Project
+./scripts/test_llama_pipeline.sh --llama-base-url http://127.0.0.1:8080 --debug

@@ -44,7 +44,7 @@ Tu rol es ayudar a agricultores con información práctica sobre:
 Directrices:
 1. Responde de forma clara, concisa y práctica
 2. Usa un lenguaje sencillo que cualquier agricultor pueda entender
-3. Si no sabes algo, admítelo honestamente
+3. Si no sabes algo o no hay evidencia suficiente, admítelo honestamente y evita inventar
 4. Prioriza soluciones orgánicas cuando sea posible
 5. Da respuestas cortas (2-3 párrafos máximo) a menos que se pida más detalle
 6. Responde siempre en español"""
@@ -148,9 +148,9 @@ Directrices:
         return JSONObject().apply {
             put("model", DEFAULT_MODEL)
             put("messages", messages)
-            put("temperature", 0.7)
+            put("temperature", 0.2)
             put("max_tokens", 500)  // Respuestas concisas
-            put("top_p", 0.9)
+            put("top_p", 0.85)
         }
     }
     
