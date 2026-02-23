@@ -49,6 +49,14 @@ Directrices:
 5. Da respuestas cortas (2-3 párrafos máximo) a menos que se pida más detalle
 6. Responde siempre en español"""
     }
+
+    data class QueryConfig(
+        val systemPrompt: String = SYSTEM_PROMPT,
+        val maxTokens: Int = 500,
+        val temperature: Double = 0.2,
+        val topP: Double = 0.85,
+        val historyWindow: Int = 5
+    )
     
     // API Key - Se puede configurar dinámicamente
     private var apiKey: String? = null
@@ -91,7 +99,8 @@ Directrices:
      */
     suspend fun query(
         userMessage: String,
-        conversationHistory: List<Pair<String, String>> = emptyList()
+        conversationHistory: List<Pair<String, String>> = emptyList(),
+        config: QueryConfig = QueryConfig()
     ): Result<String> = withContext(Dispatchers.IO) {
         
         if (!hasApiKey()) {
@@ -103,7 +112,7 @@ Directrices:
         }
         
         try {
-            val requestBody = buildRequestBody(userMessage, conversationHistory)
+            val requestBody = buildRequestBody(userMessage, conversationHistory, config)
             val response = makeRequest(requestBody)
             Result.success(response)
         } catch (e: Exception) {
@@ -117,18 +126,23 @@ Directrices:
      */
     private fun buildRequestBody(
         userMessage: String,
-        conversationHistory: List<Pair<String, String>>
+        conversationHistory: List<Pair<String, String>>,
+        config: QueryConfig
     ): JSONObject {
         val messages = JSONArray()
+        val safeHistoryWindow = config.historyWindow.coerceIn(0, 20)
+        val safeMaxTokens = config.maxTokens.coerceIn(50, 1200)
+        val safeTemperature = config.temperature.coerceIn(0.0, 2.0)
+        val safeTopP = config.topP.coerceIn(0.1, 1.0)
         
         // 1. System prompt
         messages.put(JSONObject().apply {
             put("role", "system")
-            put("content", SYSTEM_PROMPT)
+            put("content", config.systemPrompt.ifBlank { SYSTEM_PROMPT })
         })
         
-        // 2. Historial de conversación (últimos 5 intercambios para no exceder contexto)
-        conversationHistory.takeLast(5).forEach { (user, assistant) ->
+        // 2. Historial de conversación (ventana configurable para no exceder contexto)
+        conversationHistory.takeLast(safeHistoryWindow).forEach { (user, assistant) ->
             messages.put(JSONObject().apply {
                 put("role", "user")
                 put("content", user)
@@ -148,9 +162,9 @@ Directrices:
         return JSONObject().apply {
             put("model", DEFAULT_MODEL)
             put("messages", messages)
-            put("temperature", 0.2)
-            put("max_tokens", 500)  // Respuestas concisas
-            put("top_p", 0.85)
+            put("temperature", safeTemperature)
+            put("max_tokens", safeMaxTokens)
+            put("top_p", safeTopP)
         }
     }
     

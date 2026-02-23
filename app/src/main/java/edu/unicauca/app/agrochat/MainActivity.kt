@@ -1637,9 +1637,10 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        val kbContextForPrompt = combinedKBContext?.take(effectiveContextLength)
         val contextParts = mutableListOf<String>()
-        if (hasKbContext && !combinedKBContext.isNullOrBlank()) {
-            contextParts.add("=== KB ===\n$combinedKBContext")
+        if (hasKbContext && !kbContextForPrompt.isNullOrBlank()) {
+            contextParts.add("=== KB ===\n$kbContextForPrompt")
         }
         if (!chatHistoryContext.isNullOrBlank()) {
             contextParts.add("=== HISTORIAL ===\n$chatHistoryContext")
@@ -1665,20 +1666,25 @@ class MainActivity : ComponentActivity() {
         if (!STRICT_TERMINAL_PARITY_MODE && isOnlineMode && groqService?.isAvailable() == true) {
             Log.d("MainActivity", "→ Usando Groq LLM (online, grounded)")
 
-            val history = chatMessages
-                .filter { it.text.isNotBlank() }
-                .chunked(2)
-                .filter { it.size == 2 && it[0].isUser && !it[1].isUser }
-                .map { it[0].text to it[1].text }
-                .takeLast(5)
+            val historyWindow = if (effectiveChatHistoryEnabled) effectiveChatHistorySize.coerceIn(0, 20) else 0
+            val history = if (historyWindow > 0) {
+                chatMessages
+                    .filter { it.text.isNotBlank() }
+                    .chunked(2)
+                    .filter { it.size == 2 && it[0].isUser && !it[1].isUser }
+                    .map { it[0].text to it[1].text }
+                    .takeLast(historyWindow)
+            } else {
+                emptyList()
+            }
 
-            val groqUserPrompt = if (hasKbContext && !combinedKBContext.isNullOrBlank()) {
+            val groqUserPrompt = if (hasKbContext && !kbContextForPrompt.isNullOrBlank()) {
                 """Responde usando únicamente la información del CONTEXTO KB.
 Si la respuesta no está en el contexto, responde exactamente: "No tengo suficiente información en la base de conocimiento para responder con seguridad."
 No inventes datos externos.
 
 CONTEXTO KB:
-$combinedKBContext
+$kbContextForPrompt
 
 PREGUNTA:
 $userQuery
@@ -1696,12 +1702,26 @@ $userQuery
                 userQuery
             }
 
-            val result = groqService!!.query(groqUserPrompt, history)
+            val groqSystemPrompt = when {
+                hasKbContext -> "$effectiveSystemPrompt\nReglas obligatorias: usa SOLO el CONTEXTO KB como fuente factual; si falta evidencia, dilo explícitamente; no inventes."
+                allowGeneralLlmMode -> "$effectiveSystemPrompt\nNo hay evidencia suficiente en la KB para esta consulta. Puedes responder con conocimiento agrícola general, aclara que es orientación general y qué datos faltan."
+                else -> effectiveSystemPrompt
+            }
+            val groqMaxTokens = maxOf(advancedMaxTokens, 200)
+            val result = groqService!!.query(
+                userMessage = groqUserPrompt,
+                conversationHistory = history,
+                config = GroqService.QueryConfig(
+                    systemPrompt = groqSystemPrompt,
+                    maxTokens = groqMaxTokens,
+                    historyWindow = historyWindow
+                )
+            )
             result.fold(
                 onSuccess = { response ->
                         val cleanResponse = response.trim()
                         if (cleanResponse.length > 10) {
-                            if (hasKbContext && !combinedKBContext.isNullOrBlank() && !isResponseAnchoredToContext(cleanResponse, userQuery, combinedKBContext)) {
+                            if (hasKbContext && !kbContextForPrompt.isNullOrBlank() && !isResponseAnchoredToContext(cleanResponse, userQuery, kbContextForPrompt)) {
                                 AppLogger.log("MainActivity", "Groq ungrounded guard -> fallback KB")
                                 return@withContext ResponseMeta(
                                     response = bestMatch!!.answer,
@@ -1793,7 +1813,7 @@ $userQuery
                                     enforcedKbAbstention = false
                                 )
                             }
-                            if (kbGuardMatch != null && !combinedKBContext.isNullOrBlank() && !isResponseAnchoredToContext(cleanResponse, userQuery, combinedKBContext)) {
+                            if (kbGuardMatch != null && !kbContextForPrompt.isNullOrBlank() && !isResponseAnchoredToContext(cleanResponse, userQuery, kbContextForPrompt)) {
                                 AppLogger.log("MainActivity", "LLM ungrounded guard -> KB answer id=${kbGuardMatch.entryId}")
                                 return@withContext ResponseMeta(
                                     response = kbGuardMatch.answer,
