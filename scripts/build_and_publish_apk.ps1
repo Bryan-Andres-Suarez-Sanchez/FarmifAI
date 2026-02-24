@@ -181,6 +181,11 @@ try {
 finally {
     Pop-Location
     if ($tempWorktree -and (Test-Path $tempWorktree)) {
-        git worktree remove $tempWorktree --force 2>$null
+        $gitWorktreePath = $tempWorktree -replace "\\", "/"
+        git worktree remove "$gitWorktreePath" --force 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            Remove-Item -LiteralPath $tempWorktree -Recurse -Force -ErrorAction SilentlyContinue
+            git worktree prune 2>$null | Out-Null
+        }
     }
 }
