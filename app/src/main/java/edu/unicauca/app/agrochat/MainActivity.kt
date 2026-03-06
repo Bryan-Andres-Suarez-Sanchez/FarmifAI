@@ -2,6 +2,7 @@ package edu.unicauca.app.agrochat
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.Bitmap
@@ -33,9 +34,12 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.LibraryBooks
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Cloud
@@ -66,6 +70,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import edu.unicauca.app.agrochat.llm.GroqService
 import edu.unicauca.app.agrochat.llm.LlamaService
+import edu.unicauca.app.agrochat.kb.PdfKnowledgeManager
 import edu.unicauca.app.agrochat.mindspore.SemanticSearchHelper
 import edu.unicauca.app.agrochat.models.ModelDownloadService
 import edu.unicauca.app.agrochat.routing.KbFallbackComposer
@@ -131,7 +136,7 @@ data class ChatMessage(
     val canContinue: Boolean = false  // Para mostrar botón "Continuar" en respuestas LLM
 )
 
-enum class AppMode { VOICE, CHAT, CAMERA }
+enum class AppMode { VOICE, CHAT, CAMERA, PDF_KB }
 
 // Estado de descarga para pantalla de bienvenida
 data class DownloadItem(
@@ -217,6 +222,9 @@ class MainActivity : ComponentActivity() {
     private var lastResponse by mutableStateOf("")
     private var currentMode by mutableStateOf(AppMode.VOICE)
     private var semanticSearchHelper: SemanticSearchHelper? = null
+    private var pdfKnowledgeManager: PdfKnowledgeManager? = null
+    private var pdfDocuments = mutableStateListOf<PdfKnowledgeManager.PdfDocumentMeta>()
+    private var isPdfImporting by mutableStateOf(false)
     private var voiceHelper: VoiceHelper? = null
     private var groqService: GroqService? = null
     private var llamaService: LlamaService? = null
@@ -320,6 +328,26 @@ class MainActivity : ComponentActivity() {
         pickImageLauncher.launch("image/*")
     }
 
+    private val pickPdfLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri ?: return@registerForActivityResult
+        try {
+            contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+        } catch (e: SecurityException) {
+            AppLogger.log("MainActivity", "Permiso persistente PDF no disponible: ${e.message}")
+        }
+        importPdfDocument(uri)
+    }
+
+    fun openPdfPicker() {
+        if (isPdfImporting) return
+        pickPdfLauncher.launch(arrayOf("application/pdf"))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -340,6 +368,7 @@ class MainActivity : ComponentActivity() {
         
         // Inicializar Groq
         initializeGroq()
+        initializePdfKnowledge()
 
         // Si es primera instalación, mostrar pantalla de bienvenida
         // Si no, iniciar normalmente
@@ -391,9 +420,14 @@ class MainActivity : ComponentActivity() {
                         isDiagnosing = isDiagnosing,
                         capturedBitmap = capturedBitmap,
                         lastDiagnosis = lastDiagnosis,
+                        pdfDocuments = pdfDocuments,
+                        isPdfImporting = isPdfImporting,
                         onSendMessage = { sendMessage(it) },
                         onMicClick = { handleMicClick() },
                         onModeChange = { handleModeChange(it) },
+                        onOpenPdfKb = { handleModeChange(AppMode.PDF_KB) },
+                        onUploadPdf = { openPdfPicker() },
+                        onDeletePdf = { documentId -> deletePdfDocument(documentId) },
                         onSettingsClick = { showSettingsDialog = true },
                         onDismissSettings = { showSettingsDialog = false },
                         onSaveApiKey = { key -> saveGroqApiKey(key) },
@@ -696,7 +730,125 @@ class MainActivity : ComponentActivity() {
             currentMode = mode
         }
     }
-    
+
+    private fun initializePdfKnowledge() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val manager = PdfKnowledgeManager(applicationContext)
+                val docs = manager.listDocuments()
+                withContext(Dispatchers.Main) {
+                    pdfKnowledgeManager = manager
+                    pdfDocuments.clear()
+                    pdfDocuments.addAll(docs)
+                    AppLogger.log("MainActivity", "PDF KB inicializada con ${docs.size} documentos")
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    AppLogger.log("MainActivity", "Error inicializando PDF KB: ${e.message}")
+                }
+            }
+        }
+    }
+
+    private fun importPdfDocument(uri: Uri) {
+        if (isPdfImporting) return
+        lifecycleScope.launch {
+            isPdfImporting = true
+            uiStatus = "Indexando PDF..."
+            try {
+                val manager = withContext(Dispatchers.IO) {
+                    pdfKnowledgeManager ?: PdfKnowledgeManager(applicationContext).also {
+                        pdfKnowledgeManager = it
+                    }
+                }
+                val importResult = withContext(Dispatchers.IO) { manager.importPdf(uri) }
+                val docs = withContext(Dispatchers.IO) { manager.listDocuments() }
+                pdfDocuments.clear()
+                pdfDocuments.addAll(docs)
+                uiStatus = "PDF agregado: ${importResult.document.displayName}"
+                Toast.makeText(
+                    this@MainActivity,
+                    "PDF cargado: ${importResult.document.displayName}",
+                    Toast.LENGTH_SHORT
+                ).show()
+                AppLogger.log(
+                    "MainActivity",
+                    "PDF importado id=${importResult.document.id} nombre=${importResult.document.displayName} paginas=${importResult.document.pageCount} chunks=${importResult.document.chunkCount}"
+                )
+            } catch (e: Exception) {
+                uiStatus = "Error cargando PDF"
+                Toast.makeText(
+                    this@MainActivity,
+                    "No fue posible cargar el PDF: ${e.message}",
+                    Toast.LENGTH_LONG
+                ).show()
+                AppLogger.log("MainActivity", "Error importando PDF: ${e.message}")
+            } finally {
+                isPdfImporting = false
+            }
+        }
+    }
+
+    private fun deletePdfDocument(documentId: String) {
+        lifecycleScope.launch {
+            try {
+                val manager = withContext(Dispatchers.IO) {
+                    pdfKnowledgeManager ?: PdfKnowledgeManager(applicationContext).also {
+                        pdfKnowledgeManager = it
+                    }
+                }
+                val deleted = withContext(Dispatchers.IO) { manager.deleteDocument(documentId) }
+                if (!deleted) {
+                    Toast.makeText(
+                        this@MainActivity,
+                        "No se encontro el PDF para eliminar",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return@launch
+                }
+                val docs = withContext(Dispatchers.IO) { manager.listDocuments() }
+                pdfDocuments.clear()
+                pdfDocuments.addAll(docs)
+                uiStatus = "PDF eliminado"
+                AppLogger.log("MainActivity", "PDF eliminado id=$documentId y contexto olvidado")
+            } catch (e: Exception) {
+                Toast.makeText(
+                    this@MainActivity,
+                    "Error eliminando PDF: ${e.message}",
+                    Toast.LENGTH_LONG
+                ).show()
+                AppLogger.log("MainActivity", "Error eliminando PDF: ${e.message}")
+            }
+        }
+    }
+
+    private suspend fun buildPdfForcedContext(userQuery: String): String? = withContext(Dispatchers.IO) {
+        val manager = pdfKnowledgeManager ?: return@withContext null
+        val context = manager.findContext(userQuery) ?: return@withContext null
+        AppLogger.log(
+            "MainActivity",
+            "PDF_KB query score=${String.format("%.2f", context.topScore)} chunks=${context.chunkCount} docs=${context.documentNames.joinToString(" | ")}"
+        )
+        val header = "Fuentes PDF: ${context.documentNames.joinToString(", ")}"
+        "=== KB ===\n$header\n\n${context.context}"
+    }
+
+    private fun extractKbSectionFromContext(context: String?): String? {
+        if (context.isNullOrBlank()) return null
+        val kbMarker = "=== KB ==="
+        val historyMarker = "=== HISTORIAL ==="
+        val kbIndex = context.indexOf(kbMarker)
+        if (kbIndex < 0) return context.trim().ifBlank { null }
+        val start = kbIndex + kbMarker.length
+        val historyIndex = context.indexOf(historyMarker, startIndex = start)
+        val section = if (historyIndex > start) {
+            context.substring(start, historyIndex)
+        } else {
+            context.substring(start)
+        }
+        return section.trim().ifBlank { null }
+    }
+
     private fun processCapture(bitmap: Bitmap) {
         capturedBitmap = bitmap
         lastDiagnosis = null
@@ -1369,10 +1521,19 @@ class MainActivity : ComponentActivity() {
             }
             
             try {
+                val forcedPdfContext = if (isContinuationIntent) {
+                    null
+                } else {
+                    buildPdfForcedContext(effectiveQuery)
+                }
+                if (!forcedPdfContext.isNullOrBlank()) {
+                    AppLogger.log("MainActivity", "PDF_KB contexto inyectado chars=${forcedPdfContext.length}")
+                }
+                val effectiveForcedContext = forcedContinuationContext ?: forcedPdfContext
                 val responseMeta = findResponseWithMeta(
                     userQuery = effectiveQuery,
                     skipKbDirect = isContinuationIntent,
-                    forcedContext = forcedContinuationContext
+                    forcedContext = effectiveForcedContext
                 )
                 val sanitizedResponse = sanitizeAssistantResponse(responseMeta.response)
                 
@@ -1571,7 +1732,14 @@ class MainActivity : ComponentActivity() {
         )
         val retrievalLatencyMs = (System.nanoTime() - retrievalStartNs) / 1_000_000
 
-        val combinedKBContext = ragContext?.combinedContext
+        val semanticCombinedKBContext = ragContext?.combinedContext
+        val forcedKbSection = extractKbSectionFromContext(forcedContext)
+        val combinedKBContext = when {
+            !forcedKbSection.isNullOrBlank() && !semanticCombinedKBContext.isNullOrBlank() ->
+                "$forcedKbSection\n\n$semanticCombinedKBContext"
+            !forcedKbSection.isNullOrBlank() -> forcedKbSection
+            else -> semanticCombinedKBContext
+        }
         val bestMatch = ragContext?.contexts?.firstOrNull()
         val groundingAssessment = ragContext?.groundingAssessment
         val kbSupportScore = groundingAssessment?.supportScore ?: 0f
@@ -1598,10 +1766,12 @@ class MainActivity : ComponentActivity() {
             hasRelatedCoreSignal &&
             !hasWeakNoisySignal &&
             kbUnknownRatio <= KB_RELATED_MAX_UNKNOWN_RATIO
-        val hasKbContext = hasGroundedKbSupport || hasRelatedKbSignal
-
-        if (forcedContext == null) {
-            lastContext = if (!combinedKBContext.isNullOrBlank()) combinedKBContext else bestMatch?.answer
+        val hasForcedKbContext = !forcedKbSection.isNullOrBlank()
+        val hasKbContext = hasForcedKbContext || hasGroundedKbSupport || hasRelatedKbSignal
+        if (!combinedKBContext.isNullOrBlank()) {
+            lastContext = combinedKBContext
+        } else if (forcedContext == null) {
+            lastContext = bestMatch?.answer
         }
 
         val kbResults = ragContext?.contexts?.take(3)?.joinToString(" | ") {
@@ -1611,6 +1781,12 @@ class MainActivity : ComponentActivity() {
             "MainActivity",
             "KB search: retrievalMs=$retrievalLatencyMs retrievalMin=$retrievalMinScore threshold=$effectiveSimilarityThreshold related=$hasRelatedKbSignal grounded=$hasGroundedKbSupport support=${String.format("%.2f", kbSupportScore)} coverage=${String.format("%.2f", kbCoverage)} entity=${String.format("%.2f", kbEntityCoverage)} unknown=${String.format("%.2f", kbUnknownRatio)} noisy=$hasWeakNoisySignal results=$kbResults"
         )
+        if (hasForcedKbContext) {
+            AppLogger.log(
+                "MainActivity",
+                "KB forced context enabled chars=${forcedKbSection.length} query='${userQuery.take(60)}'"
+            )
+        }
 
         val isSimpleGreeting = effectiveDetectGreetings && userQuery.lowercase().trim().let { q ->
             q in listOf("hola", "hey", "buenas", "buenos días", "buenas tardes", "buenas noches", "gracias", "adiós", "chao", "hasta luego") ||
@@ -1711,7 +1887,12 @@ class MainActivity : ComponentActivity() {
         }
         val autoContext = if (contextParts.isNotEmpty()) contextParts.joinToString("\n\n").take(effectivePromptContextLength) else null
         val forcedContextForPrompt = forcedContext?.take(effectivePromptContextLength)
-        val contextToPass = forcedContextForPrompt ?: autoContext
+        val forcedHasHistory = forcedContextForPrompt?.contains("=== HISTORIAL ===") == true
+        val contextToPass = when {
+            forcedHasHistory -> forcedContextForPrompt
+            !autoContext.isNullOrBlank() -> autoContext
+            else -> forcedContextForPrompt
+        }
 
         val mode = when {
             hasKbContext && chatHistoryContext != null -> "RAG+Chat"
@@ -2242,9 +2423,14 @@ fun AgroChatApp(
     isDiagnosing: Boolean,
     capturedBitmap: Bitmap?,
     lastDiagnosis: DiseaseResult?,
+    pdfDocuments: List<PdfKnowledgeManager.PdfDocumentMeta>,
+    isPdfImporting: Boolean,
     onSendMessage: (String) -> Unit,
     onMicClick: () -> Unit,
     onModeChange: (AppMode) -> Unit,
+    onOpenPdfKb: () -> Unit,
+    onUploadPdf: () -> Unit,
+    onDeletePdf: (String) -> Unit,
     onSettingsClick: () -> Unit,
     onDismissSettings: () -> Unit,
     onSaveApiKey: (String) -> Unit,
@@ -2285,7 +2471,8 @@ fun AgroChatApp(
                     lastResponse, statusMessage, isModelReady, isProcessing, isListening, isOnlineMode, 
                     isDiagnosticReady, onMicClick, onSettingsClick, onShowLogs,
                     onSwitchToChat = { onModeChange(AppMode.CHAT) },
-                    onSwitchToCamera = { onModeChange(AppMode.CAMERA) }
+                    onSwitchToCamera = { onModeChange(AppMode.CAMERA) },
+                    onSwitchToPdfKb = onOpenPdfKb
                 )
                 AppMode.CHAT -> ChatModeScreen(
                     messages = messages,
@@ -2300,7 +2487,8 @@ fun AgroChatApp(
                     onSettingsClick = onSettingsClick,
                     onShowLogs = onShowLogs,
                     onSwitchToVoice = { onModeChange(AppMode.VOICE) },
-                    onSwitchToCamera = { onModeChange(AppMode.CAMERA) }
+                    onSwitchToCamera = { onModeChange(AppMode.CAMERA) },
+                    onSwitchToPdfKb = onOpenPdfKb
                 )
                 AppMode.CAMERA -> CameraModeScreen(
                     statusMessage = statusMessage,
@@ -2313,6 +2501,15 @@ fun AgroChatApp(
                     onDiagnosisToChat = onDiagnosisToChat,
                     onSwitchToChat = { onModeChange(AppMode.CHAT) },
                     onOpenGallery = onOpenGallery
+                )
+                AppMode.PDF_KB -> PdfKnowledgeScreen(
+                    documents = pdfDocuments,
+                    isImporting = isPdfImporting,
+                    statusMessage = statusMessage,
+                    onUploadPdf = onUploadPdf,
+                    onDeletePdf = onDeletePdf,
+                    onSwitchToChat = { onModeChange(AppMode.CHAT) },
+                    onSwitchToVoice = { onModeChange(AppMode.VOICE) }
                 )
             }
         }
@@ -2366,7 +2563,8 @@ fun VoiceModeScreen(
     onSettingsClick: () -> Unit,
     onShowLogs: () -> Unit,
     onSwitchToChat: () -> Unit,
-    onSwitchToCamera: () -> Unit
+    onSwitchToCamera: () -> Unit,
+    onSwitchToPdfKb: () -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -2479,6 +2677,14 @@ fun VoiceModeScreen(
             ) {
                 Icon(Icons.Default.ChatBubble, "Modo Chat")
             }
+
+            FloatingActionButton(
+                onClick = onSwitchToPdfKb,
+                containerColor = AgroColors.SurfaceLight,
+                contentColor = AgroColors.TextPrimary
+            ) {
+                Icon(Icons.Default.LibraryBooks, "Base PDF")
+            }
         }
     }
 }
@@ -2551,7 +2757,8 @@ fun ChatModeScreen(
     onSettingsClick: () -> Unit,
     onShowLogs: () -> Unit,
     onSwitchToVoice: () -> Unit,
-    onSwitchToCamera: () -> Unit
+    onSwitchToCamera: () -> Unit,
+    onSwitchToPdfKb: () -> Unit
 ) {
     var inputText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
@@ -2590,6 +2797,9 @@ fun ChatModeScreen(
                         )
                     ) {
                         Icon(Icons.Default.CameraAlt, "Diagnóstico Visual", tint = if (isDiagnosticReady) Color.White else AgroColors.TextSecondary)
+                    }
+                    IconButton(onClick = onSwitchToPdfKb, Modifier.size(48.dp).background(AgroColors.SurfaceLight, CircleShape)) {
+                        Icon(Icons.Default.LibraryBooks, "KB PDF", tint = AgroColors.TextPrimary)
                     }
                     IconButton(onClick = onSwitchToVoice, Modifier.size(48.dp).background(AgroColors.SurfaceLight, CircleShape)) {
                         Icon(Icons.Default.RecordVoiceOver, "Modo Voz", tint = AgroColors.Accent)
@@ -2743,6 +2953,224 @@ fun OnlineIndicator(isOnline: Boolean, onClick: () -> Unit) {
             style = MaterialTheme.typography.labelSmall,
             color = if (isOnline) AgroColors.Accent else AgroColors.TextSecondary,
             fontWeight = FontWeight.Medium
+        )
+    }
+}
+
+@Composable
+fun PdfKnowledgeScreen(
+    documents: List<PdfKnowledgeManager.PdfDocumentMeta>,
+    isImporting: Boolean,
+    statusMessage: String,
+    onUploadPdf: () -> Unit,
+    onDeletePdf: (String) -> Unit,
+    onSwitchToChat: () -> Unit,
+    onSwitchToVoice: () -> Unit
+) {
+    var pendingDelete by remember { mutableStateOf<PdfKnowledgeManager.PdfDocumentMeta?>(null) }
+    val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .background(Brush.verticalGradient(listOf(AgroColors.Background, AgroColors.GradientEnd)))
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = AgroColors.Surface,
+            tonalElevation = 4.dp
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Default.PictureAsPdf, contentDescription = null, tint = AgroColors.Accent)
+                    Column {
+                        Text(
+                            "Base PDF",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = AgroColors.TextPrimary,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "$statusMessage · ${documents.size} docs",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = AgroColors.TextSecondary
+                        )
+                    }
+                }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    IconButton(
+                        onClick = onSwitchToChat,
+                        modifier = Modifier.size(42.dp).background(AgroColors.SurfaceLight, CircleShape)
+                    ) {
+                        Icon(Icons.Default.ChatBubble, contentDescription = "Ir a chat", tint = AgroColors.TextPrimary)
+                    }
+                    IconButton(
+                        onClick = onSwitchToVoice,
+                        modifier = Modifier.size(42.dp).background(AgroColors.SurfaceLight, CircleShape)
+                    ) {
+                        Icon(Icons.Default.RecordVoiceOver, contentDescription = "Ir a voz", tint = AgroColors.TextPrimary)
+                    }
+                }
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Button(
+                onClick = onUploadPdf,
+                enabled = !isImporting,
+                colors = ButtonDefaults.buttonColors(containerColor = AgroColors.Accent),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.PictureAsPdf, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(if (isImporting) "Indexando PDF..." else "Cargar PDF")
+            }
+
+            if (documents.isEmpty()) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = AgroColors.Surface,
+                    shape = RoundedCornerShape(16.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, AgroColors.SurfaceLight)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            Icons.Default.LibraryBooks,
+                            contentDescription = null,
+                            tint = AgroColors.TextSecondary,
+                            modifier = Modifier.size(28.dp)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "No hay PDFs cargados",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = AgroColors.TextPrimary
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "Sube un PDF para conversar sobre ese contenido.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = AgroColors.TextSecondary,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(bottom = 18.dp)
+                ) {
+                    items(documents, key = { it.id }) { doc ->
+                        Surface(
+                            color = AgroColors.Surface,
+                            shape = RoundedCornerShape(14.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, AgroColors.SurfaceLight),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    modifier = Modifier.weight(1f),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        Icons.Default.PictureAsPdf,
+                                        contentDescription = null,
+                                        tint = AgroColors.Accent,
+                                        modifier = Modifier.size(26.dp)
+                                    )
+                                    Column {
+                                        Text(
+                                            doc.displayName,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = AgroColors.TextPrimary,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            "Paginas: ${doc.pageCount} · Chunks: ${doc.chunkCount}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = AgroColors.TextSecondary
+                                        )
+                                        Text(
+                                            "Cargado: ${dateFormat.format(Date(doc.addedAtEpochMs))}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = AgroColors.TextSecondary
+                                        )
+                                    }
+                                }
+                                IconButton(onClick = { pendingDelete = doc }) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = "Eliminar PDF",
+                                        tint = Color(0xFFE57373)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    pendingDelete?.let { doc ->
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            containerColor = AgroColors.Surface,
+            title = { Text("Eliminar PDF", color = AgroColors.TextPrimary) },
+            text = {
+                Text(
+                    "Se olvidara todo el conocimiento de \"${doc.displayName}\".",
+                    color = AgroColors.TextSecondary
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeletePdf(doc.id)
+                        pendingDelete = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFE57373))
+                ) {
+                    Text("Eliminar")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { pendingDelete = null },
+                    colors = ButtonDefaults.textButtonColors(contentColor = AgroColors.TextSecondary)
+                ) {
+                    Text("Cancelar")
+                }
+            }
         )
     }
 }

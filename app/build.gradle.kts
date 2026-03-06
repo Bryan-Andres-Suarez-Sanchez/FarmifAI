@@ -132,6 +132,9 @@ dependencies {
     
     // Similitud de texto (Jaccard/Jaro-Winkler/FuzzyScore) para fallback semántico
     implementation("org.apache.commons:commons-text:1.12.0")
+
+    // Extraccion de texto de PDFs para KB local en dispositivo
+    implementation("com.tom-roush:pdfbox-android:2.0.27.0")
     
     // CameraX para diagnóstico visual de plantas
     val cameraxVersion = "1.3.1"
