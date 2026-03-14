@@ -21,6 +21,8 @@ class LLamaAndroid private constructor() {
     
     companion object {
         private const val TAG = "LLamaAndroid"
+        // El logging nativo token-a-token impacta mucho el rendimiento en Android.
+        private const val ENABLE_NATIVE_LOG_TO_ANDROID = false
         
         // Tamaño del batch - debe ser suficiente para prompt + contexto RAG
         private const val BATCH_SIZE = 1024
@@ -63,7 +65,9 @@ class LLamaAndroid private constructor() {
                 System.loadLibrary("llama-android")
                 
                 // Configurar logging para Android
-                log_to_android()
+                if (ENABLE_NATIVE_LOG_TO_ANDROID) {
+                    log_to_android()
+                }
                 backend_init()
                 
                 Log.d(TAG, "Sistema: ${system_info()}")

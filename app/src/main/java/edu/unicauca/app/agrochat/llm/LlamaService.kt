@@ -21,7 +21,7 @@ class LlamaService private constructor() {
         private const val TAG = "LlamaService"
         // Nombre del modelo a descargar
         private const val DEFAULT_MODEL_FILENAME = "Llama-3.2-1B-Instruct-Q4_K_M.gguf"
-        private const val MAX_TOKENS = 150  // Tokens para respuestas más extensas
+        private const val MAX_TOKENS = 450  // Más tokens para evitar respuestas truncadas
         
         // URL de descarga automática desde Hugging Face
         private const val MODEL_DOWNLOAD_URL = "https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q4_K_M.gguf"
@@ -209,19 +209,24 @@ class LlamaService private constructor() {
         userQuery: String,
         contextFromKB: String? = null,
         maxTokens: Int = MAX_TOKENS,
-        maxContextLength: Int = 200,
+        maxContextLength: Int = 1200,
         systemPrompt: String = "Eres FarmifAI, un asistente agrícola experto. Responde de forma clara, útil y concisa en español. Si tienes información de contexto, úsala para dar una respuesta precisa."
     ): Result<String> {
         
         // User message: pregunta + contexto opcional
         val userMessage: String = if (!contextFromKB.isNullOrBlank()) {
             // Truncar contexto según configuración
-            val shortContext = if (contextFromKB.length > maxContextLength) {
-                contextFromKB.take(maxContextLength)
-            } else {
-                contextFromKB
-            }
-            "Contexto: $shortContext\n\nPregunta: $userQuery"
+            val shortContext = truncateContextPreservingKb(contextFromKB, maxContextLength)
+            """Usa exclusivamente este CONTEXTO KB para responder.
+Si el dato no aparece en el contexto, responde exactamente: "No tengo suficiente información en la base de conocimiento para responder con seguridad."
+No inventes información externa.
+
+CONTEXTO KB:
+$shortContext
+
+PREGUNTA:
+$userQuery
+"""
         } else {
             userQuery
         }
@@ -229,7 +234,7 @@ class LlamaService private constructor() {
         // Formato Llama 3.2 Chat
         val prompt = """<|begin_of_text|><|start_header_id|>system<|end_header_id|>
 
-$systemPrompt<|eot_id|><|start_header_id|>user<|end_header_id|}
+$systemPrompt<|eot_id|><|start_header_id|>user<|end_header_id|>
 
 $userMessage<|eot_id|><|start_header_id|>assistant<|end_header_id|>
 
@@ -266,8 +271,7 @@ $userMessage<|eot_id|><|start_header_id|>assistant<|end_header_id|>
         val specialTokens = listOf(
             "<|begin_of_text|>", "<|end_of_text|>",
             "<|start_header_id|>", "<|end_header_id|>",
-            "<|eot_id|>", "<|eom_id|>",
-            "system", "user", "assistant"
+            "<|eot_id|>", "<|eom_id|>"
         )
         
         // Eliminar tokens al inicio
@@ -286,21 +290,18 @@ $userMessage<|eot_id|><|start_header_id|>assistant<|end_header_id|>
             }
         }
         
-        // Eliminar líneas que parecen ser parte del prompt repetido
+        // Eliminar artefactos obvios del prompt repetido, preservando listas numeradas.
         val lines = cleaned.lines().filter { line ->
             val lower = line.lowercase().trim()
-            !lower.startsWith("info:") &&
-            !lower.startsWith("contexto:") &&
-            !lower.startsWith("pregunta:") &&
-            !lower.startsWith("respuesta:") &&
-            !lower.startsWith("respuesta breve:") &&
-            !lower.contains("soy un cultivo") &&
-            !lower.matches(Regex("^\\d+\\).*"))  // Eliminar "1) ..." "2) ..."
+            lower != "system" &&
+            lower != "user" &&
+            lower != "assistant" &&
+            !lower.startsWith("info:")
         }
         cleaned = lines.joinToString("\n")
         
-        // Limpiar espacios extras
-        cleaned = cleaned.trim()
+        // Limpiar artefactos de conversación inventada (Usuario:/Asistente:)
+        cleaned = removeRoleDialogueArtifacts(cleaned).trim()
         
         // Si quedó muy corta o vacía, devolver mensaje genérico
         if (cleaned.length < 5) {
@@ -308,6 +309,85 @@ $userMessage<|eot_id|><|start_header_id|>assistant<|end_header_id|>
         }
         
         return cleaned
+    }
+
+    /**
+     * Corta diálogos multi-turn generados por el modelo y conserva solo la primera
+     * respuesta útil del asistente.
+     */
+    private fun removeRoleDialogueArtifacts(text: String): String {
+        val lines = text.lines()
+        val result = mutableListOf<String>()
+        var hasContent = false
+
+        for (line in lines) {
+            val trimmed = line.trim()
+            if (!hasContent && trimmed.isBlank()) continue
+
+            val lower = trimmed.lowercase()
+            val isUser = lower.startsWith("usuario:") || lower.startsWith("user:")
+            val isAssistant = lower.startsWith("asistente:") || lower.startsWith("assistant:")
+
+            if (isUser && hasContent) break
+            if (isUser && !hasContent) continue
+
+            val normalized = if (isAssistant) {
+                trimmed.substringAfter(":", "").trimStart()
+            } else {
+                line
+            }
+            result.add(normalized)
+            if (normalized.isNotBlank()) hasContent = true
+        }
+
+        val cleaned = result.joinToString("\n").trim()
+        return if (cleaned.isNotBlank()) cleaned else text
+    }
+
+    /**
+     * Trunca contexto priorizando la sección de KB sobre historial para evitar perder
+     * información clave al cortar por longitud.
+     */
+    private fun truncateContextPreservingKb(context: String, maxLen: Int): String {
+        if (context.length <= maxLen) return context
+
+        val kbMarker = "=== KB ==="
+        val historyMarker = "=== HISTORIAL ==="
+        val kbIndex = context.indexOf(kbMarker)
+        val historyIndex = context.indexOf(historyMarker)
+
+        if (kbIndex < 0) {
+            return context.take(maxLen)
+        }
+
+        val kbSection = if (historyIndex >= 0 && kbIndex < historyIndex) {
+            context.substring(kbIndex, historyIndex).trim()
+        } else {
+            context.substring(kbIndex).trim()
+        }
+
+        val historySection = if (historyIndex >= 0) {
+            if (historyIndex < kbIndex) {
+                context.substring(historyIndex, kbIndex).trim()
+            } else {
+                context.substring(historyIndex).trim()
+            }
+        } else {
+            ""
+        }
+
+        val kbBudget = (maxLen * 0.8f).toInt().coerceAtLeast(300)
+        val historyBudget = (maxLen - kbBudget).coerceAtLeast(0)
+
+        val kbTruncated = kbSection.take(kbBudget)
+        val historyContent = historySection.removePrefix(historyMarker).trim()
+        val historyTruncated = if (historyBudget > 0 && historyContent.isNotBlank()) {
+            "\n\n$historyMarker\n${historyContent.take(historyBudget)}"
+        } else {
+            ""
+        }
+
+        return (kbTruncated + historyTruncated).take(maxLen)
     }
     
     /**

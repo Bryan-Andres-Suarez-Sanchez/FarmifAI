@@ -105,6 +105,32 @@ which ndk-build
 **Set Local Properties:**
 ```bash
 # Create local.properties with SDK path
-cat > local.properties << EOF
+cat > local.properties << 'EOF'
 sdk.dir=/home/$USER/Android/Sdk
 ndk.dir=/home/$USER/Android/Sdk/ndk/26.1.10909125
+EOF
+```
+
+---
+
+## Continuous APK Publish to GitHub
+
+APKs are published to this repository in branch `apk-builds` under `apk-artifacts/`.
+
+### Windows (PowerShell)
+```powershell
+.\scripts\build_and_publish_apk.ps1 -BuildType debug
+```
+Or publish an already-built APK:
+```powershell
+.\scripts\build_and_publish_apk.ps1 -BuildType debug -ApkPath .\FarmifAI-debug-v1.0-20251226_090906.apk
+```
+
+### Linux/macOS
+```bash
+./scripts/build_and_publish_apk.sh debug
+```
+
+### Published links
+- Browse artifacts: `https://github.com/Bryan-Andres-Suarez-Sanchez/AgroChat_Project/tree/apk-builds/apk-artifacts/debug`
+- Direct latest APK: `https://raw.githubusercontent.com/Bryan-Andres-Suarez-Sanchez/AgroChat_Project/apk-builds/apk-artifacts/debug/latest-debug.apk`

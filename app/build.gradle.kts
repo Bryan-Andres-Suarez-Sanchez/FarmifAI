@@ -130,6 +130,9 @@ dependencies {
     // Vosk - Reconocimiento de voz offline (sin Google)
     implementation("com.alphacephei:vosk-android:0.3.47")
     
+    // Similitud de texto (Jaccard/Jaro-Winkler/FuzzyScore) para fallback semántico
+    implementation("org.apache.commons:commons-text:1.12.0")
+    
     // CameraX para diagnóstico visual de plantas
     val cameraxVersion = "1.3.1"
     implementation("androidx.camera:camera-core:$cameraxVersion")
