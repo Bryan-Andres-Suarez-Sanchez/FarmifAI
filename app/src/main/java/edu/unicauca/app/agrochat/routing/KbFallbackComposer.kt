@@ -63,18 +63,20 @@ object KbFallbackComposer {
         }
         if (keyPoints.isEmpty()) return null
 
-        val title = buildTitle()
-
+        val mainPoint = cleanPointForSpeech(keyPoints.first())
+        val extraPoints = keyPoints.drop(1).map { cleanPointForSpeech(it) }
         val response = buildString {
-            append(title)
-            append('\n')
-            keyPoints.forEach { point ->
-                append("- ")
-                append(point)
-                append('\n')
+            append("Con lo que me cuentas, te sugiero empezar por ")
+            append(mainPoint)
+            append(".")
+            if (extraPoints.isNotEmpty()) {
+                append("\n\n")
+                append("Ademas, te puede ayudar ")
+                append(extraPoints.joinToString("; "))
+                append(".")
             }
-            append('\n')
-            append("Si me compartes cultivo, etapa del cultivo y sintomas actuales, te doy una recomendacion mas precisa.")
+            append("\n\n")
+            append(buildFollowUp(input.unknownQueryTokens))
         }.trim()
 
         return Result(
@@ -84,8 +86,39 @@ object KbFallbackComposer {
         )
     }
 
-    private fun buildTitle(): String {
-        return "Te recomiendo lo siguiente:"
+    private fun buildFollowUp(unknownQueryTokens: Set<String>): String {
+        val hints = unknownQueryTokens
+            .map { normalizeHintToken(it) }
+            .filter { it.length >= 4 }
+            .distinct()
+            .take(2)
+        return if (hints.isNotEmpty()) {
+            "Si me confirmas ${hints.joinToString(" y ")}, te ajusto mejor la recomendacion."
+        } else {
+            "Si me compartes cultivo, etapa del cultivo y sintomas actuales, te doy una recomendacion mas precisa."
+        }
+    }
+
+    private fun cleanPointForSpeech(text: String): String {
+        return text
+            .trim()
+            .trim('-', '*', ' ')
+            .removeSuffix(".")
+            .removeSuffix(";")
+            .removeSuffix(",")
+            .ifBlank { text.trim() }
+    }
+
+    private fun normalizeHintToken(token: String): String {
+        return token.lowercase()
+            .replace("á", "a")
+            .replace("é", "e")
+            .replace("í", "i")
+            .replace("ó", "o")
+            .replace("ú", "u")
+            .replace("ñ", "n")
+            .replace(Regex("[^a-z0-9]"), "")
+            .trim()
     }
 
     private fun isShortConversationalQuery(query: String): Boolean {

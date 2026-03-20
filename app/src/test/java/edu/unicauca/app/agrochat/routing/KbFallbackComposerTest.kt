@@ -21,8 +21,9 @@ class KbFallbackComposerTest {
         )
 
         assertNotNull(result)
-        assertTrue(result!!.response.contains("Con base en la KB"))
-        assertTrue(result.response.contains("- "))
+        assertTrue(result!!.response.contains("Con lo que me cuentas"))
+        assertFalse(result.response.contains("KB"))
+        assertFalse(result.response.contains("- "))
         assertTrue(result.response.contains("riego"))
         assertFalse(result.response.contains("no pude generar una respuesta confiable"))
     }
@@ -41,7 +42,7 @@ class KbFallbackComposerTest {
         )
 
         assertNotNull(result)
-        assertTrue(result!!.response.contains("faltan datos en la KB"))
+        assertTrue(result!!.response.contains("te ajusto mejor la recomendacion"))
         assertTrue(result.response.contains("biologico"))
     }
 

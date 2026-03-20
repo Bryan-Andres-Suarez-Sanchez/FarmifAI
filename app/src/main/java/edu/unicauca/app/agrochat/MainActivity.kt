@@ -740,7 +740,7 @@ class MainActivity : ComponentActivity() {
             try {
                 val query = result.toRagQuery()
                 val responseMeta = findResponseWithMeta(query)
-                val response = responseMeta.response
+                val response = humanizeTechnicalTerms(sanitizeAssistantResponse(responseMeta.response))
                 
                 val fullResponse = buildString {
                     append("**${result.displayName}**\n")
@@ -1354,6 +1354,47 @@ class MainActivity : ComponentActivity() {
         return if (sanitized.isNotBlank()) sanitized else original
     }
 
+    /**
+     * Limpia tecnicismos internos para que la salida sea totalmente conversacional.
+     */
+    private fun humanizeTechnicalTerms(response: String): String {
+        if (response.isBlank()) return response
+
+        var normalized = response
+            .replace(Regex("base de conocimiento", RegexOption.IGNORE_CASE), "informacion disponible")
+            .replace(Regex("informacion de referencia", RegexOption.IGNORE_CASE), "informacion disponible")
+            .replace(Regex("contexto de referencia", RegexOption.IGNORE_CASE), "informacion disponible")
+            .replace(Regex("\\bKB\\b", RegexOption.IGNORE_CASE), "informacion")
+            .replace(Regex("\\bRAG\\b", RegexOption.IGNORE_CASE), "consulta")
+            .replace(Regex("\\bLLM\\b", RegexOption.IGNORE_CASE), "asistente")
+            .replace(Regex("con base en", RegexOption.IGNORE_CASE), "con la informacion disponible")
+            .replace(
+                Regex("para afinar mas la recomendacion faltan datos en la\\s+(kb|informacion)\\s+sobre\\s*", RegexOption.IGNORE_CASE),
+                "Para afinar mejor la recomendacion necesito mas datos sobre "
+            )
+            .replace(
+                Regex("^\\s*con la informacion disponible sobre\\s+", RegexOption.IGNORE_CASE),
+                ""
+            )
+            .replace(
+                Regex("^\\s*con base en la\\s+(kb|informacion disponible)\\s+sobre\\s+", RegexOption.IGNORE_CASE),
+                ""
+            )
+            .replace(
+                Regex("no hay evidencia suficiente en la\\s+(kb|informacion disponible)", RegexOption.IGNORE_CASE),
+                "todavia faltan datos concretos"
+            )
+
+        normalized = normalized
+            .replace(Regex("[ \\t]{2,}"), " ")
+            .replace(Regex("\\n{3,}"), "\n\n")
+            .replace(" .", ".")
+            .replace(" ,", ",")
+            .trim()
+
+        return normalized
+    }
+
     private fun sendMessage(userMessage: String) {
         if (userMessage.isBlank() || !isModelReady || isProcessing) return
         chatMessages.add(ChatMessage(userMessage, isUser = true))
@@ -1394,12 +1435,13 @@ class MainActivity : ComponentActivity() {
                     forcedContext = forcedContinuationContext
                 )
                 val sanitizedResponse = sanitizeAssistantResponse(responseMeta.response)
+                val userFacingResponse = humanizeTechnicalTerms(sanitizedResponse)
                 
                 // ═══════════════════════════════════════════════════════════════
                 // SISTEMA DE AUTOCONSCIENCIA - Evaluar calidad antes de entregar
                 // ═══════════════════════════════════════════════════════════════
                 val qualityReport = evaluateResponseQuality(
-                    response = sanitizedResponse,
+                    response = userFacingResponse,
                     userQuery = if (isContinuationIntent) effectiveQuery else userMessage,
                     chatHistory = chatMessages.toList(),
                     kbSupported = responseMeta.kbSupported,
@@ -1409,7 +1451,7 @@ class MainActivity : ComponentActivity() {
                 )
                 
                 // Mejorar respuesta si es necesario
-                val improvedResponse = improveResponseIfNeeded(sanitizedResponse, qualityReport, userMessage)
+                val improvedResponse = improveResponseIfNeeded(userFacingResponse, qualityReport, userMessage)
                 
                 // Determinar si puede continuar basándose en autoconsciencia
                 val canContinue = !ONLINE_ONLY_VISIT_MODE && responseMeta.usedLlm && isLlamaEnabled && isLlamaLoaded && responseMeta.kbSupported &&
@@ -1457,6 +1499,49 @@ class MainActivity : ComponentActivity() {
             normalized.startsWith("continua") ||
             normalized.startsWith("sigue") ||
             normalized.startsWith("mas ")
+    }
+
+    /**
+     * Manejo directo de small-talk para mantener una experiencia humana y fluida.
+     */
+    private fun buildSmallTalkResponse(userQuery: String): String? {
+        if (isLikelyAgriculturalQuery(userQuery)) return null
+
+        val normalized = userQuery.lowercase().trim()
+            .replace("á", "a")
+            .replace("é", "e")
+            .replace("í", "i")
+            .replace("ó", "o")
+            .replace("ú", "u")
+            .replace("¿", "")
+            .replace("?", "")
+            .replace("!", "")
+            .replace(".", "")
+            .replace(Regex("\\s+"), " ")
+
+        if (normalized.length > 60) return null
+
+        return when {
+            normalized in setOf("hola", "holi", "buenas", "buen dia", "buenos dias", "buenas tardes", "buenas noches", "hey", "hey hola") ->
+                "Hola. Que gusto conversar contigo. ¿En qué cultivo estás trabajando hoy?"
+            normalized.startsWith("gracias") ->
+                "Con gusto. Si quieres, seguimos con tu caso y te ayudo paso a paso."
+            normalized in setOf("ok", "vale", "listo", "perfecto") ->
+                "Perfecto. Cuando quieras, cuéntame el cultivo y lo que estás observando."
+            normalized.startsWith("como estas") || normalized.startsWith("como te va") ->
+                "Muy bien, gracias. Estoy listo para ayudarte con cualquier consulta agrícola."
+            normalized.startsWith("quien eres") || normalized.startsWith("que eres") || normalized.startsWith("como te llamas") ->
+                "Soy FarmifAI, tu asistente agrícola. Te puedo ayudar con cultivos, plagas, riego, fertilización y diagnóstico."
+            normalized.startsWith("me escuchas") || normalized.startsWith("estas ahi") || normalized.startsWith("escuchame") ->
+                "Si, te escucho. Cuéntame qué está pasando en tu cultivo y lo revisamos juntos."
+            normalized in setOf("ayudame", "necesito ayuda", "puedes ayudarme") ->
+                "Claro que sí. Cuéntame cultivo, etapa y síntomas, y te doy una recomendación concreta."
+            normalized in setOf("chao", "adios", "hasta luego", "nos vemos") ->
+                "Listo, quedo atento. Cuando quieras retomamos y revisamos tu cultivo."
+            normalized.split(" ").size <= 3 ->
+                "Te leo. Cuéntame qué cultivo estás revisando y qué síntoma te preocupa para ayudarte mejor."
+            else -> null
+        }
     }
 
     private fun buildForcedContinuationContext(): String? {
@@ -1556,6 +1641,22 @@ class MainActivity : ComponentActivity() {
         val llmAvailable = (!STRICT_TERMINAL_PARITY_MODE && isOnlineMode && groqService?.isAvailable() == true) ||
             (!ONLINE_ONLY_VISIT_MODE && isLlamaEnabled && isLlamaLoaded && llamaService != null)
 
+        if (!skipKbDirect && forcedContext == null) {
+            val smallTalk = buildSmallTalkResponse(userQuery)
+            if (!smallTalk.isNullOrBlank()) {
+                AppLogger.log("MainActivity", "Decision: SMALL_TALK")
+                return@withContext ResponseMeta(
+                    response = smallTalk,
+                    usedLlm = false,
+                    kbSupported = false,
+                    kbSupportScore = 0f,
+                    kbCoverage = 0f,
+                    kbUnknownRatio = 1f,
+                    enforcedKbAbstention = false
+                )
+            }
+        }
+
         if (rawSimilarityThreshold != effectiveSimilarityThreshold ||
             rawContextRelevanceThreshold != effectiveContextRelevanceThreshold ||
             rawKbFastPathThreshold != effectiveKbFastPathThreshold
@@ -1587,20 +1688,46 @@ class MainActivity : ComponentActivity() {
         val kbSupportScore = groundingAssessment?.supportScore ?: 0f
         val kbCoverage = groundingAssessment?.lexicalCoverage ?: 0f
         val kbUnknownRatio = groundingAssessment?.unknownTokenRatio ?: 1f
+        val normalizedQuery = userQuery.lowercase().trim()
+            .replace("á", "a")
+            .replace("é", "e")
+            .replace("í", "i")
+            .replace("ó", "o")
+            .replace("ú", "u")
+            .replace("¿", "")
+            .replace("?", "")
+        val isSimpleGreeting = effectiveDetectGreetings && (
+            normalizedQuery in listOf("hola", "hey", "buenas", "buenos dias", "buenas tardes", "buenas noches", "gracias", "adios", "chao", "hasta luego") ||
+                (normalizedQuery.length < 15 && (
+                    normalizedQuery.startsWith("hola") ||
+                        normalizedQuery.startsWith("hey") ||
+                        normalizedQuery.startsWith("gracias")
+                    ))
+            )
+        val likelyAgriculturalQuery = isLikelyAgriculturalQuery(userQuery)
         val hasGroundedKbSupport = bestMatch != null &&
             (groundingAssessment?.hasStrongSupport == true) &&
             kbSupportScore >= MIN_SUPPORT_SCORE_FOR_GROUNDED &&
             kbCoverage >= MIN_LEXICAL_COVERAGE_FOR_GROUNDED &&
             kbUnknownRatio <= MAX_UNKNOWN_RATIO_FOR_GROUNDED &&
             bestMatch.similarityScore >= effectiveSimilarityThreshold
-        val hasRelatedKbSignal = bestMatch != null && (
-            bestMatch.similarityScore >= KB_RELATED_MIN_SCORE ||
-                kbSupportScore >= KB_RELATED_MIN_SUPPORT ||
-                kbCoverage >= KB_RELATED_MIN_COVERAGE ||
-                bestMatch.similarityScore >= effectiveKbFastPathThreshold.coerceAtMost(0.60f)
-            ) &&
-            kbUnknownRatio <= KB_RELATED_MAX_UNKNOWN_RATIO
+        val hasRelatedKbSignal = bestMatch != null &&
+            kbUnknownRatio <= KB_RELATED_MAX_UNKNOWN_RATIO &&
+            (
+                hasGroundedKbSupport ||
+                    (
+                        likelyAgriculturalQuery && (
+                            bestMatch.similarityScore >= KB_RELATED_MIN_SCORE ||
+                                kbSupportScore >= KB_RELATED_MIN_SUPPORT ||
+                                kbCoverage >= KB_RELATED_MIN_COVERAGE ||
+                                bestMatch.similarityScore >= effectiveKbFastPathThreshold.coerceAtMost(0.60f)
+                            )
+                        )
+                )
         val hasKbContext = hasGroundedKbSupport || hasRelatedKbSignal
+        val allowGeneralLlmCandidate = !hasKbContext && llmAvailable && (
+            isSimpleGreeting || !likelyAgriculturalQuery || effectiveUseLlmForAll
+            )
 
         if (forcedContext == null) {
             lastContext = if (!combinedKBContext.isNullOrBlank()) combinedKBContext else bestMatch?.answer
@@ -1613,13 +1740,6 @@ class MainActivity : ComponentActivity() {
             "MainActivity",
             "KB search: retrievalMin=$retrievalMinScore threshold=$effectiveSimilarityThreshold related=$hasRelatedKbSignal grounded=$hasGroundedKbSupport support=${String.format("%.2f", kbSupportScore)} coverage=${String.format("%.2f", kbCoverage)} unknown=${String.format("%.2f", kbUnknownRatio)} results=$kbResults"
         )
-
-        val isSimpleGreeting = effectiveDetectGreetings && userQuery.lowercase().trim().let { q ->
-            q in listOf("hola", "hey", "buenas", "buenos días", "buenas tardes", "buenas noches", "gracias", "adiós", "chao", "hasta luego") ||
-                q.length < 15 && (q.startsWith("hola") || q.startsWith("hey") || q.startsWith("gracias"))
-        }
-        val likelyAgriculturalQuery = isLikelyAgriculturalQuery(userQuery)
-        val allowGeneralLlmCandidate = !hasKbContext && llmAvailable && (isSimpleGreeting || !likelyAgriculturalQuery || effectiveUseLlmForAll)
 
         val routeResult = ResponseRoutingPolicy.decide(
             ResponseRoutingPolicy.Input(
@@ -1742,25 +1862,27 @@ class MainActivity : ComponentActivity() {
             }
 
             val groqUserPrompt = if (hasKbContext && !kbContextForPrompt.isNullOrBlank()) {
-                """Responde usando unicamente la informacion de referencia compartida.
-Redacta en lenguaje natural y claro para agricultor.
-No copies frases textuales; parafrasea y sintetiza.
-Si la informacion no alcanza para responder con precision, di de forma natural que faltan datos concretos y que necesitas para orientar mejor.
+                """Responde como un asesor agricola conversando en campo.
+Empieza con una recomendacion directa y breve.
+Despues agrega pasos practicos y accionables.
+Si faltan datos, pide maximo dos datos concretos en una sola pregunta al final.
+No menciones terminos internos como KB, base de conocimiento, contexto, referencia, RAG, LLM, modelo o sistema.
 No inventes datos externos ni afirmaciones no verificables.
 
-INFORMACION DE REFERENCIA:
+DATOS DISPONIBLES:
 $kbContextForPrompt
 
-PREGUNTA:
+CONSULTA:
 $userQuery
 """.trimIndent()
             } else if (allowGeneralLlmMode) {
-                """La informacion disponible no cubre por completo esta consulta.
-Puedes responder con conocimiento agricola general, dejando claro que es una recomendacion general.
-Evita inventar cifras, normativas o hechos específicos no verificables.
-Incluye una breve nota de incertidumbre si aplica, sin usar lenguaje tecnico interno.
+                """Responde de forma cercana y util para agricultor.
+Puedes dar orientacion agricola general cuando no haya datos especificos del caso.
+Aclara el limite en una frase corta y sin lenguaje tecnico interno.
+Si la consulta es amplia, termina con una pregunta breve para aterrizar el caso.
+No inventes cifras, normativas ni hechos no verificables.
 
-PREGUNTA:
+CONSULTA:
 $userQuery
 """.trimIndent()
             } else {
@@ -1768,8 +1890,8 @@ $userQuery
             }
 
             val groqSystemPrompt = when {
-                hasKbContext -> "$effectiveSystemPrompt\nReglas obligatorias: usa SOLO la informacion de referencia como fuente factual; parafrasea en lenguaje natural; si faltan datos, dilo con lenguaje humano y orientado a accion; no inventes."
-                allowGeneralLlmMode -> "$effectiveSystemPrompt\nLa informacion disponible no es suficiente para alta precision. Puedes responder con orientacion agricola general, aclarando limites sin tecnicismos internos."
+                hasKbContext -> "$effectiveSystemPrompt\nEstilo obligatorio: tono conversacional, cercano y directo. Nunca menciones KB, base de conocimiento, contexto de referencia, RAG, LLM, modelo o sistema."
+                allowGeneralLlmMode -> "$effectiveSystemPrompt\nEstilo obligatorio: tono humano y practico. Si la orientacion es general, dilo en una frase breve y luego enfocate en acciones utiles. Nunca menciones terminos internos."
                 else -> effectiveSystemPrompt
             }
             val groqMaxTokens = maxOf(advancedMaxTokens, 200)
@@ -1813,9 +1935,9 @@ $userQuery
 
         if (!ONLINE_ONLY_VISIT_MODE && isLlamaEnabled && isLlamaLoaded && llamaService != null) {
             val finalSystemPrompt = if (hasKbContext) {
-                "$effectiveSystemPrompt\nReglas obligatorias: usa SOLO la informacion de referencia como fuente factual; parafrasea en lenguaje natural; si faltan datos, dilo con lenguaje humano; no inventes; responde de forma completa."
+                "$effectiveSystemPrompt\nEstilo obligatorio: tono conversacional y cercano. Nunca menciones KB, base de conocimiento, contexto, referencia, RAG, LLM, modelo o sistema. Si faltan datos, pide maximo dos datos concretos en una sola pregunta."
             } else if (allowGeneralLlmMode) {
-                "$effectiveSystemPrompt\nLa informacion disponible no es suficiente para alta precision. Puedes responder con orientacion agricola general, aclarando limites sin tecnicismos internos. No inventes cifras ni hechos especificos no verificables."
+                "$effectiveSystemPrompt\nEstilo obligatorio: tono humano y practico. Si la orientacion es general, aclaralo en una frase corta y luego da pasos accionables. No inventes cifras ni hechos no verificables."
             } else {
                 effectiveSystemPrompt
             }
@@ -1989,11 +2111,14 @@ $userQuery
     }
 
     private fun buildKbInsufficientEvidenceResponse(
-        _userQuery: String,
+        userQuery: String,
         _grounding: SemanticSearchHelper.GroundingAssessment?
     ): String {
-        val baseResponse = "Aun no tengo datos suficientes para darte una recomendacion precisa en este caso."
-        val guidance = "Si me cuentas cultivo, etapa del cultivo, ubicacion y sintomas observados, te doy una recomendacion mas util."
+        if (!isLikelyAgriculturalQuery(userQuery)) {
+            return "Te leo. Si quieres que lo revisemos en campo, cuentame que cultivo estas trabajando y que sintomas observas."
+        }
+        val baseResponse = "Para darte una recomendacion util me faltan algunos datos del caso."
+        val guidance = "Cuentame cultivo, etapa del cultivo, ubicacion y sintomas observados, y te propongo pasos concretos."
         return "$baseResponse\n\n$guidance"
     }
 
@@ -2049,11 +2174,26 @@ $userQuery
             "cultivo", "siembra", "sembrar", "plantar", "cosecha", "regar", "riego",
             "fertilizar", "fertilizante", "abono", "plaga", "enfermedad", "hongo",
             "pulgon", "mosca", "gusano", "roya", "tizon", "suelo", "huerto", "campo",
+            "hoja", "fruto", "raiz", "tallo", "flor", "floracion", "brote", "plantula",
+            "semilla", "germinacion", "mancha", "amarillo", "amarilla", "marchitez",
+            "seca", "secamiento", "pudricion", "insecto", "maleza", "herbicida",
+            "fungicida", "insecticida", "bioinsumo", "compost", "drenaje", "humedad",
+            "invernadero", "parcela", "finca", "agricultor", "diagnostico", "sintoma",
             "tomate", "maiz", "papa", "frijol", "cafe", "cebolla", "yuca", "platano",
             "aguacate", "lechuga", "zanahoria", "arroz", "banano"
         )
         return tokens.any { token ->
-            token in agriKeywords || token.startsWith("cultiv") || token.startsWith("sembr")
+            token in agriKeywords ||
+                token.startsWith("cultiv") ||
+                token.startsWith("sembr") ||
+                token.startsWith("fertiliz") ||
+                token.startsWith("rieg") ||
+                token.startsWith("plag") ||
+                token.startsWith("enferm") ||
+                token.startsWith("hong") ||
+                token.startsWith("malez") ||
+                token.startsWith("insect") ||
+                token.startsWith("sintom")
         }
     }
 

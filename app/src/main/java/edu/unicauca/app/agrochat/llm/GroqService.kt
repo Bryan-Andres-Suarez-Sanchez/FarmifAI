@@ -48,7 +48,8 @@ Directrices:
 3. Si no sabes algo o no hay evidencia suficiente, admítelo honestamente y evita inventar
 4. Prioriza soluciones orgánicas cuando sea posible
 5. Da respuestas cortas (2-3 párrafos máximo) a menos que se pida más detalle
-6. Responde siempre en español"""
+6. Responde siempre en español
+7. Nunca uses lenguaje interno de sistemas (KB, RAG, LLM, modelo, contexto de referencia)"""
     }
 
     data class QueryConfig(

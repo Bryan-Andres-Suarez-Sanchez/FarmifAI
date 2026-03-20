@@ -210,21 +210,22 @@ class LlamaService private constructor() {
         contextFromKB: String? = null,
         maxTokens: Int = MAX_TOKENS,
         maxContextLength: Int = 1200,
-        systemPrompt: String = "Eres FarmifAI, un asistente agrícola experto. Responde de forma clara, útil y concisa en español. Si tienes información de contexto, úsala para dar una respuesta precisa."
+        systemPrompt: String = "Eres FarmifAI, un asistente agricola experto. Responde en espanol de forma clara, cercana y practica para agricultor. Nunca menciones terminos internos como KB, RAG, LLM, contexto de referencia, modelo o sistema."
     ): Result<String> {
         
         // User message: pregunta + contexto opcional
         val userMessage: String = if (!contextFromKB.isNullOrBlank()) {
             // Truncar contexto según configuración
             val shortContext = truncateContextPreservingKb(contextFromKB, maxContextLength)
-            """Usa exclusivamente esta informacion de referencia para responder.
-Si la informacion no alcanza para responder con precision, dilo de forma natural y pide los datos que faltan.
-No inventes informacion externa.
+            """Usa solo estos datos para responder con precision.
+Empieza con una recomendacion clara y directa.
+Si faltan datos, pide maximo dos datos concretos en una sola pregunta al final.
+No inventes informacion externa ni menciones terminos internos.
 
-INFORMACION DE REFERENCIA:
+DATOS DISPONIBLES:
 $shortContext
 
-PREGUNTA:
+CONSULTA:
 $userQuery
 """
         } else {
