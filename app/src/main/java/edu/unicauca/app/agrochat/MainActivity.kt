@@ -873,12 +873,22 @@ class MainActivity : ComponentActivity() {
     private fun initializeGroq() {
         groqService = GroqService(applicationContext)
         
-        // Cargar API key guardada
+        // Cargar API key guardada; si no existe, usar la inyectada en build.
         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val savedKey = prefs.getString(KEY_GROQ_API, null)
+        val buildInjectedKey = BuildConfig.GROQ_API_KEY.trim()
+
         if (!savedKey.isNullOrBlank()) {
             groqService?.setApiKey(savedKey)
             updateOnlineStatus()
+            return
+        }
+
+        if (buildInjectedKey.isNotBlank()) {
+            groqService?.setApiKey(buildInjectedKey)
+            prefs.edit().putString(KEY_GROQ_API, buildInjectedKey).apply()
+            updateOnlineStatus()
+            AppLogger.log("MainActivity", "API key de Groq cargada desde configuración de build")
         }
     }
     
