@@ -1,7 +1,7 @@
-﻿{
-    "file":  "latest-debug.apk",
-    "archived_file":  "FarmifAI-debug-20260224-010017-8a8e7db.apk",
-    "source_commit":  "8a8e7db",
-    "source_branch":  "feature/diagnostico-visual",
-    "built_at_utc":  "2026-02-24T06:00:29Z"
+{
+  "file": "latest-debug.apk",
+  "archived_file": "FarmifAI-debug-20260320-195833-e6d7a29.apk",
+  "source_commit": "e6d7a29",
+  "source_branch": "visita",
+  "built_at_utc": "2026-03-20T19:58:35Z"
 }
