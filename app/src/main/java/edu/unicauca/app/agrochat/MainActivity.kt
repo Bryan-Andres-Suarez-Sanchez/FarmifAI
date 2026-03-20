@@ -146,14 +146,16 @@ enum class DownloadItemStatus {
     PENDING, DOWNLOADING, COMPLETED, FAILED
 }
 
+private const val ONLINE_ONLY_VISIT_MODE = true
+
 // Características de la app para mostrar durante la descarga
 object AppFeatures {
     val features = listOf(
-        "🧠 IA Offline - Funciona sin internet",
+        "☁️ IA Online - Respuestas en tiempo real",
         "🌱 Asesoría agrícola personalizada",
         "📸 Diagnóstico visual de enfermedades",
         "🎯 Reconocimiento de voz en español",
-        "🦙 LLM local para respuestas inteligentes",
+        "🧠 Modelo cloud de alta capacidad",
         "🔍 Búsqueda semántica avanzada",
         "📊 Base de conocimiento agrícola",
         "🌿 Soporte para múltiples cultivos",
@@ -221,8 +223,8 @@ class MainActivity : ComponentActivity() {
     private var hasAudioPermission by mutableStateOf(false)
     private var isOnlineMode by mutableStateOf(false)
     private var showSettingsDialog by mutableStateOf(false)
-    private var isLlamaEnabled by mutableStateOf(true)  // Toggle para LLM local
-    private var llamaModelStatusText by mutableStateOf("Modelo no disponible")
+    private var isLlamaEnabled by mutableStateOf(false)  // En modo visita se mantiene desactivado
+    private var llamaModelStatusText by mutableStateOf("Desactivado en modo visita online")
     private var llamaModelPathText by mutableStateOf("")
     private var isLlamaDownloading by mutableStateOf(false)  // Evitar descargas duplicadas
     private var llamaDownloadFailed by mutableStateOf(false)  // Para mostrar botón de reintentar
@@ -344,9 +346,6 @@ class MainActivity : ComponentActivity() {
                 startSequentialDownloads()
             }
         } else {
-            // Inicializar Llama local
-            initializeLlama()
-
             // Descargar (si es necesario) modelos MindSpore y luego inicializar
             lifecycleScope.launch {
                 ensureMindSporeModelsAvailable()
@@ -438,13 +437,11 @@ class MainActivity : ComponentActivity() {
      */
     private fun checkFirstLaunch() {
         val service = ModelDownloadService.getInstance()
-        val llamaService = LlamaService.getInstance()
         
-        // Es primera instalación si faltan modelos MindSpore O el modelo LLM
+        // Es primera instalación si faltan modelos MindSpore
         val needsMindSpore = !service.areAllModelsAvailable(applicationContext)
-        val needsLlama = !llamaService.isModelAvailable(applicationContext)
         
-        isFirstLaunch = needsMindSpore || needsLlama
+        isFirstLaunch = needsMindSpore
         showWelcomeScreen = isFirstLaunch
         
         if (isFirstLaunch) {
@@ -461,7 +458,6 @@ class MainActivity : ComponentActivity() {
         downloadItems.clear()
         
         val service = ModelDownloadService.getInstance()
-        val llamaService = LlamaService.getInstance()
         
         // Modelos MindSpore agrupados
         if (!service.areAllModelsAvailable(applicationContext)) {
@@ -475,15 +471,6 @@ class MainActivity : ComponentActivity() {
         
         // Modelo Vosk (speech recognition) - incluido en MindSpore downloads
         // Ya está incluido arriba
-        
-        // Modelo LLM
-        if (!llamaService.isModelAvailable(applicationContext)) {
-            downloadItems.add(DownloadItem(
-                name = "Asistente Inteligente",
-                description = "Modelo de lenguaje para respuestas naturales",
-                sizeMB = 750
-            ))
-        }
     }
     
     /**
@@ -511,7 +498,6 @@ class MainActivity : ComponentActivity() {
             
             val success = when {
                 item.name.contains("Motor de IA") -> downloadMindSporeModels(index)
-                item.name.contains("Asistente") -> downloadLlamaModel(index)
                 else -> true
             }
             
@@ -536,7 +522,6 @@ class MainActivity : ComponentActivity() {
             showWelcomeScreen = false
             
             // Ahora inicializar todo
-            initializeLlama()
             initializeDiagnostic()
             initializeSemanticSearch()
             if (hasAudioPermission) {
@@ -830,7 +815,15 @@ class MainActivity : ComponentActivity() {
     
     private fun loadPreferences() {
         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        isLlamaEnabled = prefs.getBoolean(KEY_LLAMA_ENABLED, true)
+        isLlamaEnabled = if (ONLINE_ONLY_VISIT_MODE) {
+            // Forzar modo visita (solo online) aunque existan preferencias previas.
+            if (prefs.getBoolean(KEY_LLAMA_ENABLED, true)) {
+                prefs.edit().putBoolean(KEY_LLAMA_ENABLED, false).apply()
+            }
+            false
+        } else {
+            prefs.getBoolean(KEY_LLAMA_ENABLED, true)
+        }
         
         // Configuración avanzada (valores por defecto al máximo de la UI)
         advancedMaxTokens = prefs.getInt("advanced_max_tokens", 450).coerceIn(250, 900)
@@ -864,6 +857,11 @@ class MainActivity : ComponentActivity() {
     }
     
     private fun toggleLlama(enabled: Boolean) {
+        if (ONLINE_ONLY_VISIT_MODE) {
+            isLlamaEnabled = false
+            Toast.makeText(this, "Modo visita: LLM local deshabilitado", Toast.LENGTH_SHORT).show()
+            return
+        }
         isLlamaEnabled = enabled
         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit().putBoolean(KEY_LLAMA_ENABLED, enabled).apply()
@@ -885,6 +883,13 @@ class MainActivity : ComponentActivity() {
     }
     
     private fun initializeLlama() {
+        if (ONLINE_ONLY_VISIT_MODE) {
+            isLlamaEnabled = false
+            isLlamaLoaded = false
+            llamaModelStatusText = "Desactivado en modo visita online"
+            llamaModelPathText = ""
+            return
+        }
         llamaService = LlamaService.getInstance()
 
         // Mostrar en UI dónde debe estar el modelo y si hay alguno detectado
@@ -911,6 +916,12 @@ class MainActivity : ComponentActivity() {
     }
     
     private fun downloadAndLoadLlama() {
+        if (ONLINE_ONLY_VISIT_MODE) {
+            isLlamaEnabled = false
+            isLlamaLoaded = false
+            llamaModelStatusText = "Desactivado en modo visita online"
+            return
+        }
         // Evitar descargas duplicadas
         if (isLlamaDownloading) {
             Log.i("MainActivity", "Descarga ya en progreso, ignorando...")
@@ -956,6 +967,12 @@ class MainActivity : ComponentActivity() {
     }
     
     private fun loadLlamaModel() {
+        if (ONLINE_ONLY_VISIT_MODE) {
+            isLlamaEnabled = false
+            isLlamaLoaded = false
+            llamaModelStatusText = "Desactivado en modo visita online"
+            return
+        }
         lifecycleScope.launch {
             try {
                 uiStatus = "Cargando LLM local..."
@@ -1355,7 +1372,6 @@ class MainActivity : ComponentActivity() {
             // Mostrar estado según modo disponible
             uiStatus = when {
                 isOnlineMode -> "Consultando IA online..."
-                isLlamaEnabled && isLlamaLoaded -> "Generando respuesta local..."
                 else -> "Buscando información..."
             }
             
@@ -1384,7 +1400,7 @@ class MainActivity : ComponentActivity() {
                 val improvedResponse = improveResponseIfNeeded(sanitizedResponse, qualityReport, userMessage)
                 
                 // Determinar si puede continuar basándose en autoconsciencia
-                val canContinue = responseMeta.usedLlm && isLlamaEnabled && isLlamaLoaded && responseMeta.kbSupported &&
+                val canContinue = !ONLINE_ONLY_VISIT_MODE && responseMeta.usedLlm && isLlamaEnabled && isLlamaLoaded && responseMeta.kbSupported &&
                                   (!qualityReport.isComplete || qualityReport.qualityScore < 0.7f)
                 
                 chatMessages.add(ChatMessage(improvedResponse, isUser = false, canContinue = canContinue))
@@ -1398,11 +1414,7 @@ class MainActivity : ComponentActivity() {
                 AppLogger.log("MainActivity", "Respuesta: ${improvedResponse.take(50)}...")
                 
                 // Actualizar status final
-                uiStatus = when {
-                    isOnlineMode -> "Online ✓"
-                    isLlamaEnabled && isLlamaLoaded -> "Llama ✓"
-                    else -> "Offline"
-                }
+                uiStatus = if (isOnlineMode) "Online ✓" else "Sin conexión online"
                 
                 voiceHelper?.speak(improvedResponse)
             } catch (e: Exception) {
@@ -1459,6 +1471,7 @@ class MainActivity : ComponentActivity() {
      * Continúa la última respuesta del LLM pidiendo más detalles
      */
     private fun continueLastResponse() {
+        if (ONLINE_ONLY_VISIT_MODE) return
         if (!isLlamaEnabled || !isLlamaLoaded || isProcessing) return
         if (lastUserQuery.isBlank()) return
         
@@ -1528,8 +1541,8 @@ class MainActivity : ComponentActivity() {
         val effectiveUseLlmForAll = if (STRICT_TERMINAL_PARITY_MODE) false else advancedUseLlmForAll
         val effectiveDetectGreetings = if (STRICT_TERMINAL_PARITY_MODE) true else advancedDetectGreetings
         val retrievalMinScore = KB_RETRIEVAL_MIN_SCORE
-        val llmAvailable = (isLlamaEnabled && isLlamaLoaded && llamaService != null) ||
-            (!STRICT_TERMINAL_PARITY_MODE && isOnlineMode && groqService?.isAvailable() == true)
+        val llmAvailable = (!STRICT_TERMINAL_PARITY_MODE && isOnlineMode && groqService?.isAvailable() == true) ||
+            (!ONLINE_ONLY_VISIT_MODE && isLlamaEnabled && isLlamaLoaded && llamaService != null)
 
         if (rawSimilarityThreshold != effectiveSimilarityThreshold ||
             rawContextRelevanceThreshold != effectiveContextRelevanceThreshold ||
@@ -1786,7 +1799,7 @@ $userQuery
             )
         }
 
-        if (isLlamaEnabled && isLlamaLoaded && llamaService != null) {
+        if (!ONLINE_ONLY_VISIT_MODE && isLlamaEnabled && isLlamaLoaded && llamaService != null) {
             val finalSystemPrompt = if (hasKbContext) {
                 "$effectiveSystemPrompt\nReglas obligatorias: usa SOLO el CONTEXTO KB como fuente factual; parafrasea en lenguaje natural (no copies literal); si falta evidencia, dilo explícitamente; no inventes; responde de forma completa."
             } else if (allowGeneralLlmMode) {
@@ -2079,8 +2092,10 @@ $userQuery
         semanticSearchHelper?.release()
         plantDiseaseClassifier?.release()
         cameraHelper?.release()
-        lifecycleScope.launch {
-            llamaService?.unload()
+        if (!ONLINE_ONLY_VISIT_MODE) {
+            lifecycleScope.launch {
+                llamaService?.unload()
+            }
         }
     }
 }
@@ -2603,7 +2618,7 @@ fun OnlineIndicator(isOnline: Boolean, onClick: () -> Unit) {
         )
         Spacer(Modifier.width(6.dp))
         Text(
-            text = if (isOnline) "LLM" else "Local",
+            text = if (isOnline) "Online" else "Sin red",
             style = MaterialTheme.typography.labelSmall,
             color = if (isOnline) AgroColors.Accent else AgroColors.TextSecondary,
             fontWeight = FontWeight.Medium
@@ -2639,11 +2654,15 @@ fun SettingsDialog(
 ) {
     var apiKey by remember { mutableStateOf("") }
     val context = LocalContext.current
+    val appPrefs = remember { context.getSharedPreferences("agrochat_prefs", Context.MODE_PRIVATE) }
     var selectedLanguage by remember { 
         mutableStateOf(
             context.getSharedPreferences("farmifai_prefs", Context.MODE_PRIVATE)
                 .getString("language", "es") ?: "es"
         )
+    }
+    LaunchedEffect(Unit) {
+        apiKey = appPrefs.getString("groq_api_key", "") ?: ""
     }
     
     // Estados locales para configuración avanzada (se sincronizan al guardar)
@@ -2772,101 +2791,117 @@ fun SettingsDialog(
                 
                 HorizontalDivider(color = AgroColors.SurfaceLight)
                 
-                // Sección LLM Local (Llama)
-                Surface(
-                    color = AgroColors.SurfaceLight,
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
+                if (!ONLINE_ONLY_VISIT_MODE) {
+                    // Sección LLM Local (Llama)
+                    Surface(
+                        color = AgroColors.SurfaceLight,
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            "🦙",
+                                            fontSize = 20.sp
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(
+                                            "LLM Local (Llama)",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = AgroColors.TextPrimary
+                                        )
+                                    }
+                                    Spacer(Modifier.height(4.dp))
                                     Text(
-                                        "🦙",
-                                        fontSize = 20.sp
-                                    )
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(
-                                        "LLM Local (Llama)",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = AgroColors.TextPrimary
+                                        llamaModelStatusText,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = when {
+                                            isLlamaLoaded -> AgroColors.Accent
+                                            llamaDownloadFailed -> Color(0xFFE57373)
+                                            isLlamaDownloading -> AgroColors.TextSecondary
+                                            else -> AgroColors.TextSecondary
+                                        }
                                     )
                                 }
-                                Spacer(Modifier.height(4.dp))
-                                Text(
-                                    llamaModelStatusText,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = when {
-                                        isLlamaLoaded -> AgroColors.Accent
-                                        llamaDownloadFailed -> Color(0xFFE57373)
-                                        isLlamaDownloading -> AgroColors.TextSecondary
-                                        else -> AgroColors.TextSecondary
-                                    }
+                                Switch(
+                                    checked = isLlamaEnabled,
+                                    onCheckedChange = { onToggleLlama(it) },
+                                    enabled = isLlamaLoaded,
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = AgroColors.Accent,
+                                        checkedTrackColor = AgroColors.Accent.copy(alpha = 0.5f),
+                                        uncheckedThumbColor = AgroColors.TextSecondary,
+                                        uncheckedTrackColor = AgroColors.SurfaceLight
+                                    )
                                 )
                             }
-                            Switch(
-                                checked = isLlamaEnabled,
-                                onCheckedChange = { onToggleLlama(it) },
-                                enabled = isLlamaLoaded,
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = AgroColors.Accent,
-                                    checkedTrackColor = AgroColors.Accent.copy(alpha = 0.5f),
-                                    uncheckedThumbColor = AgroColors.TextSecondary,
-                                    uncheckedTrackColor = AgroColors.SurfaceLight
-                                )
-                            )
-                        }
-                        
-                        // Botón de reintentar si falló la descarga
-                        if (llamaDownloadFailed && !isLlamaDownloading) {
-                            Spacer(Modifier.height(8.dp))
-                            Button(
-                                onClick = onRetryLlamaDownload,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = AgroColors.Accent
-                                ),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("🔄 Reintentar descarga")
+
+                            // Botón de reintentar si falló la descarga
+                            if (llamaDownloadFailed && !isLlamaDownloading) {
+                                Spacer(Modifier.height(8.dp))
+                                Button(
+                                    onClick = onRetryLlamaDownload,
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = AgroColors.Accent
+                                    ),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("🔄 Reintentar descarga")
+                                }
                             }
-                        }
-                        
-                        // Indicador de descarga en progreso
-                        if (isLlamaDownloading) {
-                            Spacer(Modifier.height(8.dp))
-                            LinearProgressIndicator(
-                                modifier = Modifier.fillMaxWidth(),
-                                color = AgroColors.Accent
-                            )
+
+                            // Indicador de descarga en progreso
+                            if (isLlamaDownloading) {
+                                Spacer(Modifier.height(8.dp))
+                                LinearProgressIndicator(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    color = AgroColors.Accent
+                                )
+                            }
                         }
                     }
-                }
-                
-                if (isLlamaEnabled && isLlamaLoaded) {
-                    Text(
-                        "✓ Respuestas inteligentes offline con IA generativa",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = AgroColors.Accent
-                    )
-                } else if (!isLlamaLoaded) {
-                    Text(
-                        if (llamaModelPathText.isNotBlank()) {
-                            "Copia un .gguf a: $llamaModelPathText"
-                        } else {
-                            "Copia un modelo .gguf a la carpeta de la app para habilitar"
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = AgroColors.TextSecondary
-                    )
+
+                    if (isLlamaEnabled && isLlamaLoaded) {
+                        Text(
+                            "✓ Respuestas inteligentes offline con IA generativa",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = AgroColors.Accent
+                        )
+                    } else if (!isLlamaLoaded) {
+                        Text(
+                            if (llamaModelPathText.isNotBlank()) {
+                                "Copia un .gguf a: $llamaModelPathText"
+                            } else {
+                                "Copia un modelo .gguf a la carpeta de la app para habilitar"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = AgroColors.TextSecondary
+                        )
+                    }
+                } else {
+                    Surface(
+                        color = AgroColors.SurfaceLight,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            "Modo visita activo: respuestas solo con modelo online.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = AgroColors.Accent,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(14.dp)
+                        )
+                    }
                 }
                 
                 HorizontalDivider(color = AgroColors.SurfaceLight)
@@ -4009,4 +4044,3 @@ fun DownloadItemRow(item: DownloadItem) {
         }
     }
 }
-
