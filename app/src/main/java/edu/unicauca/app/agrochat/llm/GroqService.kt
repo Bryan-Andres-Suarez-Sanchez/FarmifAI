@@ -17,8 +17,8 @@ import java.net.URL
  * GroqService - Servicio para consultas LLM usando Groq API (gratuito)
  * 
  * Groq ofrece:
- * - 30 requests por minuto gratis
- * - Modelos: llama-3.3-70b-versatile, llama-3.1-8b-instant, etc.
+ * - Rate limits gratuitos para pruebas y pilotos
+ * - Modelos de alto desempeño como openai/gpt-oss-120b
  * - Muy rápido (inferencia en chip LPU)
  * 
  * Obtén tu API key gratis en: https://console.groq.com/
@@ -29,8 +29,9 @@ class GroqService(private val context: Context) {
         private const val TAG = "GroqService"
         private const val GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
         
-        // Modelo recomendado (rápido y bueno en español)
-        private const val DEFAULT_MODEL = "llama-3.3-70b-versatile"
+        // Modelo online seleccionado para mejor calidad en RAG durante visitas.
+        // Fuente: Groq Docs (Supported Models / Rate Limits, marzo 2026).
+        private const val DEFAULT_MODEL = "openai/gpt-oss-120b"
         
         // Prompt del sistema para contexto agrícola
         private const val SYSTEM_PROMPT = """Eres AgroChat, un asistente agrícola experto y amigable. 
@@ -163,8 +164,11 @@ Directrices:
             put("model", DEFAULT_MODEL)
             put("messages", messages)
             put("temperature", safeTemperature)
-            put("max_tokens", safeMaxTokens)
+            put("max_completion_tokens", safeMaxTokens)
             put("top_p", safeTopP)
+            // Evita exponer razonamiento interno y reduce consumo de tokens.
+            put("include_reasoning", false)
+            put("reasoning_effort", "low")
         }
     }
     
@@ -226,7 +230,10 @@ Directrices:
         }
         
         val message = choices.getJSONObject(0).getJSONObject("message")
-        val content = message.getString("content")
+        val content = message.optString("content", "")
+        if (content.isBlank()) {
+            throw Exception("Respuesta vacía del modelo")
+        }
         
         // Log de uso (para monitoreo)
         if (json.has("usage")) {
