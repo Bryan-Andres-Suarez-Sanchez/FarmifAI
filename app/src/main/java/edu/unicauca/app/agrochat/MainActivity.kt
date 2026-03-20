@@ -177,7 +177,7 @@ class MainActivity : ComponentActivity() {
         private const val PARITY_CHAT_HISTORY_SIZE = 10
         private const val PARITY_MIN_MAX_TOKENS = 450
         private const val PARITY_SYSTEM_PROMPT =
-            "Eres FarmifAI, un asistente agrícola experto. Si se proporciona contexto de KB, úsalo como fuente principal y no inventes datos fuera de esa base. Si falta un dato en la KB, dilo explícitamente."
+            "Eres FarmifAI, un asistente agrícola experto. Si se proporciona informacion de referencia, usala como fuente principal y no inventes datos fuera de esa informacion. Si falta un dato, dilo de forma clara y natural."
         private const val SAFE_MIN_SIMILARITY_THRESHOLD = 0.25f
         private const val SAFE_MAX_SIMILARITY_THRESHOLD = 0.80f
         private const val SAFE_MIN_KB_FAST_PATH_THRESHOLD = 0.20f
@@ -253,7 +253,7 @@ class MainActivity : ComponentActivity() {
     private var advancedKbFastPathThreshold by mutableStateOf(0.70f)
     private var advancedContextRelevanceThreshold by mutableStateOf(0.50f)
     private var advancedSystemPrompt by mutableStateOf(
-        "Eres FarmifAI, un asistente agrícola experto. Si se proporciona contexto de KB, úsalo como fuente principal y no inventes datos fuera de esa base. Si falta un dato en la KB, dilo explícitamente."
+        "Eres FarmifAI, un asistente agrícola experto. Si se proporciona informacion de referencia, usala como fuente principal y no inventes datos fuera de esa informacion. Si falta un dato, dilo de forma clara y natural."
     )
     private var advancedUseLlmForAll by mutableStateOf(false)  // Priorizar KB directa cuando haya match claro
     private var advancedContextLength by mutableStateOf(1800) // Slider max 3000
@@ -831,7 +831,7 @@ class MainActivity : ComponentActivity() {
         advancedKbFastPathThreshold = prefs.getFloat("advanced_kb_fast_path_threshold", 0.70f).coerceIn(SAFE_MIN_KB_FAST_PATH_THRESHOLD, SAFE_MAX_KB_FAST_PATH_THRESHOLD)
         advancedContextRelevanceThreshold = prefs.getFloat("advanced_context_relevance_threshold", 0.50f).coerceIn(SAFE_MIN_CONTEXT_RELEVANCE_THRESHOLD, SAFE_MAX_CONTEXT_RELEVANCE_THRESHOLD)
         advancedSystemPrompt = prefs.getString("advanced_system_prompt", 
-            "Eres FarmifAI, un asistente agrícola experto. Si se proporciona contexto de KB, úsalo como fuente principal y no inventes datos fuera de esa base. Si falta un dato en la KB, dilo explícitamente.") ?: advancedSystemPrompt
+            "Eres FarmifAI, un asistente agrícola experto. Si se proporciona informacion de referencia, usala como fuente principal y no inventes datos fuera de esa informacion. Si falta un dato, dilo de forma clara y natural.") ?: advancedSystemPrompt
         advancedUseLlmForAll = prefs.getBoolean("advanced_use_llm_for_all", false)
         advancedContextLength = prefs.getInt("advanced_context_length", 1800).coerceIn(300, 3000)
         advancedDetectGreetings = prefs.getBoolean("advanced_detect_greetings", true)
@@ -1192,6 +1192,8 @@ class MainActivity : ComponentActivity() {
         val isEvasive = evasivePatterns.any { response.lowercase().contains(it) }
         val isHonestUncertainty = isNoInfoStyleResponse(response) ||
             response.lowercase().contains("no tengo suficiente información en mi base") ||
+            response.lowercase().contains("no tengo datos suficientes") ||
+            response.lowercase().contains("no tengo suficiente informacion") ||
             response.lowercase().contains("prefiero no inventar")
         val isGenericFailureWithKb = response.lowercase().contains("no pude generar una respuesta confiable") ||
             response.lowercase().contains("llm no está disponible para redactar")
@@ -1740,23 +1742,23 @@ class MainActivity : ComponentActivity() {
             }
 
             val groqUserPrompt = if (hasKbContext && !kbContextForPrompt.isNullOrBlank()) {
-                """Responde usando únicamente la información del CONTEXTO KB.
+                """Responde usando unicamente la informacion de referencia compartida.
 Redacta en lenguaje natural y claro para agricultor.
-No copies frases textuales del contexto; parafrasea y sintetiza.
-Si la respuesta no está en el contexto, responde exactamente: "No tengo suficiente información en la base de conocimiento para responder con seguridad."
-No inventes datos externos.
+No copies frases textuales; parafrasea y sintetiza.
+Si la informacion no alcanza para responder con precision, di de forma natural que faltan datos concretos y que necesitas para orientar mejor.
+No inventes datos externos ni afirmaciones no verificables.
 
-CONTEXTO KB:
+INFORMACION DE REFERENCIA:
 $kbContextForPrompt
 
 PREGUNTA:
 $userQuery
 """.trimIndent()
             } else if (allowGeneralLlmMode) {
-                """No hay evidencia suficiente en la KB para responder con precisión.
-Puedes responder con conocimiento agrícola general, dejando claro que es una recomendación general.
+                """La informacion disponible no cubre por completo esta consulta.
+Puedes responder con conocimiento agricola general, dejando claro que es una recomendacion general.
 Evita inventar cifras, normativas o hechos específicos no verificables.
-Incluye una breve nota de incertidumbre si aplica.
+Incluye una breve nota de incertidumbre si aplica, sin usar lenguaje tecnico interno.
 
 PREGUNTA:
 $userQuery
@@ -1766,8 +1768,8 @@ $userQuery
             }
 
             val groqSystemPrompt = when {
-                hasKbContext -> "$effectiveSystemPrompt\nReglas obligatorias: usa SOLO el CONTEXTO KB como fuente factual; parafrasea en lenguaje natural (no copies literal); si falta evidencia, dilo explícitamente; no inventes."
-                allowGeneralLlmMode -> "$effectiveSystemPrompt\nNo hay evidencia suficiente en la KB para esta consulta. Puedes responder con conocimiento agrícola general, aclara que es orientación general y qué datos faltan."
+                hasKbContext -> "$effectiveSystemPrompt\nReglas obligatorias: usa SOLO la informacion de referencia como fuente factual; parafrasea en lenguaje natural; si faltan datos, dilo con lenguaje humano y orientado a accion; no inventes."
+                allowGeneralLlmMode -> "$effectiveSystemPrompt\nLa informacion disponible no es suficiente para alta precision. Puedes responder con orientacion agricola general, aclarando limites sin tecnicismos internos."
                 else -> effectiveSystemPrompt
             }
             val groqMaxTokens = maxOf(advancedMaxTokens, 200)
@@ -1811,9 +1813,9 @@ $userQuery
 
         if (!ONLINE_ONLY_VISIT_MODE && isLlamaEnabled && isLlamaLoaded && llamaService != null) {
             val finalSystemPrompt = if (hasKbContext) {
-                "$effectiveSystemPrompt\nReglas obligatorias: usa SOLO el CONTEXTO KB como fuente factual; parafrasea en lenguaje natural (no copies literal); si falta evidencia, dilo explícitamente; no inventes; responde de forma completa."
+                "$effectiveSystemPrompt\nReglas obligatorias: usa SOLO la informacion de referencia como fuente factual; parafrasea en lenguaje natural; si faltan datos, dilo con lenguaje humano; no inventes; responde de forma completa."
             } else if (allowGeneralLlmMode) {
-                "$effectiveSystemPrompt\nNo hay evidencia suficiente en la KB para esta consulta. Puedes responder con conocimiento agrícola general, aclara que es orientación general y qué datos faltan para mayor precisión. No inventes cifras ni hechos específicos no verificables."
+                "$effectiveSystemPrompt\nLa informacion disponible no es suficiente para alta precision. Puedes responder con orientacion agricola general, aclarando limites sin tecnicismos internos. No inventes cifras ni hechos especificos no verificables."
             } else {
                 effectiveSystemPrompt
             }
@@ -1983,28 +1985,16 @@ $userQuery
     }
 
     private fun buildLlmTemporaryFailureResponse(): String {
-        return "No pude generar una respuesta confiable en este momento. Intenta nuevamente en unos segundos."
+        return "Tuvimos un problema temporal al generar la respuesta. Intentalo de nuevo en unos segundos."
     }
 
     private fun buildKbInsufficientEvidenceResponse(
-        userQuery: String,
-        grounding: SemanticSearchHelper.GroundingAssessment?
+        _userQuery: String,
+        _grounding: SemanticSearchHelper.GroundingAssessment?
     ): String {
-        val missingTopics = grounding?.unknownQueryTokens
-            ?.filter { it.length >= 4 }
-            ?.take(2)
-            ?.joinToString(", ")
-            .orEmpty()
-
-        val normalizedQuestion = userQuery.trim().replace(Regex("\\s+"), " ")
-        val focus = if (missingTopics.isNotBlank()) {
-            " (tema detectado sin respaldo en KB: $missingTopics)"
-        } else {
-            ""
-        }
-
-        return "No tengo suficiente información en la base de conocimiento para responder con seguridad sobre \"$normalizedQuestion\"$focus.\n\n" +
-            "Prefiero no inventar datos. Si quieres, puedo ayudarte con temas de la KB como cultivo, plagas, riego, fertilización o diagnóstico."
+        val baseResponse = "Aun no tengo datos suficientes para darte una recomendacion precisa en este caso."
+        val guidance = "Si me cuentas cultivo, etapa del cultivo, ubicacion y sintomas observados, te doy una recomendacion mas util."
+        return "$baseResponse\n\n$guidance"
     }
 
     private fun isResponseAnchoredToContext(

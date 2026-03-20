@@ -217,11 +217,11 @@ class LlamaService private constructor() {
         val userMessage: String = if (!contextFromKB.isNullOrBlank()) {
             // Truncar contexto según configuración
             val shortContext = truncateContextPreservingKb(contextFromKB, maxContextLength)
-            """Usa exclusivamente este CONTEXTO KB para responder.
-Si el dato no aparece en el contexto, responde exactamente: "No tengo suficiente información en la base de conocimiento para responder con seguridad."
-No inventes información externa.
+            """Usa exclusivamente esta informacion de referencia para responder.
+Si la informacion no alcanza para responder con precision, dilo de forma natural y pide los datos que faltan.
+No inventes informacion externa.
 
-CONTEXTO KB:
+INFORMACION DE REFERENCIA:
 $shortContext
 
 PREGUNTA:

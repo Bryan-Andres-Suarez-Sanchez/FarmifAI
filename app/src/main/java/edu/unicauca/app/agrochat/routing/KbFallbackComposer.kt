@@ -26,6 +26,7 @@ object KbFallbackComposer {
     fun compose(input: Input): Result? {
         val normalizedQuery = normalizeSpaces(input.userQuery)
         if (normalizedQuery.isBlank()) return null
+        val queryLower = normalizedQuery.lowercase()
 
         val topMatchAnswer = normalizeSpaces(input.topMatchAnswer.orEmpty())
         val normalizedCombinedContext = stripContextMarkers(input.combinedContext.orEmpty())
@@ -35,6 +36,14 @@ object KbFallbackComposer {
             else -> return null
         }
         val source = if (topMatchAnswer.isNotBlank()) "top_match_answer" else "combined_context"
+
+        if (isShortConversationalQuery(queryLower) && topMatchAnswer.isNotBlank()) {
+            return Result(
+                response = topMatchAnswer,
+                keyPoints = 1,
+                source = source
+            )
+        }
 
         val queryTokens = informativeTokens(normalizedQuery)
         val candidates = extractCandidateSegments(sourceText)
@@ -54,12 +63,7 @@ object KbFallbackComposer {
         }
         if (keyPoints.isEmpty()) return null
 
-        val title = buildTitle(normalizedQuery, normalizeSpaces(input.topMatchQuestion.orEmpty()))
-        val missingTokens = input.unknownQueryTokens
-            .map { normalizeToken(it) }
-            .filter { it.length >= 4 }
-            .distinct()
-            .take(3)
+        val title = buildTitle()
 
         val response = buildString {
             append(title)
@@ -69,12 +73,8 @@ object KbFallbackComposer {
                 append(point)
                 append('\n')
             }
-            if (missingTokens.isNotEmpty()) {
-                append('\n')
-                append("Para afinar mas la recomendacion faltan datos en la KB sobre: ")
-                append(missingTokens.joinToString(", "))
-                append('.')
-            }
+            append('\n')
+            append("Si me compartes cultivo, etapa del cultivo y sintomas actuales, te doy una recomendacion mas precisa.")
         }.trim()
 
         return Result(
@@ -84,12 +84,30 @@ object KbFallbackComposer {
         )
     }
 
-    private fun buildTitle(userQuery: String, topMatchQuestion: String): String {
-        return if (topMatchQuestion.isNotBlank()) {
-            "Con base en la KB sobre \"$topMatchQuestion\", para \"$userQuery\":"
-        } else {
-            "Con base en la KB, para \"$userQuery\":"
-        }
+    private fun buildTitle(): String {
+        return "Te recomiendo lo siguiente:"
+    }
+
+    private fun isShortConversationalQuery(query: String): Boolean {
+        if (query.length > 20) return false
+        val normalized = query
+            .replace("á", "a")
+            .replace("é", "e")
+            .replace("í", "i")
+            .replace("ó", "o")
+            .replace("ú", "u")
+            .trim()
+        return normalized in setOf(
+            "hola",
+            "buenas",
+            "buenos dias",
+            "buenas tardes",
+            "buenas noches",
+            "gracias",
+            "ok",
+            "vale",
+            "como estas"
+        )
     }
 
     private fun extractCandidateSegments(sourceText: String): List<String> {
@@ -147,17 +165,6 @@ object KbFallbackComposer {
             .removeSuffix(",")
             .removeSuffix(";")
             .let { if (it.endsWith(".")) it else "$it." }
-    }
-
-    private fun normalizeToken(text: String): String {
-        return text.lowercase()
-            .replace("á", "a")
-            .replace("é", "e")
-            .replace("í", "i")
-            .replace("ó", "o")
-            .replace("ú", "u")
-            .replace("ñ", "n")
-            .replace(Regex("[^a-z0-9]"), "")
     }
 
     private fun informativeTokens(text: String): Set<String> {
