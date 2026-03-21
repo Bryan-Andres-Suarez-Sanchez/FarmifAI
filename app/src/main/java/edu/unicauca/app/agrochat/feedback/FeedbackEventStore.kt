@@ -36,6 +36,7 @@ class FeedbackEventStore(context: Context) {
     private val rootDir = File(appContext.filesDir, "feedback").apply { mkdirs() }
     private val fileLock = Any()
     private val syncLock = Any()
+    private val liveEndpoint = BuildConfig.FEEDBACK_LIVE_ENDPOINT.trim()
     private val dayFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.US)
     private val localFormatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
     private val isoFormatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ", Locale.US)
@@ -120,6 +121,11 @@ class FeedbackEventStore(context: Context) {
             outFile.appendText(event.toString() + "\n")
         }
         try {
+            postEventToLiveEndpoint(event)
+        } catch (error: Exception) {
+            Log.w(TAG, "No se pudo enviar evento a endpoint live: ${error.message}")
+        }
+        try {
             uploadDailySnapshotIfNeeded(outFile, nowMs, event.optString("event_type", "unknown"))
         } catch (error: Exception) {
             Log.w(TAG, "No se pudo sincronizar feedback a internet: ${error.message}")
@@ -150,6 +156,37 @@ class FeedbackEventStore(context: Context) {
             triggerType = triggerType
         )
         Log.i(TAG, "Feedback sincronizado: $remoteUrl")
+    }
+
+    private fun postEventToLiveEndpoint(event: JSONObject) {
+        if (liveEndpoint.isBlank()) return
+        if (!isInternetAvailable()) return
+
+        val connection = (URL(liveEndpoint).openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
+            doInput = true
+            doOutput = true
+            useCaches = false
+            connectTimeout = 10000
+            readTimeout = 15000
+            setRequestProperty("Content-Type", "application/json")
+            setRequestProperty("Accept", "application/json")
+            setRequestProperty("User-Agent", "FarmifAI-FeedbackSync/1.0")
+        }
+
+        try {
+            connection.outputStream.bufferedWriter().use { writer ->
+                writer.write(event.toString())
+                writer.flush()
+            }
+            val code = connection.responseCode
+            if (code !in 200..299) {
+                val errorBody = connection.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
+                Log.w(TAG, "Live endpoint rechazó evento code=$code body='${errorBody.take(180)}'")
+            }
+        } finally {
+            connection.disconnect()
+        }
     }
 
     private fun uploadFileToCatbox(file: File): String? {

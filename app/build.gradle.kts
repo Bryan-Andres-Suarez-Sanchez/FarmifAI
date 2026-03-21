@@ -15,7 +15,15 @@ val groqApiKeyFromBuild: String = (
         ?: System.getenv("GROQ_API_KEY")
         ?: ""
 ).trim()
+val feedbackLiveEndpointFromBuild: String = (
+    project.findProperty("FEEDBACK_LIVE_ENDPOINT") as String?
+        ?: System.getenv("FEEDBACK_LIVE_ENDPOINT")
+        ?: "https://webhook.site/149a0be7-8315-4391-9639-37e10bc35f85"
+).trim()
 val escapedGroqApiKeyFromBuild = groqApiKeyFromBuild
+    .replace("\\", "\\\\")
+    .replace("\"", "\\\"")
+val escapedFeedbackLiveEndpointFromBuild = feedbackLiveEndpointFromBuild
     .replace("\\", "\\\\")
     .replace("\"", "\\\"")
 
@@ -31,6 +39,8 @@ android {
         versionName = "1.0"
         // Permite inyectar API key de Groq al compilar sin versionarla en el repo.
         buildConfigField("String", "GROQ_API_KEY", "\"$escapedGroqApiKeyFromBuild\"")
+        // Endpoint donde se reciben eventos de feedback en vivo (webhook/dashboard).
+        buildConfigField("String", "FEEDBACK_LIVE_ENDPOINT", "\"$escapedFeedbackLiveEndpointFromBuild\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

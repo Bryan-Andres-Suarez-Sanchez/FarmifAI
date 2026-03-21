@@ -368,6 +368,7 @@ class MainActivity : ComponentActivity() {
         feedbackStore = FeedbackEventStore(applicationContext)
         AppLogger.log("Feedback", "Storage path: ${feedbackStore.storagePath()}")
         AppLogger.log("Feedback", "Sync manifest: ${feedbackStore.syncManifestPath()}")
+        AppLogger.log("Feedback", "Live endpoint: ${BuildConfig.FEEDBACK_LIVE_ENDPOINT}")
 
         // Cargar preferencias
         loadPreferences()
