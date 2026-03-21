@@ -198,6 +198,7 @@ class MainActivity : ComponentActivity() {
     companion object {
         private const val LANGUAGE_PREFS = "farmifai_prefs"
         private const val LANGUAGE_KEY = "language"
+        private const val VISIT_FIXED_GROQ_API_KEY = "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"
         private val STRICT_TERMINAL_PARITY_MODE = false
         private const val PARITY_SIMILARITY_THRESHOLD = 0.45f
         private const val PARITY_KB_FAST_PATH_THRESHOLD = 0.70f
@@ -930,9 +931,17 @@ class MainActivity : ComponentActivity() {
     
     private fun initializeGroq() {
         groqService = GroqService(applicationContext)
-        
-        // Cargar API key guardada; si no existe, usar la inyectada en build.
         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+        if (ONLINE_ONLY_VISIT_MODE) {
+            groqService?.setApiKey(VISIT_FIXED_GROQ_API_KEY)
+            prefs.edit().putString(KEY_GROQ_API, VISIT_FIXED_GROQ_API_KEY).apply()
+            updateOnlineStatus()
+            AppLogger.log("MainActivity", "Modo visita: API key de Groq forzada y modelo online activo")
+            return
+        }
+
+        // Cargar API key guardada; si no existe, usar la inyectada en build.
         val savedKey = prefs.getString(KEY_GROQ_API, null)
         val buildInjectedKey = BuildConfig.GROQ_API_KEY.trim()
 
@@ -2819,6 +2828,7 @@ fun ChatModeScreen(
 ) {
     var inputText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
+    val feedbackExpandedState = remember { mutableStateMapOf<String, Boolean>() }
 
     LaunchedEffect(messages.size) { if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1) }
 
@@ -2868,6 +2878,12 @@ fun ChatModeScreen(
                 ModernMessageBubble(
                     message = message,
                     feedbackState = feedbackStates[message.id],
+                    feedbackExpanded = feedbackExpandedState[message.id] == true,
+                    onToggleFeedback = {
+                        if (message.feedbackEligible && !message.isUser) {
+                            feedbackExpandedState[message.id] = !(feedbackExpandedState[message.id] ?: false)
+                        }
+                    },
                     onHelpfulFeedback = onHelpfulFeedback,
                     onClarityFeedback = onClarityFeedback,
                     onApplyTodayFeedback = onApplyTodayFeedback
@@ -2944,10 +2960,24 @@ fun SmallMicButton(isListening: Boolean, enabled: Boolean, onClick: () -> Unit) 
 fun ModernMessageBubble(
     message: ChatMessage,
     feedbackState: MessageFeedbackState? = null,
+    feedbackExpanded: Boolean = false,
+    onToggleFeedback: () -> Unit = {},
     onHelpfulFeedback: (String, Boolean) -> Unit = { _, _ -> },
     onClarityFeedback: (String, Boolean) -> Unit = { _, _ -> },
     onApplyTodayFeedback: (String, Boolean) -> Unit = { _, _ -> }
 ) {
+    val canToggleFeedback = !message.isUser && message.feedbackEligible
+    val bubbleModifier = Modifier
+        .widthIn(max = 300.dp)
+        .padding(4.dp)
+        .then(
+            if (canToggleFeedback && !feedbackExpanded) {
+                Modifier.clickable { onToggleFeedback() }
+            } else {
+                Modifier
+            }
+        )
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = if (message.isUser) Alignment.End else Alignment.Start
@@ -2955,7 +2985,7 @@ fun ModernMessageBubble(
         Surface(
             color = if (message.isUser) AgroColors.PrimaryLight else AgroColors.Surface,
             shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = if (message.isUser) 20.dp else 4.dp, bottomEnd = if (message.isUser) 4.dp else 20.dp),
-            modifier = Modifier.widthIn(max = 300.dp).padding(4.dp),
+            modifier = bubbleModifier,
             border = if (!message.isUser) androidx.compose.foundation.BorderStroke(1.dp, AgroColors.SurfaceLight) else null
         ) {
             Column(Modifier.padding(14.dp)) {
@@ -2976,48 +3006,66 @@ fun ModernMessageBubble(
                     }
                 }
 
-                if (!message.isUser && message.feedbackEligible) {
-                    Spacer(Modifier.height(10.dp))
-                    Text(
-                        text = "¿Te sirvio esta respuesta?",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = AgroColors.TextSecondary
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        FilterChip(
-                            selected = feedbackState?.helpful == true,
-                            onClick = { onHelpfulFeedback(message.id, true) },
-                            label = { Text("Me sirvio") },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = AgroColors.Accent,
-                                selectedLabelColor = Color.White
-                            )
+                AnimatedVisibility(visible = canToggleFeedback && feedbackExpanded) {
+                    Column {
+                        Spacer(Modifier.height(10.dp))
+                        Text(
+                            text = "¿Te sirvio esta respuesta?",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = AgroColors.TextSecondary
                         )
-                        FilterChip(
-                            selected = feedbackState?.helpful == false,
-                            onClick = { onHelpfulFeedback(message.id, false) },
-                            label = { Text("No me sirvio") },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = Color(0xFFE57373),
-                                selectedLabelColor = Color.White
+                        Spacer(Modifier.height(6.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            FilterChip(
+                                selected = feedbackState?.helpful == true,
+                                onClick = { onHelpfulFeedback(message.id, true) },
+                                label = { Text("Me sirvio") },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = AgroColors.Accent,
+                                    selectedLabelColor = Color.White
+                                )
                             )
+                            FilterChip(
+                                selected = feedbackState?.helpful == false,
+                                onClick = { onHelpfulFeedback(message.id, false) },
+                                label = { Text("No me sirvio") },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = Color(0xFFE57373),
+                                    selectedLabelColor = Color.White
+                                )
+                            )
+                        }
+
+                        Spacer(Modifier.height(8.dp))
+                        FeedbackBinaryQuestion(
+                            question = "¿Fue clara?",
+                            selectedValue = feedbackState?.clear,
+                            onSelect = { onClarityFeedback(message.id, it) }
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        FeedbackBinaryQuestion(
+                            question = "¿La aplicarias hoy?",
+                            selectedValue = feedbackState?.wouldApplyToday,
+                            onSelect = { onApplyTodayFeedback(message.id, it) }
                         )
                     }
-
-                    Spacer(Modifier.height(8.dp))
-                    FeedbackBinaryQuestion(
-                        question = "¿Fue clara?",
-                        selectedValue = feedbackState?.clear,
-                        onSelect = { onClarityFeedback(message.id, it) }
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    FeedbackBinaryQuestion(
-                        question = "¿La aplicarias hoy?",
-                        selectedValue = feedbackState?.wouldApplyToday,
-                        onSelect = { onApplyTodayFeedback(message.id, it) }
-                    )
                 }
+            }
+        }
+
+        if (canToggleFeedback) {
+            Row(
+                modifier = Modifier
+                    .padding(start = 10.dp, end = 10.dp, bottom = 2.dp)
+                    .clickable { onToggleFeedback() },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = if (feedbackExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = if (feedbackExpanded) "Ocultar feedback" else "Mostrar feedback",
+                    tint = AgroColors.TextSecondary.copy(alpha = 0.55f),
+                    modifier = Modifier.size(14.dp)
+                )
             }
         }
     }
