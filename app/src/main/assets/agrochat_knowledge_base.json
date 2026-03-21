@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "description": "Base de conocimiento agrícola para AgroChat",
+  "description": "Base de conocimiento agrícola para AgroChat (enriquecida)",
   "categories": [
     "cultivo",
     "plagas",
@@ -814,7 +814,15 @@
         "Manchas acuosas hojas tomate"
       ],
       "answer": "**Mancha bacteriana (Xanthomonas spp.)** \n\n**Agente causal:**\n• Xanthomonas vesicatoria, X. euvesicatoria\n• Bacteria gram-negativa\n• Sobrevive en semillas y residuos\n\n**Síntomas:**\n• Manchas pequeñas acuosas (2-3 mm)\n• Se vuelven marrón oscuro con halo amarillo\n• En hojas, tallos y frutos\n• Frutos con lesiones costrosas elevadas\n• Defoliación severa en epidemias\n\n**Condiciones favorables:**\n• Temperatura 24-30°C\n• Alta humedad (>80%)\n• Lluvia con viento (dispersión)\n• Riego por aspersión\n\n**Control químico:**\n• Cobre (hidróxido, oxicloruro) preventivo\n• Mezcla cobre + mancozeb\n• Antibióticos: estreptomicina (donde permitido)\n• Acibenzolar-S-metil (inductor resistencia)\n\n**Control cultural:**\n• Semilla certificada libre de patógeno\n• Rotación 2-3 años sin solanáceas\n• Eliminar plantas infectadas\n• Evitar trabajo en campo mojado\n• Desinfectar herramientas\n• Riego por goteo, no aspersión",
-      "keywords": ["mancha", "bacteriana", "bacterial", "spot", "xanthomonas", "tomate", "acuosas"]
+      "keywords": [
+        "mancha",
+        "bacteriana",
+        "bacterial",
+        "spot",
+        "xanthomonas",
+        "tomate",
+        "acuosas"
+      ]
     },
     {
       "id": 117,
@@ -826,7 +834,16 @@
         "Manchas concéntricas tomate"
       ],
       "answer": "**Tizón temprano (Alternaria solani)** \n\n**Agente causal:**\n• Hongo Alternaria solani\n• Sobrevive en residuos 1-2 años\n• Esporas dispersadas por viento y lluvia\n\n**Síntomas característicos:**\n• Manchas circulares con anillos concéntricos (diana)\n• Comienza en hojas inferiores (más viejas)\n• Halo amarillo alrededor de lesiones\n• Lesiones en tallos: oscuras, hundidas\n• Frutos: pudrición seca cerca del cáliz\n• Defoliación ascendente progresiva\n\n**Condiciones favorables:**\n• Temperatura 24-29°C óptima\n• Humedad relativa alta\n• Rocío prolongado (>10 horas)\n• Plantas estresadas o con deficiencia de N\n\n**Control químico:**\n• Fungicidas preventivos: mancozeb, clorotalonil\n• Curativos: azoxistrobin, difenoconazol\n• Rotación de modos de acción\n• Iniciar antes de síntomas en clima favorable\n\n**Control cultural:**\n• Rotación 3 años mínimo\n• Eliminar rastrojos infectados\n• Mulch para evitar salpicadura\n• Riego por goteo\n• Fertilización balanceada (evitar exceso N)\n• Variedades tolerantes: Mountain Merit, Defiant",
-      "keywords": ["tizon", "temprano", "early", "blight", "alternaria", "solani", "concentricas", "tomate"]
+      "keywords": [
+        "tizon",
+        "temprano",
+        "early",
+        "blight",
+        "alternaria",
+        "solani",
+        "concentricas",
+        "tomate"
+      ]
     },
     {
       "id": 118,
@@ -838,7 +855,16 @@
         "Manchas aceitosas tomate"
       ],
       "answer": "**Tizón tardío (Phytophthora infestans)** \n\n**Importancia histórica:**\n• Causó la Gran Hambruna de Irlanda (1845-1849)\n• Puede destruir campos en 7-10 días\n• Una de las enfermedades más devastadoras\n\n**Agente causal:**\n• Oomiceto Phytophthora infestans\n• NO es un hongo verdadero\n• Produce esporangios que nadan con flagelos\n\n**Síntomas:**\n• Manchas acuosas verde-gris en hojas\n• Micelio blanco en envés (alta humedad)\n• Lesiones oscuras en tallos\n• Frutos: pudrición firme marrón granulosa\n• Olor característico a descomposición\n• Progresión muy rápida (días)\n\n**Condiciones favorables:**\n• Temperatura 15-22°C (frescas)\n• Humedad >90%\n• Lluvias frecuentes\n• Noches frías, días templados húmedos\n\n**Control químico (URGENTE):**\n• Preventivo: mancozeb, clorotalonil\n• Curativo: metalaxil, mandipropamid\n• Cymoxanil + mancozeb\n• Aplicar cada 5-7 días en epidemia\n• Resistencia a metalaxil es común\n\n**Control cultural:**\n• Destruir focos inmediatamente\n• Eliminar plantas voluntarias de papa\n• No compostar material infectado\n• Variedades resistentes: Mountain Magic, Defiant PHR\n• Monitoreo constante en clima favorable",
-      "keywords": ["tizon", "tardio", "late", "blight", "phytophthora", "infestans", "aceitosas", "tomate"]
+      "keywords": [
+        "tizon",
+        "tardio",
+        "late",
+        "blight",
+        "phytophthora",
+        "infestans",
+        "aceitosas",
+        "tomate"
+      ]
     },
     {
       "id": 119,
@@ -851,7 +877,16 @@
         "Manchas amarillas envés tomate"
       ],
       "answer": "**Moho foliar (Passalora fulva, sin. Fulvia fulva)** \n\n**Agente causal:**\n• Hongo Passalora fulva (antes Cladosporium fulvum)\n• Específico de tomate\n• Muy común en invernaderos\n\n**Síntomas:**\n• Manchas amarillo pálido en haz de hojas\n• Moho aterciopelado verde oliva-marrón en envés\n• Hojas se enrollan y secan\n• Comienza en hojas inferiores\n• Frutos raramente afectados\n• Reduce producción 30-50%\n\n**Condiciones favorables:**\n• Humedad relativa >85%\n• Temperatura 20-25°C\n• Invernaderos mal ventilados\n• Condensación en hojas\n\n**Control químico:**\n• Azoxistrobin, difenoconazol\n• Clorotalonil preventivo\n• Rotar grupos químicos\n\n**Control cultural:**\n• Ventilación para reducir humedad\n• Calefacción para evitar condensación\n• Poda de hojas inferiores\n• Espaciamiento adecuado\n• Variedades resistentes: genes Cf (Cf-2, Cf-5, Cf-9)\n• Eliminar residuos de cultivo",
-      "keywords": ["moho", "foliar", "leaf", "mold", "fulvia", "passalora", "aterciopelado", "tomate"]
+      "keywords": [
+        "moho",
+        "foliar",
+        "leaf",
+        "mold",
+        "fulvia",
+        "passalora",
+        "aterciopelado",
+        "tomate"
+      ]
     },
     {
       "id": 120,
@@ -863,7 +898,15 @@
         "Manchas pequeñas centro claro tomate"
       ],
       "answer": "**Septoriosis (Septoria lycopersici)** \n\n**Agente causal:**\n• Hongo Septoria lycopersici\n• Sobrevive en residuos y solanáceas silvestres\n• Produce picnidios con conidios\n\n**Síntomas característicos:**\n• Manchas circulares pequeñas (2-4 mm)\n• Centro gris claro con borde oscuro\n• Puntos negros en centro (picnidios) - diagnóstico\n• Inicia en hojas inferiores\n• Defoliación ascendente severa\n• No afecta frutos directamente\n\n**Condiciones favorables:**\n• Temperatura 20-25°C\n• Humedad alta, lluvia frecuente\n• Salpicadura de agua desde suelo\n• Follaje denso sin ventilación\n\n**Control químico:**\n• Mancozeb, clorotalonil (preventivos)\n• Azoxistrobin, pyraclostrobin (curativos)\n• Aplicaciones cada 7-10 días\n• Iniciar antes de síntomas\n\n**Control cultural:**\n• Mulch plástico o paja (evita salpicadura)\n• Riego por goteo\n• Poda de hojas inferiores\n• Rotación 3 años\n• Eliminar rastrojos\n• Variedades tolerantes limitadas",
-      "keywords": ["septoriosis", "septoria", "lycopersici", "picnidios", "centro", "claro", "tomate"]
+      "keywords": [
+        "septoriosis",
+        "septoria",
+        "lycopersici",
+        "picnidios",
+        "centro",
+        "claro",
+        "tomate"
+      ]
     },
     {
       "id": 121,
@@ -876,7 +919,16 @@
         "Hojas bronceadas tomate"
       ],
       "answer": "**Ácaros (Tetranychus urticae)** \n\n**Identificación:**\n• Arácnidos microscópicos (0.5 mm)\n• Color verde-amarillo a rojo\n• Viven en envés de hojas\n• Producen telarañas finas\n• Se ven con lupa 10x\n\n**Daños:**\n• Punteado clorótico (alimentación)\n• Hojas bronceadas, secas\n• Telarañas en casos severos\n• Defoliación\n• Reducción de producción 30-60%\n\n**Condiciones favorables:**\n• Clima cálido y seco\n• Temperatura >25°C\n• Humedad <60%\n• Polvo en cultivo\n• Exceso de nitrógeno\n\n**Control químico:**\n• Acaricidas específicos: abamectina, spiromesifen\n• Bifenazato, etoxazol (ovicidas)\n• Rotar modos de acción (resistencia rápida)\n• Mojado total del envés\n\n**Control biológico:**\n• Phytoseiulus persimilis (ácaro depredador)\n• Amblyseius californicus\n• Liberación preventiva en invernadero\n\n**Control cultural:**\n• Riego por aspersión ocasional\n• Control de polvo\n• Eliminar malezas hospederas\n• Destruir plantas muy infestadas",
-      "keywords": ["acaros", "spider", "mites", "arana", "roja", "tetranychus", "bronceadas", "tomate"]
+      "keywords": [
+        "acaros",
+        "spider",
+        "mites",
+        "arana",
+        "roja",
+        "tetranychus",
+        "bronceadas",
+        "tomate"
+      ]
     },
     {
       "id": 122,
@@ -888,7 +940,15 @@
         "Manchas con zonificación tomate"
       ],
       "answer": "**Mancha diana (Corynespora cassiicola)** \n\n**Agente causal:**\n• Hongo Corynespora cassiicola\n• Amplio rango de hospederos\n• Emergente en regiones tropicales/subtropicales\n\n**Síntomas:**\n• Manchas circulares con anillos concéntricos\n• Similar a tizón temprano pero más irregular\n• Lesiones en hojas, pecíolos, tallos, frutos\n• Centro necrótico que puede caerse\n• Defoliación severa en ataques fuertes\n\n**Condiciones favorables:**\n• Alta humedad (>80%)\n• Temperatura 25-30°C\n• Lluvias frecuentes\n• Invernaderos con pobre ventilación\n\n**Control químico:**\n• Azoxistrobin, pyraclostrobin\n• Difenoconazol, tebuconazol\n• Boscalid, fluopyram\n• Resistencia reportada a estrobilurinas\n\n**Control cultural:**\n• Rotación de cultivos\n• Eliminar residuos\n• Mejorar ventilación\n• Evitar riego por aspersión\n• Material de propagación sano",
-      "keywords": ["mancha", "diana", "target", "spot", "corynespora", "zonificacion", "tomate"]
+      "keywords": [
+        "mancha",
+        "diana",
+        "target",
+        "spot",
+        "corynespora",
+        "zonificacion",
+        "tomate"
+      ]
     },
     {
       "id": 123,
@@ -900,7 +960,18 @@
         "Hojas enrolladas amarillas tomate"
       ],
       "answer": "**Virus del rizado amarillo (TYLCV)** \n\n**Agente causal:**\n• Begomovirus (familia Geminiviridae)\n• Transmitido por mosca blanca (Bemisia tabaci)\n• NO se transmite por semilla ni mecánicamente\n\n**Síntomas:**\n• Hojas jóvenes enrolladas hacia arriba (cuchara)\n• Amarillamiento intervenal\n• Clorosis marginal\n• Enanismo severo\n• Aborto de flores\n• Frutos pequeños o ausentes\n• Planta improductiva\n\n**Vector: Mosca blanca**\n• Adquisición: 15-30 minutos alimentándose\n• Retención: toda la vida del insecto\n• Transmisión: minutos\n• Una mosca puede infectar muchas plantas\n\n**Control del vector:**\n• Mallas antiáfidos en invernadero\n• Trampas amarillas pegajosas\n• Imidacloprid, thiamethoxam (neonicotinoides)\n• Spiromesifen, cyantraniliprole\n\n**Control cultural:**\n• Variedades resistentes: genes Ty-1, Ty-2, Ty-3\n• Eliminar plantas infectadas inmediatamente\n• Periodo libre de cultivo\n• Eliminar malezas hospederas\n• Barreras físicas (mallas)\n• No hay cura para plantas infectadas",
-      "keywords": ["virus", "rizado", "amarillo", "tylcv", "yellow", "leaf", "curl", "mosca", "blanca", "tomate"]
+      "keywords": [
+        "virus",
+        "rizado",
+        "amarillo",
+        "tylcv",
+        "yellow",
+        "leaf",
+        "curl",
+        "mosca",
+        "blanca",
+        "tomate"
+      ]
     },
     {
       "id": 124,
@@ -912,7 +983,15 @@
         "Moteado hojas tomate"
       ],
       "answer": "**Virus del mosaico del tomate (ToMV)** \n\n**Agente causal:**\n• Tobamovirus, relacionado con TMV\n• Extremadamente estable (años en residuos)\n• Transmisión mecánica muy fácil\n• Puede estar en semillas\n\n**Síntomas:**\n• Mosaico verde claro/oscuro en hojas\n• Hojas deformadas, filiformes (helechadas)\n• Enanismo variable\n• Frutos con maduración irregular\n• Manchas necróticas internas en frutos\n• Síntomas peores en clima fresco\n\n**Transmisión:**\n• Manos contaminadas (principal)\n• Herramientas de poda\n• Contacto planta-planta\n• Semilla contaminada (externa)\n• Ropa, insectos (mecánica)\n\n**Control:**\n• Variedades resistentes: gen Tm-2², Tm-22\n• Desinfección de semillas (calor seco 70°C/4 días)\n• Lavado de manos con leche descremada\n• Desinfectar herramientas (fosfato trisódico 10%)\n• No fumar tabaco en el campo\n• Eliminar plantas sospechosas\n• No hay tratamiento curativo",
-      "keywords": ["virus", "mosaico", "tomv", "mosaic", "moteado", "mecanico", "tomate"]
+      "keywords": [
+        "virus",
+        "mosaico",
+        "tomv",
+        "mosaic",
+        "moteado",
+        "mecanico",
+        "tomate"
+      ]
     },
     {
       "id": 125,
@@ -924,7 +1003,15 @@
         "Requerimientos técnicos tomate"
       ],
       "answer": "**Guía técnica del cultivo de tomate** \n\n**Taxonomía:**\n• Solanum lycopersicum L.\n• Familia: Solanaceae\n• Origen: América del Sur (Andes)\n\n**Requerimientos climáticos:**\n• Temperatura óptima: 20-25°C día, 15-18°C noche\n• Diferencial térmico importante para cuajado\n• Mín: 10°C, Máx: 35°C\n• Heladas: fatal\n• Luz: 8-16 horas, alta intensidad\n\n**Suelo:**\n• pH: 6.0-6.8 óptimo\n• Textura: franco a franco-arenoso\n• Materia orgánica: >3%\n• Drenaje: excelente (sensible a encharcamiento)\n• CE: <2.5 dS/m\n\n**Densidad de siembra:**\n• Campo abierto: 20,000-30,000 plantas/ha\n• Invernadero: 25,000-35,000 plantas/ha\n• Distancia: 0.4-0.5 m entre plantas\n• Entre surcos: 1.2-1.5 m\n\n**Fertilización base (kg/ha):**\n• N: 200-300 (fraccionado)\n• P2O5: 100-150\n• K2O: 300-400\n• Ca: 150-200\n• Mg: 50-80\n• Fertirrigación: ajustar según etapa\n\n**Etapas fenológicas:**\n1. Germinación: 5-10 días\n2. Plántula: 25-35 días\n3. Crecimiento vegetativo: 20-30 días\n4. Floración: continua desde día 50-60\n5. Fructificación: continua\n6. Primera cosecha: 70-90 días post-trasplante",
-      "keywords": ["cultivo", "tecnico", "tomate", "guia", "manejo", "requerimientos", "fertilizacion"]
+      "keywords": [
+        "cultivo",
+        "tecnico",
+        "tomate",
+        "guia",
+        "manejo",
+        "requerimientos",
+        "fertilizacion"
+      ]
     },
     {
       "id": 126,
@@ -936,7 +1023,15 @@
         "Manchas concéntricas papa"
       ],
       "answer": "**Tizón temprano de papa (Alternaria solani)** \n\n**Agente causal:**\n• Hongo Alternaria solani\n• También afecta tomate\n• Sobrevive en residuos y tubérculos infectados\n\n**Síntomas en follaje:**\n• Manchas circulares con anillos concéntricos\n• Color marrón oscuro a negro\n• Halo clorótico alrededor\n• Inicia en hojas inferiores (más viejas)\n• Defoliación prematura\n\n**Síntomas en tubérculos:**\n• Lesiones oscuras, hundidas\n• Bordes definidos, ligeramente elevados\n• Pudrición seca, corchosa\n• Ingreso de patógenos secundarios\n\n**Condiciones favorables:**\n• Temperatura 20-30°C\n• Alternancia húmedo-seco\n• Plantas estresadas (nutrición, sequía)\n• Alta carga de frutos\n\n**Control químico:**\n• Preventivo: mancozeb, clorotalonil, propineb\n• Curativo: difenoconazol, azoxistrobin, boscalid\n• Iniciar aplicaciones tempranas\n• Intervalos: 7-14 días según presión\n\n**Control cultural:**\n• Variedades tolerantes\n• Fertilización balanceada (evitar deficiencia N y K)\n• Rotación 2-3 años\n• Eliminar residuos\n• Cosecha en tiempo seco",
-      "keywords": ["tizon", "temprano", "early", "blight", "alternaria", "papa", "concentricas"]
+      "keywords": [
+        "tizon",
+        "temprano",
+        "early",
+        "blight",
+        "alternaria",
+        "papa",
+        "concentricas"
+      ]
     },
     {
       "id": 127,
@@ -948,7 +1043,15 @@
         "Gota de la papa"
       ],
       "answer": "**Tizón tardío de papa (Phytophthora infestans)** \n\n**Importancia:**\n• Enfermedad más devastadora de papa a nivel mundial\n• Pérdidas: 6.7 mil millones USD/año globalmente\n• Causó la Gran Hambruna Irlandesa (1845-1852)\n\n**Agente causal:**\n• Oomiceto Phytophthora infestans\n• Produce zoosporas móviles\n• Requiere agua libre para infección\n• Razas virulentas superan resistencia\n\n**Síntomas en follaje:**\n• Manchas irregulares acuosas verde-oscuro\n• Rápida expansión (horas)\n• Micelio blanco en envés (humedad)\n• Necrosis y colapso foliar\n• Olor característico\n\n**Síntomas en tubérculos:**\n• Manchas cobrizas irregulares en piel\n• Pudrición granular marrón-rojiza\n• Avanza desde superficie\n• Pudriciones secundarias bacterianas\n\n**Condiciones favorables:**\n• Temperatura 10-20°C (óptimo 15-18°C)\n• Humedad >90%\n• Lluvia, rocío prolongado\n• Noches frescas, días templados\n\n**Control químico (crítico):**\n• Preventivo: mancozeb, clorotalonil, fluazinam\n• Curativo: metalaxil-M, mandipropamid, cymoxanil\n• Sistémicos: dimetomorf, propamocarb\n• Aplicar cada 5-7 días en epidemia\n• Resistencia a metalaxil: alternar grupos\n\n**Control integrado:**\n• Variedades resistentes: genes R (específica) y resistencia cuantitativa\n• Semilla certificada\n• Eliminar pilas de descarte\n• Monitoreo con modelos predictivos (BLITECAST)\n• Quemar follaje antes de cosecha\n• Rotación: no sembrar cerca de lotes infectados del año anterior",
-      "keywords": ["tizon", "tardio", "late", "blight", "phytophthora", "gota", "papa"]
+      "keywords": [
+        "tizon",
+        "tardio",
+        "late",
+        "blight",
+        "phytophthora",
+        "gota",
+        "papa"
+      ]
     },
     {
       "id": 128,
@@ -960,7 +1063,15 @@
         "Requerimientos técnicos papa"
       ],
       "answer": "**Guía técnica del cultivo de papa** \n\n**Taxonomía:**\n• Solanum tuberosum L.\n• Familia: Solanaceae\n• Origen: Andes (Perú-Bolivia)\n• 4to cultivo alimenticio mundial\n\n**Requerimientos climáticos:**\n• Temperatura óptima: 15-20°C\n• Tuberización: <20°C nocturnas\n• Heladas: daño a follaje bajo 0°C\n• Altitud: 0-4,000 msnm según variedad\n• Fotoperiodo: días cortos favorecen tuberización\n\n**Suelo:**\n• pH: 5.5-6.5 óptimo\n• Textura: franco a franco-arenoso\n• Drenaje: excelente (pudriciones si encharca)\n• Profundidad: >30 cm\n• Materia orgánica: >2%\n\n**Semilla:**\n• Tubérculo-semilla certificada\n• Tamaño: 40-60 g óptimo\n• Brotación: múltiples brotes cortos\n• Tratamiento: fungicida + insecticida\n\n**Densidad:**\n• 35,000-45,000 plantas/ha\n• Distancia entre surcos: 0.75-0.90 m\n• Entre plantas: 0.25-0.35 m\n• Profundidad siembra: 8-12 cm\n\n**Fertilización (kg/ha):**\n• N: 120-200 (1/2 siembra, 1/2 aporque)\n• P2O5: 100-200 (todo a la siembra)\n• K2O: 100-180\n• Ca y Mg según análisis\n• Evitar exceso N (favorece follaje sobre tubérculos)\n\n**Labores críticas:**\n• Aporque: 20-30 días (cubrir tubérculos)\n• Segundo aporque: opcional\n• Riego: crítico en tuberización\n• Defoliación o corte follaje: 15 días antes de cosecha\n\n**Cosecha:**\n• Madurez: follaje amarillo/seco\n• Piel firme (no se pela)\n• 90-150 días según variedad\n• Curado: 10-14 días a 15°C, humedad alta",
-      "keywords": ["cultivo", "tecnico", "papa", "guia", "manejo", "requerimientos", "tuberculo"]
+      "keywords": [
+        "cultivo",
+        "tecnico",
+        "papa",
+        "guia",
+        "manejo",
+        "requerimientos",
+        "tuberculo"
+      ]
     },
     {
       "id": 129,
@@ -972,7 +1083,14 @@
         "Costras en papa"
       ],
       "answer": "**Sarna común (Streptomyces scabies)** \n\n**Agente causal:**\n• Bacteria filamentosa (actinomiceto)\n• Streptomyces scabies y especies relacionadas\n• Sobrevive indefinidamente en suelo\n\n**Síntomas:**\n• Lesiones corchosas en superficie del tubérculo\n• Pueden ser superficiales, elevadas o profundas\n• Color marrón claro a oscuro\n• No afecta follaje\n• Reduce calidad comercial (no comestibilidad)\n\n**Condiciones favorables:**\n• pH suelo >5.5 (más severo pH >6.5)\n• Suelo seco durante tuberización\n• Temperatura suelo 20-22°C\n• Baja materia orgánica\n\n**Control:**\n• Variedades resistentes/tolerantes\n• Mantener pH 5.0-5.2 (aplicar azufre)\n• Riego durante tuberización (mantener humedad)\n• Rotación con cultivos no susceptibles\n• No aplicar cal antes de papa\n• Semilla libre de sarna\n• Evitar estiércol fresco\n\n**Variedades resistentes:**\n• Superior, Norland, Russet Burbank (moderada)\n• Atlantic, Katahdin (susceptibles)",
-      "keywords": ["sarna", "comun", "scab", "streptomyces", "costras", "papa"]
+      "keywords": [
+        "sarna",
+        "comun",
+        "scab",
+        "streptomyces",
+        "costras",
+        "papa"
+      ]
     },
     {
       "id": 130,
@@ -984,7 +1102,15 @@
         "Black scurf papa"
       ],
       "answer": "**Rizoctoniasis / Costra negra (Rhizoctonia solani)** \n\n**Agente causal:**\n• Hongo Rhizoctonia solani AG-3\n• Sobrevive como esclerocios en tubérculos y suelo\n• Amplio rango de hospederos\n\n**Síntomas:**\n• Esclerocios negros en piel (costra negra)\n• Chancros en brotes y estolones\n• Tallos con lesiones hundidas marrones\n• Tubérculos deformes, agrietados\n• Pudrición seca del extremo del estolón\n• Tubérculos aéreos (obstrucción transporte)\n\n**Condiciones favorables:**\n• Suelo frío y húmedo en emergencia\n• Siembra profunda\n• Suelo compactado\n• Rotaciones cortas\n\n**Control:**\n• Semilla certificada libre de esclerocios\n• Tratamiento de tubérculos: flutolanil, pencycuron\n• Siembra en suelo templado (>10°C)\n• Profundidad adecuada (no excesiva)\n• Rotación 3-4 años\n• Cosecha temprana (reduce esclerocios)\n• Evitar daño mecánico",
-      "keywords": ["rizoctoniasis", "rhizoctonia", "costra", "negra", "black", "scurf", "papa"]
+      "keywords": [
+        "rizoctoniasis",
+        "rhizoctonia",
+        "costra",
+        "negra",
+        "black",
+        "scurf",
+        "papa"
+      ]
     },
     {
       "id": 131,
@@ -996,7 +1122,15 @@
         "Manchas en hojas manzano"
       ],
       "answer": "**Sarna del manzano (Venturia inaequalis)** \n\n**Agente causal:**\n• Hongo ascomiceto Venturia inaequalis\n• Ciclo primario: ascosporas desde hojas caídas\n• Ciclo secundario: conidios durante temporada\n\n**Síntomas en hojas:**\n• Manchas verde oliva aterciopeladas\n• Se vuelven oscuras y corchosas\n• Distorsión y enrollamiento\n• Defoliación prematura severa\n\n**Síntomas en frutos:**\n• Manchas circulares oscuras corchosas\n• Agrietamiento si infección temprana\n• Deformación del fruto\n• Pérdida total de valor comercial\n\n**Condiciones favorables:**\n• Lluvia + temperatura templada\n• Tabla Mills: 9 hrs mojado a 17°C para infección\n• Primavera húmeda crítica\n• Fuente de inóculo: hojas infectadas en suelo\n\n**Control químico:**\n• Preventivo: captan, mancozeb, metiram\n• Curativo post-infección: myclobutanil, difenoconazol\n• Sistémico: trifloxistrobin + captan\n• Calendario según tabla de Mills\n\n**Control cultural:**\n• Variedades resistentes: gen Vf (Liberty, Enterprise, Goldrush)\n• Destruir hojas caídas (compostaje, urea 5%)\n• Poda para ventilación\n• Eliminar frutos momificados",
-      "keywords": ["sarna", "manzano", "apple", "scab", "venturia", "manchas", "manzana"]
+      "keywords": [
+        "sarna",
+        "manzano",
+        "apple",
+        "scab",
+        "venturia",
+        "manchas",
+        "manzana"
+      ]
     },
     {
       "id": 132,
@@ -1008,7 +1142,15 @@
         "Cancros manzano"
       ],
       "answer": "**Podredumbre negra (Botryosphaeria obtusa)** \n\n**Agente causal:**\n• Hongo Botryosphaeria obtusa (sin. Diplodia seriata)\n• Sobrevive en cancros y frutos momificados\n• Penetra por heridas\n\n**Síntomas en hojas:**\n• Manchas circulares púrpura con centro marrón\n• Patrón de ojo de rana\n• Puntos negros (picnidios) visibles\n\n**Síntomas en frutos:**\n• Pudrición firme que inicia en cáliz o herida\n• Anillos concéntricos oscuros\n• Fruto se momifica (negro, arrugado)\n• Permanece en árbol como fuente de inóculo\n\n**Síntomas en ramas:**\n• Cancros hundidos rojizo-marrón\n• Corteza agrietada\n• Muerte progresiva de ramas\n\n**Control químico:**\n• Captan, mancozeb en programa de sarna\n• Thiophanate-methyl para cancros\n• Aplicaciones desde roseta hasta cosecha\n\n**Control cultural:**\n• Eliminar frutos momificados (CRÍTICO)\n• Podar ramas con cancros\n• Eliminar madera muerta\n• Quemar o enterrar residuos\n• Buena nutrición del árbol",
-      "keywords": ["podredumbre", "negra", "black", "rot", "botryosphaeria", "cancros", "manzana"]
+      "keywords": [
+        "podredumbre",
+        "negra",
+        "black",
+        "rot",
+        "botryosphaeria",
+        "cancros",
+        "manzana"
+      ]
     },
     {
       "id": 133,
@@ -1020,7 +1162,16 @@
         "Manchas naranjas manzano"
       ],
       "answer": "**Roya del manzano-cedro (Gymnosporangium juniperi-virginianae)** \n\n**Agente causal:**\n• Hongo heteroico (requiere 2 hospederos)\n• Hospedero telial: Juniperus (cedros, enebros)\n• Hospedero ecial: Malus (manzanos)\n• Ciclo de 2 años\n\n**Síntomas en manzano:**\n• Manchas amarillo-naranja brillante en hojas\n• Puntos negros en haz (espermogonios)\n• Tubos anaranjados en envés (aecios)\n• Defoliación en ataques severos\n• Frutos: lesiones similares, deformación\n\n**Síntomas en cedro/enebro:**\n• Agallas globosas café (2-5 cm)\n• En primavera húmeda: masas gelatinosas naranjas\n• Las agallas producen esporas 2-3 años\n\n**Condiciones favorables:**\n• Primavera lluviosa\n• Proximidad a cedros/enebros (<300 m crítico)\n• Mojado foliar para infección\n\n**Control:**\n• Eliminar cedros cercanos si posible\n• Fungicidas: myclobutanil, mancozeb\n• Aplicar desde roseta hasta 3 semanas post-floración\n• Variedades resistentes: Redfree, Liberty, Enterprise\n\n**Nota:** En algunas regiones hay especies relacionadas que causan royas similares",
-      "keywords": ["roya", "manzano", "cedro", "cedar", "rust", "gymnosporangium", "naranja", "manzana"]
+      "keywords": [
+        "roya",
+        "manzano",
+        "cedro",
+        "cedar",
+        "rust",
+        "gymnosporangium",
+        "naranja",
+        "manzana"
+      ]
     },
     {
       "id": 134,
@@ -1032,7 +1183,15 @@
         "Requerimientos manzano"
       ],
       "answer": "**Guía técnica del cultivo de manzana** \n\n**Taxonomía:**\n• Malus domestica Borkh.\n• Familia: Rosaceae\n• Origen: Asia Central (Kazakhstan)\n\n**Requerimientos climáticos:**\n• Horas frío (< 7°C): 400-1800 según variedad\n• Temperatura media anual: 8-15°C\n• Heladas tardías: daño en floración\n• Granizo: protección necesaria\n• Lluvia anual: 700-1200 mm\n\n**Suelo:**\n• pH: 6.0-7.0\n• Textura: franco a franco-limoso\n• Profundidad: >60 cm\n• Drenaje: excelente\n• Evitar suelos calcáreos (clorosis)\n\n**Portainjertos comunes:**\n• M9: enanizante, producción temprana\n• MM106: semi-enanizante, adaptable\n• MM111: vigor medio, tolerante a sequía\n• Selección según suelo y sistema\n\n**Densidad de plantación:**\n• Alta densidad: 2000-4000 árboles/ha (M9)\n• Media densidad: 800-1500 árboles/ha (MM106)\n• Tradicional: 200-400 árboles/ha\n\n**Fertilización anual (kg/ha):**\n• N: 60-120 (fraccionado primavera)\n• P2O5: 30-60\n• K2O: 100-200\n• Ca: según análisis foliar\n• Boro, Zn: aplicaciones foliares\n\n**Podas:**\n• Formación: primeros 3-4 años\n• Producción: invierno, equilibrar vigor/producción\n• Verde: verano, controlar vigor\n\n**Polinización:**\n• Mayoría requiere polinización cruzada\n• 10-15% polinizadores compatible\n• 2-4 colmenas/ha durante floración",
-      "keywords": ["cultivo", "tecnico", "manzana", "guia", "manejo", "requerimientos", "frutales"]
+      "keywords": [
+        "cultivo",
+        "tecnico",
+        "manzana",
+        "guia",
+        "manejo",
+        "requerimientos",
+        "frutales"
+      ]
     },
     {
       "id": 135,
@@ -1044,7 +1203,14 @@
         "Polilla del manzano"
       ],
       "answer": "**Carpocapsa / Polilla del manzano (Cydia pomonella)** \n\n**Identificación:**\n• Adulto: polilla gris 15-20 mm envergadura\n• Mancha cobriza en ala posterior\n• Larva: gusano rosado-blanco con cabeza marrón\n• Hasta 20 mm de largo\n\n**Daño:**\n• Larva penetra fruto (entrada con excremento)\n• Galerías hacia semillas\n• Frutos caen prematuramente\n• Pérdidas: 30-80% sin control\n\n**Ciclo biológico:**\n• 2-4 generaciones/año según clima\n• Inverna como larva en corteza\n• Adultos emergen en primavera\n• Vuelo nocturno, oviposición en frutos\n\n**Monitoreo:**\n• Trampas de feromona sexual\n• Umbral: capturas + grados-día acumulados\n• Modelos predictivos para aplicaciones\n\n**Control químico:**\n• IGR (reguladores crecimiento): metoxifenocide\n• Organofosforados: clorpirifos (restricciones)\n• Spinosad (uso orgánico aprobado)\n• Timing crítico: contra huevos y larvas neonatas\n\n**Control alternativo:**\n• Confusión sexual (alta densidad)\n• Virus de granulosis (CpGV)\n• Bandas cartón trampa en troncos\n• Nematodos entomopatógenos\n• Liberación Trichogramma",
-      "keywords": ["carpocapsa", "cydia", "gusano", "polilla", "manzana", "plaga"]
+      "keywords": [
+        "carpocapsa",
+        "cydia",
+        "gusano",
+        "polilla",
+        "manzana",
+        "plaga"
+      ]
     },
     {
       "id": 136,
@@ -1056,7 +1222,15 @@
         "Manchas circulares vid"
       ],
       "answer": "**Podredumbre negra de la uva (Guignardia bidwellii)** \n\n**Agente causal:**\n• Hongo Guignardia bidwellii (Phyllosticta ampelicida)\n• Originario de Norteamérica\n• Sobrevive en bayas momificadas y sarmientos\n\n**Síntomas en hojas:**\n• Manchas circulares marrón-rojizo (2-10 mm)\n• Centro claro, borde oscuro\n• Puntos negros (picnidios) dentro\n• Defoliación en ataques severos\n\n**Síntomas en frutos (devastador):**\n• Manchas blancas que se agrandan\n• Pudrición rápida, baya se arruga\n• Momificación negra-azulada\n• Picnidios abundantes en frutos\n• Pérdidas totales posibles\n\n**Condiciones favorables:**\n• Temperatura 20-27°C\n• Mojado foliar >6 horas\n• Lluvias frecuentes primavera-verano\n\n**Control químico:**\n• Preventivo: mancozeb, captan, metiram\n• Sistémico: myclobutanil, tebuconazol\n• Estrobilurinas: azoxistrobin\n• Aplicar desde brotes 10 cm hasta envero\n• Intervalos: 10-14 días en clima húmedo\n\n**Control cultural:**\n• Eliminar bayas momificadas (CRÍTICO)\n• Podar sarmientos infectados\n• Buena aireación del dosel\n• Manejo de malezas\n• Variedades resistentes: híbridos americanos",
-      "keywords": ["podredumbre", "negra", "black", "rot", "guignardia", "uva", "vid"]
+      "keywords": [
+        "podredumbre",
+        "negra",
+        "black",
+        "rot",
+        "guignardia",
+        "uva",
+        "vid"
+      ]
     },
     {
       "id": 137,
@@ -1068,7 +1242,16 @@
         "Manchas tigre vid"
       ],
       "answer": "**Esca / Yesca de la vid (complejo fúngico)** \n\n**Agentes causales (complejo):**\n• Phaeomoniella chlamydospora\n• Phaeoacremonium spp.\n• Fomitiporia mediterranea (pudrición blanca)\n• Infección por heridas de poda\n\n**Formas de la enfermedad:**\n\n**1. Forma crónica (común):**\n• Hojas con clorosis intervenal \"tigrada\"\n• Bandas cloróticas entre nervaduras\n• Necrosis marginal progresiva\n• Bayas con manchas oscuras (black measles)\n• Maduración irregular\n• Debilitamiento progresivo del viñedo\n\n**2. Forma apoplética (súbita):**\n• Muerte repentina de planta en verano\n• Hojas se secan en días\n• Asociada a estrés hídrico\n• Corte de tronco: necrosis sectorial\n\n**Síntomas en madera:**\n• Necrosis marrón oscuro en corte transversal\n• Pudrición blanca esponjosa (Fomitiporia)\n• Estrías oscuras en vasos conductores\n\n**Control (difícil):**\n• Prevención: proteger heridas de poda\n• Pasta cicatrizante con fungicida\n• Podar en tiempo seco\n• Cirugía: cortar partes necrosadas\n• No hay fungicidas curativos efectivos\n• Arrancar plantas muy afectadas\n• Material de plantación certificado",
-      "keywords": ["esca", "yesca", "black", "measles", "tigre", "uva", "vid", "apoplejia"]
+      "keywords": [
+        "esca",
+        "yesca",
+        "black",
+        "measles",
+        "tigre",
+        "uva",
+        "vid",
+        "apoplejia"
+      ]
     },
     {
       "id": 138,
@@ -1080,7 +1263,16 @@
         "Pseudocercospora vitis"
       ],
       "answer": "**Tizón foliar / Mancha de la hoja (Pseudocercospora vitis)** \n\n**Agente causal:**\n• Pseudocercospora vitis (sin. Isariopsis clavispora)\n• Más común en climas tropicales y subtropicales\n• Sobrevive en hojas caídas\n\n**Síntomas:**\n• Manchas angulares marrón-rojizo\n• Limitadas por nervaduras (angulares)\n• Halo amarillo\n• Centro oscuro con esporulación gris\n• Coalescencia y necrosis extensiva\n• Defoliación severa\n\n**Condiciones favorables:**\n• Alta humedad (>80%)\n• Temperatura 25-30°C\n• Lluvias frecuentes\n• Más severo en viñedos sombreados\n\n**Control químico:**\n• Mancozeb, clorotalonil preventivo\n• Azoxistrobin, difenoconazol\n• Aplicaciones regulares en temporada lluviosa\n\n**Control cultural:**\n• Buena ventilación del dosel\n• Poda para reducir densidad foliar\n• Eliminar hojas caídas\n• Manejo de riego\n• Drenaje adecuado",
-      "keywords": ["tizon", "foliar", "leaf", "blight", "isariopsis", "pseudocercospora", "uva", "vid"]
+      "keywords": [
+        "tizon",
+        "foliar",
+        "leaf",
+        "blight",
+        "isariopsis",
+        "pseudocercospora",
+        "uva",
+        "vid"
+      ]
     },
     {
       "id": 139,
@@ -1092,7 +1284,15 @@
         "Viticultura técnica"
       ],
       "answer": "**Guía técnica del cultivo de vid (Vitis vinifera)** \n\n**Taxonomía:**\n• Vitis vinifera L. (vid europea)\n• Familia: Vitaceae\n• Origen: Asia occidental, Mediterráneo\n\n**Requerimientos climáticos:**\n• Clima mediterráneo ideal\n• Temperatura vegetativa: 10-35°C\n• Requiere frío invernal (dormancia)\n• Sensible a heladas en brotación\n• Granizo: muy dañino\n• Lluvia: problemática en maduración\n\n**Suelo:**\n• pH: 5.5-8.0 (amplio rango)\n• Prefiere suelos pobres, bien drenados\n• Profundidad: >1 m ideal\n• Pedregosos: calidad superior\n• Evitar suelos fértiles (vigor excesivo)\n\n**Portainjertos:**\n• SO4: vigor medio, suelos calizos\n• 110 Richter: sequía, calcáreo\n• 1103 Paulsen: vigor, sequía\n• 3309C: menos vigor, calidad\n• Selección según suelo y filoxera\n\n**Sistemas de conducción:**\n• Espaldera vertical (VSP): más común\n• Parral: uva de mesa\n• Gobelet: tradicional, secano\n• Guyot simple/doble: según vigor\n\n**Densidad:**\n• Intensivo: 3,000-6,000 cepas/ha\n• Tradicional: 1,500-3,000 cepas/ha\n\n**Fertilización moderada (kg/ha):**\n• N: 40-80 (exceso reduce calidad)\n• P2O5: 20-40\n• K2O: 80-150\n• Mg: según análisis\n• Fe, Zn, B: aplicaciones foliares\n\n**Calendario:**\n• Poda: invierno (reposo)\n• Brotación: primavera\n• Floración: mayo-junio (hemisferio norte)\n• Envero: cambio color (julio-agosto)\n• Vendimia: según variedad y destino",
-      "keywords": ["cultivo", "tecnico", "uva", "vid", "viticultura", "guia", "manejo"]
+      "keywords": [
+        "cultivo",
+        "tecnico",
+        "uva",
+        "vid",
+        "viticultura",
+        "guia",
+        "manejo"
+      ]
     },
     {
       "id": 140,
@@ -1104,7 +1304,15 @@
         "Manchas aceitosas vid"
       ],
       "answer": "**Mildiu de la vid (Plasmopara viticola)** \n\n**Agente causal:**\n• Oomiceto Plasmopara viticola\n• Originario de América\n• Devastador en Europa desde 1878\n\n**Síntomas en hojas:**\n• Manchas aceitosas amarillo-verdosas en haz\n• Eflorescencia blanca algodonosa en envés\n• Necrosis marrón posterior\n• Defoliación severa\n\n**Síntomas en racimos:**\n• Inflorescencias: pudrición gris\n• Bayas jóvenes: pelusilla blanca, momificación\n• Bayas desarrolladas: cuero de bayas (brown rot)\n\n**Condiciones favorables (Regla 10-10-24):**\n• Temperatura >10°C\n• Brotes >10 cm\n• Lluvia >10 mm en 24-48 horas\n• Humedad >95% nocturna\n\n**Control químico:**\n• Contacto: mancozeb, metiram, folpet\n• Sistémico: metalaxil, benalaxil\n• Translaminar: dimetomorf, mandipropamid\n• Cobre: producto tradicional efectivo\n• Aplicar según modelos predictivos\n\n**Control cultural:**\n• Drenaje del viñedo\n• Poda en verde para aireación\n• Deshojado zona de racimos\n• Orientación de filas\n• Evitar riego por aspersión",
-      "keywords": ["mildiu", "downy", "mildew", "plasmopara", "aceitosas", "uva", "vid"]
+      "keywords": [
+        "mildiu",
+        "downy",
+        "mildew",
+        "plasmopara",
+        "aceitosas",
+        "uva",
+        "vid"
+      ]
     },
     {
       "id": 141,
@@ -1116,7 +1324,17 @@
         "Polvo blanco vid"
       ],
       "answer": "**Oídio de la vid (Erysiphe necator)** \n\n**Agente causal:**\n• Hongo Erysiphe necator (sin. Uncinula necator)\n• Originario de América\n• Afecta solo Vitis\n\n**Síntomas:**\n• Polvo blanco-grisáceo en hojas, brotes, racimos\n• Hojas: manchas amarillas, luego necróticas\n• Brotes: crecimiento distorsionado\n• Bayas: agrietamiento si infección temprana\n• Olor característico a moho\n• Afecta calidad de vino\n\n**Condiciones favorables:**\n• Temperatura 20-27°C óptima\n• Humedad 40-100% (NO necesita agua libre)\n• Sombra y poca ventilación\n• Diferente al mildiu: clima seco\n\n**Control químico:**\n• Azufre: tradicional, efectivo, económico\n• IBS: myclobutanil, tebuconazol, penconazol\n• Estrobilurinas: azoxistrobin, kresoxim-metil\n• Quinoxifen, metrafenone: preventivos\n• Resistencia: rotar modos de acción\n\n**Control cultural:**\n• Poda para ventilación\n• Deshojado en zona de racimos\n• Equilibrio vigor-producción\n• Variedades tolerantes\n• Control de chupones",
-      "keywords": ["oidio", "powdery", "mildew", "uncinula", "erysiphe", "polvo", "blanco", "uva", "vid"]
+      "keywords": [
+        "oidio",
+        "powdery",
+        "mildew",
+        "uncinula",
+        "erysiphe",
+        "polvo",
+        "blanco",
+        "uva",
+        "vid"
+      ]
     },
     {
       "id": 142,
@@ -1128,7 +1346,15 @@
         "Requerimientos técnicos maíz"
       ],
       "answer": "**Guía técnica del cultivo de maíz** \n\n**Taxonomía:**\n• Zea mays L.\n• Familia: Poaceae\n• Origen: México (domesticación hace 9,000 años)\n\n**Requerimientos climáticos:**\n• Temperatura óptima: 25-30°C\n• Mínima germinación: 10°C suelo\n• Sensible a heladas (toda etapa)\n• Suma térmica: 800-1400 GDU según ciclo\n• Fotoperiodo: día corto favorece floración\n\n**Suelo:**\n• pH: 5.8-7.0\n• Textura: franca ideal\n• Profundidad: >60 cm\n• Tolera moderada salinidad\n• Drenaje: sensible a encharcamiento\n\n**Densidad de siembra:**\n• Grano: 65,000-85,000 plantas/ha\n• Forraje: 80,000-100,000 plantas/ha\n• Entre surcos: 70-80 cm\n• Entre plantas: 15-20 cm\n• Profundidad: 5-7 cm\n\n**Fertilización (kg/ha, rendimiento 10 t):**\n• N: 200-250 (fraccionado: siembra + V6)\n• P2O5: 60-80 (todo a la siembra)\n• K2O: 40-80\n• S: 20-30 (importante)\n• Zn: aplicación foliar o al suelo\n\n**Etapas fenológicas (escala Iowa):**\n• VE-V6: establecimiento crítico\n• V8-V12: diferenciación floral\n• VT: panoja visible\n• R1: emergencia estigmas (crítico agua)\n• R6: madurez fisiológica\n\n**Riegos críticos:**\n• VT-R2: máxima demanda (8-10 mm/día)\n• Déficit aquí reduce 8% por día de estrés",
-      "keywords": ["cultivo", "tecnico", "maiz", "guia", "manejo", "requerimientos", "grano"]
+      "keywords": [
+        "cultivo",
+        "tecnico",
+        "maiz",
+        "guia",
+        "manejo",
+        "requerimientos",
+        "grano"
+      ]
     },
     {
       "id": 143,
@@ -1140,7 +1366,16 @@
         "Pústulas rojizas maíz"
       ],
       "answer": "**Roya común (Puccinia sorghi)** \n\n**Agente causal:**\n• Hongo Puccinia sorghi\n• Macrocíclico heteroico\n• Hospedero alternante: Oxalis spp.\n• Esporas aerotransportadas largas distancias\n\n**Síntomas:**\n• Pústulas pequeñas (0.5-1 mm) en ambas caras de la hoja\n• Inicialmente canela-rojizo\n• Más tarde oscurecen (teliosporas)\n• Distribución dispersa en la hoja\n• Hojas severamente afectadas amarillean\n\n**Condiciones favorables:**\n• Temperatura fresca 15-25°C (óptimo 16-23°C)\n• Alta humedad relativa\n• Rocío nocturno prolongado\n• Más severo en siembras tardías\n\n**Diferencia con roya sureña:**\n• P. sorghi: pústulas más grandes, dispersas\n• Roya sureña: pústulas pequeñas, agrupadas, climas cálidos\n\n**Control químico:**\n• Fungicidas triazoles: propiconazol, tebuconazol\n• Estrobilurinas: azoxistrobin, pyraclostrobin\n• Mezclas triazol + estrobilurina\n• Aplicar en VT-R2 si presión alta\n\n**Control cultural:**\n• Híbridos resistentes (genes Rp)\n• Siembra en fecha óptima (evitar tardías)\n• Rotación reduce inóculo local",
-      "keywords": ["roya", "comun", "common", "rust", "puccinia", "sorghi", "pustulas", "maiz"]
+      "keywords": [
+        "roya",
+        "comun",
+        "common",
+        "rust",
+        "puccinia",
+        "sorghi",
+        "pustulas",
+        "maiz"
+      ]
     },
     {
       "id": 144,
@@ -1152,7 +1387,15 @@
         "Larvas en cogollo maíz"
       ],
       "answer": "**Gusano cogollero (Spodoptera frugiperda)** \n\n**Identificación:**\n• Adulto: polilla gris-marrón 30-40 mm\n• Larva: verde a marrón, Y invertida en cabeza\n• 6 estadios larvales\n• Hasta 40 mm de largo\n\n**Daño:**\n• Raspa hojas jóvenes (estadios tempranos)\n• Perfora cogollo (\"ventanitas\")\n• Excremento como aserrín húmedo\n• Puede destruir punto de crecimiento\n• En mazorca: daño a granos\n\n**Ciclo:**\n• Huevo-adulto: 30-40 días\n• Múltiples generaciones/año\n• Migra desde trópicos cada primavera\n• Plaga global (llegó a África 2016, Asia 2018)\n\n**Monitoreo:**\n• Revisión de cogollo semanal\n• Trampas de feromona\n• Umbral: 20% plantas con daño fresco\n\n**Control químico:**\n• Clorpirifos, lufenuron (tradicional)\n• Spinosad (orgánico)\n• Emamectina benzoato\n• Aplicar dirigido al cogollo\n• Resistencia a piretroides común\n\n**Control biológico:**\n• Bacillus thuringiensis (Bt)\n• Beauveria bassiana\n• Trichogramma spp. (parasitoide huevos)\n• Telenomus remus (parasitoide)\n\n**Control cultural:**\n• Maíz Bt transgénico (donde legal)\n• Siembra temprana\n• Destrucción de rastrojos\n• Rotación de cultivos",
-      "keywords": ["cogollero", "fall", "armyworm", "spodoptera", "frugiperda", "larva", "maiz"]
+      "keywords": [
+        "cogollero",
+        "fall",
+        "armyworm",
+        "spodoptera",
+        "frugiperda",
+        "larva",
+        "maiz"
+      ]
     },
     {
       "id": 145,
@@ -1164,7 +1407,15 @@
         "Maíz rayado fino"
       ],
       "answer": "**Achaparramiento del maíz (Corn stunt spiroplasma)** \n\n**Agentes causales:**\n• Spiroplasma kunkelii (CSS - más severo)\n• Fitoplasma del enanismo del maíz (MBSP)\n• Virus del rayado fino (MRFV)\n• Complejo transmitido por chicharrita\n\n**Vector:**\n• Dalbulus maidis (chicharrita del maíz)\n• Transmisión persistente propagativa\n• Adquiere en 4 horas, transmite toda la vida\n• Alta eficiencia de transmisión\n\n**Síntomas:**\n• Clorosis marginal de hojas\n• Enrojecimiento de hojas\n• Enanismo severo\n• Proliferación de mazorcas pequeñas\n• Esterilidad o granos sueltos\n• Reducción rendimiento 30-100%\n\n**Condiciones favorables:**\n• Siembras tardías (más vector)\n• Presencia de maíz todo el año\n• Temperaturas cálidas\n• Lluvias que favorecen vector\n\n**Control:**\n• Fecha de siembra temprana (CRÍTICO)\n• Híbridos tolerantes\n• Control del vector: imidacloprid en semilla\n• Eliminar plantas voluntarias\n• Periodo libre de maíz\n• No hay tratamiento curativo",
-      "keywords": ["achaparramiento", "corn", "stunt", "spiroplasma", "dalbulus", "chicharrita", "maiz"]
+      "keywords": [
+        "achaparramiento",
+        "corn",
+        "stunt",
+        "spiroplasma",
+        "dalbulus",
+        "chicharrita",
+        "maiz"
+      ]
     },
     {
       "id": 146,
@@ -1176,7 +1427,15 @@
         "Caficultura técnica Colombia"
       ],
       "answer": "**Guía técnica del cultivo de café** \n\n**Taxonomía:**\n• Coffea arabica L. (arábica, 60% mundial)\n• Coffea canephora (robusta, 40%)\n• Familia: Rubiaceae\n• Origen: Etiopía\n\n**Zonas óptimas cafeteras:**\n• Altitud: 1,200-1,800 msnm (arábica Colombia)\n• Temperatura: 18-22°C media anual\n• Precipitación: 1,800-2,800 mm/año\n• Humedad relativa: 70-85%\n• Luminosidad: 1,500-2,000 horas luz/año\n\n**Suelo:**\n• pH: 5.0-5.5 óptimo\n• Textura: franco a franco-arcilloso\n• Materia orgánica: >5% ideal\n• Profundidad efectiva: >75 cm\n• Pendiente: <60% con conservación\n\n**Variedades Colombia:**\n• Castillo: resistente a roya, buena taza\n• Cenicafé 1: resistente a roya y CBD\n• Colombia: F1 híbrido, alta producción\n• Tabi: porte alto, excelente taza\n• Caturra: susceptible, excelente calidad\n\n**Establecimiento:**\n• Germinador: 45-60 días\n• Almácigo: 6-8 meses (bolsa o tubete)\n• Trasplante: inicio lluvias\n• Densidad: 5,000-10,000 plantas/ha\n• Sistema 2x1, 1.5x1.5, según pendiente\n\n**Fertilización base (g/planta/año):**\n• N: 40-60\n• P2O5: 8-12\n• K2O: 40-60\n• Fraccionada: 2-4 aplicaciones/año\n• Según análisis de suelo\n\n**Sombrío:**\n• Temporal: plátano, guamo (primeros 2 años)\n• Permanente: 30-50% según clima\n• Regula temperatura y humedad\n• Especies: guamo, nogal, carbonero",
-      "keywords": ["cultivo", "tecnico", "cafe", "guia", "manejo", "caficultura", "colombia"]
+      "keywords": [
+        "cultivo",
+        "tecnico",
+        "cafe",
+        "guia",
+        "manejo",
+        "caficultura",
+        "colombia"
+      ]
     },
     {
       "id": 147,
@@ -1188,7 +1447,15 @@
         "Control roya cafeto"
       ],
       "answer": "**Roya del cafeto (Hemileia vastatrix)** \n\n**Importancia histórica:**\n• Destruyó caficultura de Ceilán (1870s)\n• Crisis centroamericana 2012-2013\n• Pérdidas anuales: 1-2 mil millones USD\n\n**Agente causal:**\n• Hongo basidiomiceto Hemileia vastatrix\n• Solo infecta Coffea spp.\n• >50 razas fisiológicas identificadas\n\n**Síntomas:**\n• Manchas amarillentas en haz de hojas\n• Polvo anaranjado (uredosporas) en envés\n• Lesiones crecen y coalescen\n• Defoliación severa prematura\n• Reducción producción 30-80%\n• Muerte de ramas (paloteo)\n\n**Condiciones favorables:**\n• Temperatura 21-25°C óptima\n• Humedad >85%\n• Agua libre en hojas (rocío, lluvia)\n• Alta carga de frutos (estrés)\n• Deficiencia nutricional\n\n**Control químico:**\n• Preventivo: oxicloruro de cobre cada 30-45 días\n• Sistémico: ciproconazol, epoxiconazol\n• Mezclas: triazol + estrobilurina\n• Aplicar según pronóstico climático\n• Iniciar protección post-floración\n\n**Control cultural:**\n• Variedades resistentes: Castillo, Cenicafé 1 (CRÍTICO)\n• Fertilización balanceada\n• Regulación de sombra\n• Manejo de arvenses\n• Densidad adecuada\n• Renovación de cafetales viejos",
-      "keywords": ["roya", "cafe", "hemileia", "vastatrix", "amarillas", "naranja", "cafeto"]
+      "keywords": [
+        "roya",
+        "cafe",
+        "hemileia",
+        "vastatrix",
+        "amarillas",
+        "naranja",
+        "cafeto"
+      ]
     },
     {
       "id": 148,
@@ -1200,7 +1467,15 @@
         "Perforaciones grano café"
       ],
       "answer": "**Broca del café (Hypothenemus hampei)** \n\n**Identificación:**\n• Coleóptero (escarabajo) pequeño (1.5-2 mm)\n• Color negro brillante\n• Hembra perfora fruto, macho no vuela\n• Plaga más importante del café mundial\n\n**Daño:**\n• Hembra perfora fruto por ombligo o corona\n• Oviposita dentro del grano\n• Larvas consumen endospermo\n• Un grano puede tener 20-30 adultos\n• Caída de frutos verdes\n• Pérdida peso 10-30%\n• Defecto de taza\n\n**Ciclo biológico:**\n• Huevo a adulto: 25-35 días\n• Múltiples generaciones dentro del fruto\n• Sobrevive en frutos del suelo y ramas\n\n**Monitoreo:**\n• Trampas de alcohol etílico (dispersión)\n• Muestreo de frutos: >2% infestación = acción\n\n**Control cultural (MIB):**\n• Re-Re (recolección oportuna y repase)\n• Cosecha TODOS los frutos maduros\n• Recoger frutos caídos del suelo\n• Beneficio inmediato\n• Secado completo (<12% humedad)\n\n**Control biológico:**\n• Beauveria bassiana (hongo)\n• Cephalonomia stephanoderis (parasitoide)\n• Phymastichus coffea (parasitoide)\n\n**Control químico:**\n• Clorpirifos, fenitrothion (uso limitado)\n• Aplicar solo con infestación >5%\n• Dirigido a frutos brocados",
-      "keywords": ["broca", "cafe", "hypothenemus", "hampei", "gorgojo", "perforacion", "plaga"]
+      "keywords": [
+        "broca",
+        "cafe",
+        "hypothenemus",
+        "hampei",
+        "gorgojo",
+        "perforacion",
+        "plaga"
+      ]
     },
     {
       "id": 149,
@@ -1212,7 +1487,15 @@
         "Manchas circulares hojas café"
       ],
       "answer": "**Ojo de gallo / Gotera (Mycena citricolor)** \n\n**Agente causal:**\n• Hongo basidiomiceto Mycena citricolor\n• Produce gemas (propágulos) para dispersión\n• Favorecido por alta humedad y sombra\n\n**Síntomas:**\n• Manchas circulares café claro (3-15 mm)\n• Centro más claro, borde definido\n• En haz de hojas principalmente\n• Caída de tejido (hojas perforadas)\n• Ataca hojas, frutos, tallos tiernos\n• Defoliación severa en sombra excesiva\n\n**Condiciones favorables:**\n• Humedad relativa >90%\n• Lluvia frecuente prolongada\n• Sombra excesiva, poco viento\n• Temperaturas frescas 18-22°C\n• Cafetales densos, mal ventilados\n\n**Control químico:**\n• Cobre (oxicloruro, hidróxido)\n• Aplicar en época lluviosa\n• Intervalos 30-45 días\n• Ciproconazol si infección avanzada\n\n**Control cultural (más efectivo):**\n• Regular sombra (raleo de árboles)\n• Poda de cafetos para ventilación\n• Control de arvenses\n• Drenaje del lote\n• Evitar alta densidad",
-      "keywords": ["ojo", "gallo", "gotera", "mycena", "citricolor", "circular", "cafe"]
+      "keywords": [
+        "ojo",
+        "gallo",
+        "gotera",
+        "mycena",
+        "citricolor",
+        "circular",
+        "cafe"
+      ]
     },
     {
       "id": 150,
@@ -1224,7 +1507,15 @@
         "Manchas en hojas café con halo"
       ],
       "answer": "**Mancha de hierro / Cercosporiosis (Cercospora coffeicola)** \n\n**Agente causal:**\n• Hongo Cercospora coffeicola\n• Conidios dispersados por lluvia y viento\n• Sobrevive en hojas infectadas\n\n**Síntomas en hojas:**\n• Manchas circulares pequeñas (2-10 mm)\n• Centro gris-blanco, borde marrón rojizo\n• Halo amarillo característico\n• Numerosas lesiones coalescen\n• Defoliación en plantas débiles\n\n**Síntomas en frutos (chasparria):**\n• Manchas hundidas negras\n• Afecta pulpa y pergamino\n• Maduración irregular\n• Pérdida de peso y calidad\n\n**Condiciones favorables:**\n• Alta luminosidad (sol directo)\n• Plantas estresadas (nutrición, sequía)\n• Almácigos sin sombra\n• Alta carga de frutos\n• Lluvias alternadas con sol\n\n**Control:**\n• Nutrición balanceada (N, K, Ca)\n• Sombra regulada (30-50%)\n• Fungicidas cúpricos preventivos\n• Triazoles si hay presión alta\n• Variedades tolerantes\n• Riego en época seca",
-      "keywords": ["mancha", "hierro", "cercospora", "coffeicola", "chasparria", "halo", "cafe"]
+      "keywords": [
+        "mancha",
+        "hierro",
+        "cercospora",
+        "coffeicola",
+        "chasparria",
+        "halo",
+        "cafe"
+      ]
     },
     {
       "id": 151,
@@ -1236,7 +1527,15 @@
         "Recepa cafeto"
       ],
       "answer": "**Sistemas de poda y renovación del café** \n\n**Importancia:**\n• Mantiene productividad\n• Controla altura del árbol\n• Rejuvenece tejido productivo\n• Ciclo productivo: cada 5-6 años requiere intervención\n\n**Tipos de poda:**\n\n**1. Poda de formación (año 1-2):**\n• Eliminar chupones basales\n• Definir estructura (1-3 tallos)\n• Despunte si hay volcamiento\n\n**2. Poda de mantenimiento (anual):**\n• Eliminar ramas secas, enfermas\n• Quitar chupones indeseados\n• Mantener aireación\n\n**3. Poda de renovación por zoqueo:**\n• Cortar tallo a 30-40 cm del suelo\n• Corte biselado, limpio\n• Mejor época: post-cosecha\n• Seleccionar 1-2 brotes vigorosos\n• Producción a los 18-24 meses\n\n**4. Poda por lote:**\n• Dividir finca en 4-5 lotes\n• Renovar un lote/año\n• Mantiene producción constante\n\n**5. Recepa:**\n• Cortar más bajo (casi a ras)\n• Para cafetales muy viejos\n• Recuperación más lenta\n\n**Cuidados post-poda:**\n• Proteger cortes con fungicida-sellador\n• Fertilización después de brotación\n• Control de arvenses estricto\n• Sombrío temporal si necesario",
-      "keywords": ["poda", "cafe", "renovacion", "zoqueo", "recepa", "mantenimiento", "formacion"]
+      "keywords": [
+        "poda",
+        "cafe",
+        "renovacion",
+        "zoqueo",
+        "recepa",
+        "mantenimiento",
+        "formacion"
+      ]
     },
     {
       "id": 152,
@@ -1248,7 +1547,15 @@
         "Corteza rosada café"
       ],
       "answer": "**Mal rosado (Corticium salmonicolor)** \n\n**Agente causal:**\n• Hongo Corticium salmonicolor (Erythricium salmonicolor)\n• Ataca muchos cultivos tropicales\n• Crece sobre corteza\n\n**Síntomas:**\n• Costra rosada-salmón en ramas y tallos\n• Marchitez de hojas distal a lesión\n• Muerte descendente de ramas\n• Agrietamiento de corteza\n• Visible en época húmeda\n\n**Condiciones favorables:**\n• Humedad muy alta (>90%)\n• Sombra densa\n• Poca ventilación\n• Lluvias prolongadas\n• Heridas en ramas\n\n**Control:**\n• Poda sanitaria de ramas afectadas\n• Cortar 20-30 cm debajo de lesión\n• Quemar material podado\n• Aplicar pasta cúprica en cortes\n• Regular sombra\n• Mejorar drenaje y ventilación\n• Fungicidas cúpricos preventivos",
-      "keywords": ["mal", "rosado", "corticium", "salmonicolor", "corteza", "rosada", "cafe"]
+      "keywords": [
+        "mal",
+        "rosado",
+        "corticium",
+        "salmonicolor",
+        "corteza",
+        "rosada",
+        "cafe"
+      ]
     },
     {
       "id": 153,
@@ -1260,7 +1567,15 @@
         "Despulpado café"
       ],
       "answer": "**Beneficio húmedo del café** \n\n**Etapas del proceso:**\n\n**1. Recolección selectiva:**\n• Solo frutos maduros (cereza roja)\n• Pepiteo máximo 2.5%\n• Separar frutos dañados/brocados\n\n**2. Despulpado:**\n• Máximo 6 horas post-cosecha\n• Despulpadora calibrada\n• Separar flotes (vanos)\n• Agua mínima (beneficio ecológico)\n\n**3. Fermentación:**\n• Remoción del mucílago\n• Tiempo: 12-18 horas según temperatura\n• Prueba del palo (grano áspero)\n• Sobre-fermentación: defecto vinagre\n• Sub-fermentación: grano manchado\n\n**4. Lavado:**\n• Remover mucílago fermentado\n• Agua limpia, varias pasadas\n• Clasificación hidráulica\n• Beneficio ecológico: mínimo agua\n\n**5. Secado:**\n• Humedad inicial: 52-55%\n• Humedad final: 10-12%\n• Secado solar: 8-15 días (revolver cada hora)\n• Secadora mecánica: 40-50°C máximo\n• Espesor capa: 3-5 cm en patio\n\n**Calidad de taza:**\n• Cada etapa afecta sabor\n• Fermentación controlada: notas limpias\n• Secado uniforme: evita mohos\n• Almacenar en pergamino seco (<12%)",
-      "keywords": ["beneficio", "cafe", "humedo", "fermentacion", "despulpado", "lavado", "secado"]
+      "keywords": [
+        "beneficio",
+        "cafe",
+        "humedo",
+        "fermentacion",
+        "despulpado",
+        "lavado",
+        "secado"
+      ]
     },
     {
       "id": 154,
@@ -1272,7 +1587,15 @@
         "Manchas en hojas pimiento"
       ],
       "answer": "**Mancha bacteriana del pimiento (Xanthomonas spp.)** \n\n**Agente causal:**\n• Xanthomonas euvesicatoria, X. vesicatoria\n• Xanthomonas gardneri, X. perforans\n• Bacteria gram-negativa\n• Transmisión por semilla, salpicadura\n\n**Síntomas en hojas:**\n• Manchas pequeñas acuosas (2-5 mm)\n• Se tornan marrón con borde amarillo\n• Angulares cuando limitadas por venas\n• Defoliación severa\n\n**Síntomas en frutos:**\n• Lesiones elevadas corchosas\n• Inicialmente acuosas, luego rugosas\n• Entrada para otros patógenos\n• Pérdida total de valor comercial\n\n**Condiciones favorables:**\n• Temperatura 25-30°C\n• Lluvia con viento (dispersión)\n• Riego por aspersión\n• Heridas por granizo o manejo\n\n**Control químico:**\n• Productos cúpricos + mancozeb\n• Acibenzolar-S-metil (inductor)\n• Bactericidas: estreptomicina (resistencia común)\n• Aplicar preventivo antes de lluvia\n\n**Control cultural:**\n• Semilla tratada o certificada\n• Rotación 2-3 años sin solanáceas\n• Riego por goteo\n• No trabajar plantas mojadas\n• Eliminar residuos infectados\n• Variedades con resistencia parcial",
-      "keywords": ["mancha", "bacteriana", "bacterial", "spot", "xanthomonas", "pimiento", "chile"]
+      "keywords": [
+        "mancha",
+        "bacteriana",
+        "bacterial",
+        "spot",
+        "xanthomonas",
+        "pimiento",
+        "chile"
+      ]
     },
     {
       "id": 155,
@@ -1284,7 +1607,15 @@
         "Requerimientos pimiento chile"
       ],
       "answer": "**Guía técnica del cultivo de pimiento** \n\n**Taxonomía:**\n• Capsicum annuum L.\n• Familia: Solanaceae\n• Origen: México y Centroamérica\n\n**Tipos principales:**\n• Bell pepper: dulce, blocky\n• Chile: picante, diversos tipos\n• Piquillo, padrón, jalapeño, habanero, etc.\n\n**Requerimientos climáticos:**\n• Temperatura óptima: 20-25°C día, 16-18°C noche\n• Mínima: 10°C (detiene crecimiento)\n• Máxima: 35°C (aborto de flores)\n• Sensible a heladas\n• Alta luminosidad\n\n**Suelo:**\n• pH: 6.0-7.0\n• Textura: franco a franco-arenoso\n• Drenaje: excelente\n• Materia orgánica: >2%\n• Sensible a salinidad\n\n**Densidad:**\n• Campo: 25,000-35,000 plantas/ha\n• Invernadero: 20,000-30,000 plantas/ha\n• Distancia: 0.3-0.4 m × 1.0-1.2 m\n\n**Fertilización (kg/ha):**\n• N: 200-300 (fraccionado)\n• P2O5: 80-120\n• K2O: 250-350 (alta demanda)\n• Ca: 120-180 (evitar pudrición apical)\n• Mg: 40-60\n• Fertirrigación ideal\n\n**Podas (invernadero):**\n• Formación: 2-4 tallos\n• Eliminar hojas viejas/enfermas\n• Deshije selectivo\n\n**Cosecha:**\n• Verde: 60-70 días post-trasplante\n• Color: 80-100 días\n• Corte con tijera, dejar pedúnculo",
-      "keywords": ["cultivo", "tecnico", "pimiento", "guia", "manejo", "chile", "capsicum"]
+      "keywords": [
+        "cultivo",
+        "tecnico",
+        "pimiento",
+        "guia",
+        "manejo",
+        "chile",
+        "capsicum"
+      ]
     },
     {
       "id": 156,
@@ -1296,7 +1627,15 @@
         "Manchas moradas fresa"
       ],
       "answer": "**Quemadura de hojas de fresa (Diplocarpon earlianum)** \n\n**Agente causal:**\n• Hongo ascomiceto Diplocarpon earlianum\n• Sobrevive en hojas infectadas\n• Dispersión por lluvia y riego\n\n**Síntomas:**\n• Manchas irregulares púrpura oscuro\n• Numerosas, pequeñas (1-5 mm)\n• Coalescen dando aspecto quemado\n• Bordes de hojas se necrosan\n• Pecíolos y estolones afectados\n• Debilitamiento general de planta\n• Reducción de producción\n\n**Diferencia con otras manchas:**\n• Mancha foliar (Mycosphaerella): centro gris definido\n• Quemadura: manchas más difusas, púrpura intenso\n\n**Condiciones favorables:**\n• Humedad alta\n• Temperatura 20-25°C\n• Lluvia o riego por aspersión\n• Plantaciones densas\n\n**Control químico:**\n• Captan, thiram preventivo\n• Myclobutanil, azoxistrobin\n• Aplicar antes/después de lluvia\n\n**Control cultural:**\n• Variedades resistentes\n• Riego por goteo\n• Densidad adecuada\n• Renovación de plantaciones (2-3 años)\n• Mulch plástico\n• Eliminar hojas viejas post-cosecha",
-      "keywords": ["quemadura", "leaf", "scorch", "diplocarpon", "moradas", "fresa", "strawberry"]
+      "keywords": [
+        "quemadura",
+        "leaf",
+        "scorch",
+        "diplocarpon",
+        "moradas",
+        "fresa",
+        "strawberry"
+      ]
     },
     {
       "id": 157,
@@ -1308,7 +1647,15 @@
         "Requerimientos fresa frutilla"
       ],
       "answer": "**Guía técnica del cultivo de fresa** \n\n**Taxonomía:**\n• Fragaria × ananassa Duch.\n• Familia: Rosaceae\n• Híbrido de F. virginiana × F. chiloensis\n\n**Tipos según fotoperiodo:**\n• Día corto: floración con <14h luz\n• Día neutro: independiente de fotoperiodo\n• Reflorecientes: múltiples cosechas\n\n**Requerimientos climáticos:**\n• Temperatura óptima: 15-20°C\n• Requiere frío para inducir floración (vernalización)\n• Heladas: daño a flores abiertas\n• Alta luminosidad para calidad\n\n**Suelo:**\n• pH: 5.5-6.5\n• Textura: franco-arenoso ideal\n• Drenaje: excelente (sensible a Phytophthora)\n• Materia orgánica: >3%\n• Desinfección previa recomendada\n\n**Sistemas de producción:**\n• Suelo con mulch plástico\n• Sustratos en invernadero\n• Hidroponía (NFT, canaletas)\n• Semi-hidropónicos: bolsas, macetas\n\n**Densidad:**\n• Campo: 50,000-80,000 plantas/ha\n• Doble hilera sobre camellón\n• Distancia: 25-35 cm entre plantas\n\n**Fertilización (kg/ha/ciclo):**\n• N: 150-200 (fraccionado continuo)\n• P2O5: 60-100\n• K2O: 200-300 (calidad fruta)\n• Ca: importante para firmeza\n• Fertirrigación diaria ideal\n\n**Cosecha:**\n• 50-60 días post-floración\n• Cada 2-3 días en pico\n• Madurez: 3/4 color rojo\n• Manipulación delicada (perecedero)",
-      "keywords": ["cultivo", "tecnico", "fresa", "guia", "manejo", "frutilla", "fragaria"]
+      "keywords": [
+        "cultivo",
+        "tecnico",
+        "fresa",
+        "guia",
+        "manejo",
+        "frutilla",
+        "fragaria"
+      ]
     },
     {
       "id": 158,
@@ -1320,7 +1667,14 @@
         "Pudrición gris frutos fresa"
       ],
       "answer": "**Moho gris / Botrytis (Botrytis cinerea)** \n\n**Agente causal:**\n• Hongo Botrytis cinerea\n• Polífago (ataca muchos cultivos)\n• Ubiquitario, esporas siempre presentes\n\n**Síntomas:**\n• Pudrición blanda de frutos\n• Micelio gris abundante (esporulación)\n• Puede iniciar en flor\n• Avanza desde frutos tocando suelo\n• Pérdidas post-cosecha importantes\n\n**Condiciones favorables:**\n• Humedad >90%\n• Temperatura 15-25°C\n• Tejido senescente (pétalos, hojas viejas)\n• Heridas en frutos\n• Poca ventilación\n\n**Control químico:**\n• Fenhexamid, cyprodinil+fludioxonil\n• Boscalid, fluopyram\n• Aplicar en floración y pre-cosecha\n• Rotar grupos químicos (resistencia)\n• Respetar PHI (periodo carencia)\n\n**Control cultural:**\n• Mulch plástico (frutos no tocan suelo)\n• Buena ventilación\n• Riego por goteo\n• Cosechar seco\n• Eliminar frutos infectados\n• Manejo de nitrógeno (vigor excesivo)\n\n**Control biológico:**\n• Trichoderma spp.\n• Bacillus subtilis\n• Gliocladium roseum",
-      "keywords": ["botrytis", "moho", "gris", "pudricion", "fresa", "cinerea"]
+      "keywords": [
+        "botrytis",
+        "moho",
+        "gris",
+        "pudricion",
+        "fresa",
+        "cinerea"
+      ]
     },
     {
       "id": 159,
@@ -1332,7 +1686,14 @@
         "Muerte súbita fresa"
       ],
       "answer": "**Antracnosis de fresa (Colletotrichum spp.)** \n\n**Agentes causales:**\n• Colletotrichum acutatum (más común)\n• Colletotrichum gloeosporioides\n• Colletotrichum fragariae\n\n**Síntomas según tejido:**\n\n**Corona:**\n• Pudrición interna marrón-rojiza\n• Marchitez súbita\n• Muerte de planta en días\n• Corte corona: necrosis vascular\n\n**Frutos:**\n• Lesiones hundidas, circulares\n• Pudrición firme oscura\n• Masas de esporas rosado-anaranjado\n• Momificación del fruto\n\n**Hojas y pecíolos:**\n• Manchas oscuras, lesiones hundidas\n• Estolones: estrangulamientos\n\n**Condiciones favorables:**\n• Temperatura 25-30°C\n• Alta humedad, lluvia\n• Estrés hídrico o térmico\n\n**Control:**\n• Material vegetal certificado limpio\n• Fungicidas: azoxistrobin, pyraclostrobin\n• Captan + thiram preventivo\n• Rotación de suelos\n• Desinfección de herramientas\n• Eliminar plantas muertas\n• Evitar daño mecánico",
-      "keywords": ["antracnosis", "colletotrichum", "corona", "muerte", "subita", "fresa"]
+      "keywords": [
+        "antracnosis",
+        "colletotrichum",
+        "corona",
+        "muerte",
+        "subita",
+        "fresa"
+      ]
     },
     {
       "id": 160,
@@ -1344,7 +1705,15 @@
         "Manchas en hojas durazno"
       ],
       "answer": "**Mancha bacteriana del duraznero (Xanthomonas arboricola pv. pruni)** \n\n**Agente causal:**\n• Bacteria Xanthomonas arboricola pv. pruni\n• Afecta Prunus spp. (durazno, nectarina, ciruela)\n• Sobrevive en cancros y yemas infectadas\n\n**Síntomas en hojas:**\n• Manchas angulares acuosas (1-3 mm)\n• Se tornan púrpura-marrón\n• Centro puede caerse (perdigonada)\n• Halo amarillo variable\n• Defoliación prematura severa\n\n**Síntomas en frutos:**\n• Manchas hundidas oscuras\n• Agrietamiento de piel\n• Lesiones corchosas con goma\n• Pérdida de valor comercial total\n\n**Síntomas en ramitas:**\n• Cancros hundidos oscuros\n• Exudado gomoso\n• Muerte de ramitas\n\n**Condiciones favorables:**\n• Lluvias con viento (dispersión)\n• Temperatura 20-28°C\n• Tormentas de granizo (heridas)\n• Primavera húmeda\n\n**Control químico:**\n• Cobre (sulfato, hidróxido) - fitotoxicidad posible\n• Aplicar en dormancia y post-cosecha\n• Durante temporada: oxitetraciclina donde legal\n\n**Control cultural:**\n• Variedades tolerantes (esencial)\n• Cortavientos para reducir daño\n• Poda sanitaria de cancros\n• Material de plantación certificado\n• Evitar riego por aspersión",
-      "keywords": ["mancha", "bacteriana", "bacterial", "spot", "xanthomonas", "durazno", "prunus"]
+      "keywords": [
+        "mancha",
+        "bacteriana",
+        "bacterial",
+        "spot",
+        "xanthomonas",
+        "durazno",
+        "prunus"
+      ]
     },
     {
       "id": 161,
@@ -1356,7 +1725,15 @@
         "Requerimientos duraznero"
       ],
       "answer": "**Guía técnica del cultivo de durazno** \n\n**Taxonomía:**\n• Prunus persica (L.) Batsch\n• Familia: Rosaceae\n• Origen: China\n\n**Tipos:**\n• Durazno: fruto pubescente\n• Nectarina: fruto glabro (piel lisa)\n• Pavía: pulpa adherida al hueso\n• Prisco: pulpa suelta\n\n**Requerimientos climáticos:**\n• Horas frío (<7°C): 200-1,200 según variedad\n• Heladas tardías: daño severo a flores\n• Temperatura óptima: 15-25°C\n• Granizo: muy susceptible\n\n**Suelo:**\n• pH: 6.0-7.5\n• Textura: franco a franco-arenoso\n• Drenaje: excelente (NO tolera encharcamiento)\n• Profundidad: >60 cm\n• Sensible a caliza activa (clorosis)\n\n**Portainjertos:**\n• GF-677: vigor, tolerante a caliza\n• Nemaguard: tolerante nematodos\n• Cadaman, Barrier: vigor reducido\n• Ciruelo: vigor reducido, suelos pesados\n\n**Densidad:**\n• Intensivo: 600-1,500 árboles/ha\n• Tradicional: 200-400 árboles/ha\n• Formación en vaso, palmeta, eje central\n\n**Fertilización (kg/ha, árbol adulto):**\n• N: 80-150 (fraccionado post-cosecha y brotación)\n• P2O5: 40-60\n• K2O: 100-150\n• Ca: según análisis\n• Fe, Zn: aplicaciones foliares\n\n**Podas:**\n• Formación: 2-3 años\n• Fructificación: anual, ramas de 1 año\n• En verde: regular vigor\n\n**Raleo de frutos:**\n• Crítico para calibre y calidad\n• Dejar 1 fruto cada 15-20 cm\n• 35-45 días post-floración",
-      "keywords": ["cultivo", "tecnico", "durazno", "guia", "manejo", "melocoton", "prunus"]
+      "keywords": [
+        "cultivo",
+        "tecnico",
+        "durazno",
+        "guia",
+        "manejo",
+        "melocoton",
+        "prunus"
+      ]
     },
     {
       "id": 162,
@@ -1368,7 +1745,16 @@
         "Dragón amarillo cítricos"
       ],
       "answer": "**Huanglongbing / HLB (Candidatus Liberibacter)** \n\n**Importancia:**\n• Enfermedad más destructiva de cítricos mundial\n• Sin cura ni variedades resistentes\n• Amenaza existencial para la citricultura\n• Pérdidas: billones USD globalmente\n\n**Agente causal:**\n• Candidatus Liberibacter asiaticus (CLas) - más común\n• C. Liberibacter americanus (CLam)\n• C. Liberibacter africanus (CLaf)\n• Bacteria no cultivable in vitro\n\n**Vector:**\n• Diaphorina citri (psílido asiático de cítricos)\n• Trioza erytreae (África)\n• Transmisión persistente propagativa\n• Insecto infectivo toda la vida\n\n**Síntomas:**\n• Brotes amarillos asimétricos\n• Moteado difuso en hojas\n• Nervaduras corchosas, amarillas\n• Hojas pequeñas, erectas\n• Frutos pequeños, asimétricos\n• Frutos verdes en lado sombreado\n• Semillas abortadas\n• Sabor amargo, bajo jugo\n• Declinación progresiva, muerte\n\n**Control (sin cura):**\n• Control del vector: imidacloprid, thiamethoxam\n• Monitoreo con trampas amarillas\n• Eliminar plantas infectadas\n• Material certificado libre de HLB\n• Inspección de viveros\n• Área Wide Management\n• Termoterapia de yemas\n• Investigación: RNA interferente, CRISPR",
-      "keywords": ["huanglongbing", "hlb", "citrus", "greening", "dragon", "amarillo", "naranja", "citricos"]
+      "keywords": [
+        "huanglongbing",
+        "hlb",
+        "citrus",
+        "greening",
+        "dragon",
+        "amarillo",
+        "naranja",
+        "citricos"
+      ]
     },
     {
       "id": 163,
@@ -1380,7 +1766,15 @@
         "Requerimientos naranjo limonero"
       ],
       "answer": "**Guía técnica del cultivo de cítricos** \n\n**Taxonomía:**\n• Género Citrus (Rutaceae)\n• Naranja: C. sinensis\n• Mandarina: C. reticulata\n• Limón: C. limon\n• Pomelo: C. paradisi\n• Lima: C. aurantiifolia\n\n**Requerimientos climáticos:**\n• Clima subtropical ideal\n• Temperatura óptima: 23-34°C\n• Heladas: daño <-2°C\n• Calidad de color: noches frías\n• Lluvia: 900-1,200 mm/año\n\n**Suelo:**\n• pH: 5.5-7.0\n• Textura: franco a franco-arenoso\n• Drenaje: excelente (Phytophthora)\n• Profundidad: >1 m\n• Evitar suelos salinos\n\n**Portainjertos principales:**\n• Citrange Carrizo: vigor, tolerancia Tristeza\n• Citrumelo Swingle: tolerante Phytophthora\n• Citrus macrophylla: vigor, limón\n• Flying Dragon: enanizante\n• Selección según suelo y variedad\n\n**Densidad:**\n• Tradicional: 200-400 árboles/ha\n• Intensivo: 500-1,000 árboles/ha\n• Super-intensivo: >1,500 árboles/ha\n\n**Fertilización (kg/ha árbol adulto):**\n• N: 150-250 (fraccionado 3-4 aplicaciones)\n• P2O5: 40-80\n• K2O: 150-250\n• Ca, Mg: según análisis\n• Micronutrientes: Fe, Zn, Mn, B foliares\n\n**Riego:**\n• Crítico en floración y cuajado\n• Déficit: caída de frutos\n• Goteo o microaspersión\n• 600-1000 mm/año según clima\n\n**Cosecha:**\n• Índice de madurez: sólidos/acidez\n• Manual con tijeras\n• Sin daño mecánico (hongos)",
-      "keywords": ["cultivo", "tecnico", "citricos", "guia", "manejo", "naranja", "limon"]
+      "keywords": [
+        "cultivo",
+        "tecnico",
+        "citricos",
+        "guia",
+        "manejo",
+        "naranja",
+        "limon"
+      ]
     },
     {
       "id": 164,
@@ -1392,7 +1786,16 @@
         "Polvo blanco hojas cerezo"
       ],
       "answer": "**Oídio del cerezo (Podosphaera clandestina)** \n\n**Agente causal:**\n• Hongo Podosphaera clandestina\n• Específico de Prunus (cerezo, guindo)\n• Sobrevive como micelio en yemas infectadas\n\n**Síntomas:**\n• Polvo blanco en hojas jóvenes\n• Hojas enrolladas, abarquilladas\n• Crecimiento detenido de brotes\n• Frutos: micelio blanco, manchas necróticas\n• Frutos agrietados si infección temprana\n• Reducción calidad comercial\n\n**Condiciones favorables:**\n• Temperatura 20-25°C\n• Humedad moderada (50-70%)\n• Noches frescas, días templados\n• NO necesita agua libre\n• Diferente a mildiu: clima seco\n\n**Control químico:**\n• Azufre (temperaturas <30°C)\n• IBS: myclobutanil, penconazol, tebuconazol\n• Estrobilurinas: azoxistrobin, trifloxistrobin\n• Quinoxifen preventivo\n• Aplicar desde botón rosado\n\n**Control cultural:**\n• Poda para ventilación\n• Eliminar brotes infectados\n• Nutrición equilibrada\n• Variedades menos susceptibles",
-      "keywords": ["oidio", "powdery", "mildew", "podosphaera", "polvo", "blanco", "cerezo", "cereza"]
+      "keywords": [
+        "oidio",
+        "powdery",
+        "mildew",
+        "podosphaera",
+        "polvo",
+        "blanco",
+        "cerezo",
+        "cereza"
+      ]
     },
     {
       "id": 165,
@@ -1404,7 +1807,15 @@
         "Requerimientos cerezo"
       ],
       "answer": "**Guía técnica del cultivo de cerezo** \n\n**Taxonomía:**\n• Prunus avium L. (cerezo dulce)\n• Prunus cerasus L. (guindo, cereza ácida)\n• Familia: Rosaceae\n• Origen: región del Cáucaso\n\n**Requerimientos climáticos:**\n• Horas frío (<7°C): 700-1,400 según variedad\n• Muy sensible a heladas en floración\n• Lluvias en cosecha: agrietamiento\n• Clima seco en maduración ideal\n\n**Suelo:**\n• pH: 6.5-7.5\n• Textura: franco profundo\n• Drenaje: excelente (muy sensible asfixia)\n• Evitar suelos pesados arcillosos\n\n**Portainjertos:**\n• Santa Lucía 64: tradicional, vigor medio\n• Gisela 5, 6, 12: enanizantes, precocidad\n• Maxma 14: vigor medio, adaptable\n• Colt: vigor alto, suelos húmedos\n\n**Variedades importantes:**\n• Bing, Lapins, Sweetheart, Regina\n• Algunas requieren polinizador\n• Autofértiles: Lapins, Sweetheart, Skeena\n\n**Densidad:**\n• Intensivo (Gisela 5): 1,000-2,500 árboles/ha\n• Semi-intensivo: 500-800 árboles/ha\n• Tradicional: 200-400 árboles/ha\n\n**Fertilización (kg/ha):**\n• N: 60-100 (post-cosecha importante)\n• P2O5: 30-50\n• K2O: 80-150\n• Ca: crítico para firmeza fruto\n• B: importante en floración\n\n**Cosecha:**\n• Altamente perecedero\n• Manual con pedúnculo\n• Enfriamiento rápido (hidrocooling)\n• Cadena de frío continua",
-      "keywords": ["cultivo", "tecnico", "cerezo", "guia", "manejo", "cereza", "prunus"]
+      "keywords": [
+        "cultivo",
+        "tecnico",
+        "cerezo",
+        "guia",
+        "manejo",
+        "cereza",
+        "prunus"
+      ]
     },
     {
       "id": 166,
@@ -1416,7 +1827,15 @@
         "Polvo blanco cucurbitáceas"
       ],
       "answer": "**Oídio de cucurbitáceas (Podosphaera xanthii / Erysiphe cichoracearum)** \n\n**Agentes causales:**\n• Podosphaera xanthii (más común)\n• Erysiphe cichoracearum\n• Afecta calabaza, pepino, melón, sandía\n\n**Síntomas:**\n• Manchas blancas polvorientas en hojas\n• Inicia en haz, luego envés\n• Cubre toda la superficie foliar\n• Hojas amarillean y mueren\n• Frutos expuestos: quemadura solar\n• Reduce fotosíntesis y azúcar\n\n**Condiciones favorables:**\n• Temperatura 20-27°C\n• Humedad 50-90% (NO necesita agua libre)\n• Noches frescas con rocío\n• Alta densidad de siembra\n• Exceso de nitrógeno\n\n**Control químico:**\n• Azufre (preventivo, no >35°C)\n• IBS: myclobutanil, triadimefon\n• Estrobilurinas: azoxistrobin, pyraclostrobin\n• Quinoxifen, cyflufenamid\n• Rotar modos de acción\n\n**Control cultural:**\n• Variedades resistentes (genes Pm)\n• Espaciamiento adecuado\n• Buena ventilación\n• Eliminar hojas muy infectadas\n• Rotación de cultivos\n\n**Control biológico:**\n• Bacillus subtilis\n• Ampelomyces quisqualis\n• Leche descremada 10% (casero)",
-      "keywords": ["oidio", "powdery", "mildew", "polvo", "blanco", "calabaza", "cucurbitacea"]
+      "keywords": [
+        "oidio",
+        "powdery",
+        "mildew",
+        "polvo",
+        "blanco",
+        "calabaza",
+        "cucurbitacea"
+      ]
     },
     {
       "id": 167,
@@ -1428,7 +1847,15 @@
         "Requerimientos calabaza zapallo"
       ],
       "answer": "**Guía técnica del cultivo de calabaza** \n\n**Taxonomía:**\n• Cucurbita maxima (zapallo)\n• Cucurbita moschata (butternut)\n• Cucurbita pepo (calabacín, zucchini)\n• Familia: Cucurbitaceae\n• Origen: América\n\n**Tipos principales:**\n• Calabaza de invierno: madura, dura, almacenable\n• Calabaza de verano (calabacín): tierna, perecedera\n\n**Requerimientos climáticos:**\n• Temperatura óptima: 20-30°C\n• Sensible a heladas (0°C mata)\n• Mínima germinación: 15°C suelo\n• Alta luminosidad\n\n**Suelo:**\n• pH: 6.0-7.0\n• Textura: franco, rico en MO\n• Drenaje: bueno\n• Tolera algo de salinidad\n\n**Siembra:**\n• Directa o trasplante\n• Profundidad: 2-4 cm\n• 2-3 semillas por hoyo\n• Ralear a 1 planta\n\n**Densidad (varía mucho):**\n• Calabacín: 10,000-15,000 plantas/ha\n• Calabaza rastrera: 2,000-5,000 plantas/ha\n• Distancias: 1-3 m según tipo\n\n**Fertilización (kg/ha):**\n• N: 100-150 (fraccionado)\n• P2O5: 60-100\n• K2O: 100-150\n• Evitar exceso N (mucho follaje, poco fruto)\n\n**Polinización:**\n• Requiere abejas (flores monoicas)\n• Mala polinización: frutos deformes\n• 2-4 colmenas/ha\n\n**Cosecha:**\n• Calabacín: 4-6 días post-antesis, tierno\n• Calabaza invierno: madurez completa, pedúnculo seco",
-      "keywords": ["cultivo", "tecnico", "calabaza", "guia", "manejo", "zapallo", "cucurbita"]
+      "keywords": [
+        "cultivo",
+        "tecnico",
+        "calabaza",
+        "guia",
+        "manejo",
+        "zapallo",
+        "cucurbita"
+      ]
     },
     {
       "id": 168,
@@ -1440,7 +1867,15 @@
         "Requerimientos soja soya"
       ],
       "answer": "**Guía técnica del cultivo de soja** \n\n**Taxonomía:**\n• Glycine max (L.) Merr.\n• Familia: Fabaceae (Leguminosas)\n• Origen: China\n• Cultivo oleaginoso #1 mundial\n\n**Requerimientos climáticos:**\n• Temperatura óptima: 25-30°C\n• Mínima germinación: 10°C suelo\n• Sensible a heladas\n• Fotoperiodo: día corto (floración)\n• Selección de grupo de madurez según latitud\n\n**Suelo:**\n• pH: 6.0-7.0 (nodulación óptima)\n• Textura: franco a franco-arcilloso\n• Drenaje: bueno\n• Evitar compactación\n\n**Siembra:**\n• Profundidad: 3-5 cm\n• Densidad: 300,000-400,000 plantas/ha\n• Entre surcos: 40-70 cm\n• Inoculación con Bradyrhizobium japonicum\n\n**Fijación de nitrógeno:**\n• Inoculante de calidad esencial\n• Puede fijar 100-300 kg N/ha\n• Reduce o elimina fertilización nitrogenada\n• Nódulos rosados = activos\n\n**Fertilización (kg/ha):**\n• N: 0-20 arranque (si no inocula bien)\n• P2O5: 40-80\n• K2O: 60-100\n• S: 15-25 (importante en soja)\n• Micronutrientes: Co, Mo para nodulación\n\n**Manejo de malezas:**\n• Pre-emergentes: s-metolacloro, flumioxazin\n• Post-emergentes: glifosato (si RR), fomesafen\n• Crítico primeros 40 días\n\n**Etapas fenológicas:**\n• VE-V6: vegetativas\n• R1-R2: floración\n• R3-R4: formación vaina\n• R5-R6: llenado grano\n• R7-R8: maduración\n\n**Cosecha:**\n• Humedad: 13-14%\n• Plataforma flexible\n• Pérdidas tolerables: <60 kg/ha",
-      "keywords": ["cultivo", "tecnico", "soja", "guia", "manejo", "soya", "glycine"]
+      "keywords": [
+        "cultivo",
+        "tecnico",
+        "soja",
+        "guia",
+        "manejo",
+        "soya",
+        "glycine"
+      ]
     },
     {
       "id": 169,
@@ -1452,7 +1887,16 @@
         "Asian rust soybean"
       ],
       "answer": "**Roya asiática de la soja (Phakopsora pachyrhizi)** \n\n**Importancia:**\n• Enfermedad más importante de soja en trópicos\n• Puede reducir rendimiento 80%\n• Requiere aplicaciones preventivas\n\n**Agente causal:**\n• Hongo Phakopsora pachyrhizi\n• Esporas aerotransportadas largas distancias\n• NO sobrevive sin hospedero vivo\n\n**Síntomas:**\n• Pequeñas pústulas en envés de hojas\n• Color canela a marrón rojizo\n• Lesiones angulares gris-verdoso en haz\n• Amarillamiento y defoliación prematura\n• Aborto de vainas\n• Granos pequeños y arrugados\n\n**Condiciones favorables:**\n• Temperatura 18-26°C óptima\n• Mojado foliar >6 horas\n• Rocío nocturno\n• Lluvias frecuentes\n\n**Control químico (esencial):**\n• Triazoles: tebuconazol, ciproconazol\n• Estrobilurinas: azoxistrobin, picoxistrobin\n• Carboxamidas: fluxapyroxad, benzovindiflupir\n• Mezclas triples: más efectivas\n• Iniciar preventivo en R1-R2\n• 2-3 aplicaciones según presión\n\n**Control cultural:**\n• Variedades con resistencia parcial\n• Evitar siembras tardías\n• Vacío sanitario (período sin soja)\n• Eliminar soja voluntaria\n• Monitoreo constante post-R1",
-      "keywords": ["roya", "asiatica", "soja", "phakopsora", "pachyrhizi", "pustulas", "asian", "rust"]
+      "keywords": [
+        "roya",
+        "asiatica",
+        "soja",
+        "phakopsora",
+        "pachyrhizi",
+        "pustulas",
+        "asian",
+        "rust"
+      ]
     },
     {
       "id": 170,
@@ -1464,7 +1908,15 @@
         "Requerimientos arándano"
       ],
       "answer": "**Guía técnica del cultivo de arándano** \n\n**Taxonomía:**\n• Vaccinium corymbosum (highbush)\n• Vaccinium ashei (rabbiteye)\n• Familia: Ericaceae\n• Origen: Norteamérica\n\n**Tipos principales:**\n• Northern highbush: alto requerimiento frío\n• Southern highbush: bajo requerimiento frío\n• Rabbiteye: tolerante calor, tardío\n\n**Requerimientos climáticos:**\n• Horas frío: 200-1,200 según variedad\n• Temperatura óptima: 15-25°C\n• Heladas tardías: daño a flores\n• Vernalización para inducción floral\n\n**Suelo (MUY ESPECÍFICO):**\n• pH: 4.5-5.5 (CRÍTICO, ácido)\n• Materia orgánica: >3%\n• Textura: ligera, arenosa\n• Drenaje: excelente\n• Enmiendas: azufre, turba, aserrín\n\n**Establecimiento:**\n• Plantas de 2 años ideal\n• Eliminar flores año 1 (establecimiento)\n• Mulch orgánico grueso (10-15 cm)\n• Camellones si mal drenaje\n\n**Densidad:**\n• 2,000-4,000 plantas/ha\n• Distancia: 0.75-1.5 m × 2.5-3 m\n\n**Fertilización (ácida):**\n• N: 50-100 kg/ha (sulfato de amonio)\n• Evitar nitratos (suben pH)\n• Fertirrigación ácida\n• Fe, Mn importantes (pH alto = clorosis)\n\n**Riego:**\n• Sistema radicular superficial\n• Riego frecuente, poca cantidad\n• Goteo ideal\n• No tolera sequía ni encharcamiento\n\n**Poda:**\n• Eliminación madera vieja (>4 años)\n• Renovación continua\n• Raleo de yemas florales excesivas",
-      "keywords": ["cultivo", "tecnico", "arandano", "guia", "manejo", "blueberry", "vaccinium"]
+      "keywords": [
+        "cultivo",
+        "tecnico",
+        "arandano",
+        "guia",
+        "manejo",
+        "blueberry",
+        "vaccinium"
+      ]
     },
     {
       "id": 171,
@@ -1476,7 +1928,15 @@
         "Requerimientos frambuesa"
       ],
       "answer": "**Guía técnica del cultivo de frambuesa** \n\n**Taxonomía:**\n• Rubus idaeus L.\n• Familia: Rosaceae\n• Origen: Europa y Norte de Asia\n\n**Tipos:**\n• Floricañas (summer-bearing): fruto en cañas de 2do año\n• Primocañas (fall-bearing): fruto en cañas año actual\n• Remontantes: ambas producciones\n\n**Requerimientos climáticos:**\n• Horas frío: 800-1,700 según variedad\n• Temperatura óptima: 15-24°C\n• Sensible a calor extremo (>30°C)\n• Heladas: daño a flores y frutos\n\n**Suelo:**\n• pH: 5.5-6.5\n• Textura: franco a franco-arenoso\n• Drenaje: excelente (Phytophthora)\n• Materia orgánica alta\n• Evitar replante donde hubo Rubus\n\n**Establecimiento:**\n• Plantas certificadas libres de virus\n• Camellones si drenaje pobre\n• Mulch para conservar humedad\n• Tutorado con espalderas\n\n**Densidad:**\n• 4,000-8,000 plantas/ha\n• Distancia: 0.3-0.5 m × 2.5-3 m\n• Mantener 10-12 cañas/metro lineal\n\n**Fertilización (kg/ha):**\n• N: 80-120 (fraccionado)\n• P2O5: 40-60\n• K2O: 100-150\n• Aplicar post-cosecha y brotación\n\n**Podas:**\n• Floricañas: eliminar cañas fructificadas post-cosecha\n• Primocañas: corte total en invierno\n• Raleo de cañas débiles\n\n**Cosecha:**\n• Muy perecedero (más que fresa)\n• Manual, cada 2-3 días\n• Enfriamiento inmediato\n• Cadena de frío continua",
-      "keywords": ["cultivo", "tecnico", "frambuesa", "guia", "manejo", "raspberry", "rubus"]
+      "keywords": [
+        "cultivo",
+        "tecnico",
+        "frambuesa",
+        "guia",
+        "manejo",
+        "raspberry",
+        "rubus"
+      ]
     },
     {
       "id": 172,
@@ -1488,7 +1948,15 @@
         "IPM integrated pest management"
       ],
       "answer": "**Manejo Integrado de Plagas (MIP/IPM)** \n\n**Definición:**\nEstrategia que combina métodos de control compatibles para mantener plagas bajo umbral económico, minimizando riesgos ambientales y de salud.\n\n**Pilares del MIP:**\n\n**1. Prevención:**\n• Variedades resistentes\n• Material vegetal sano\n• Rotación de cultivos\n• Manejo del suelo\n• Fechas de siembra óptimas\n\n**2. Monitoreo:**\n• Muestreo regular del cultivo\n• Trampas (feromonas, colores)\n• Umbrales de acción\n• Identificación correcta de la plaga\n• Registros históricos\n\n**3. Control cultural:**\n• Destrucción de residuos\n• Eliminación de hospederos\n• Manejo de riego y fertilización\n• Poda sanitaria\n\n**4. Control biológico:**\n• Depredadores (mariquitas, crisopas)\n• Parasitoides (Trichogramma)\n• Entomopatógenos (Bt, Beauveria)\n• Conservación de enemigos naturales\n\n**5. Control químico (último recurso):**\n• Solo cuando supera umbral\n• Productos selectivos\n• Rotación de modos de acción\n• Respetar enemigos naturales\n• Dosis y momento adecuados\n\n**Umbrales importantes:**\n• Umbral de daño económico (UDE)\n• Umbral de acción (UA): momento de actuar\n• UA siempre < UDE para anticipar",
-      "keywords": ["manejo", "integrado", "plagas", "mip", "ipm", "control", "umbral"]
+      "keywords": [
+        "manejo",
+        "integrado",
+        "plagas",
+        "mip",
+        "ipm",
+        "control",
+        "umbral"
+      ]
     },
     {
       "id": 173,
@@ -1500,7 +1968,15 @@
         "Organismos benéficos plagas"
       ],
       "answer": "**Control biológico de plagas agrícolas** \n\n**Definición:**\nUso de organismos vivos para reducir poblaciones de plagas a niveles no dañinos.\n\n**Tipos de agentes de control:**\n\n**1. Depredadores:**\n• Mariquitas (Coccinellidae): pulgones\n• Crisopas (Chrysoperla): pulgones, trips\n• Ácaros depredadores: ácaros plaga\n• Orius: trips, pulgones\n• Chinches predadoras\n\n**2. Parasitoides:**\n• Trichogramma spp.: huevos de lepidópteros\n• Encarsia, Eretmocerus: mosca blanca\n• Aphidius colemani: pulgones\n• Diglyphus isaea: minadores\n• Cotesia spp.: orugas\n\n**3. Entomopatógenos:**\n• Bacillus thuringiensis (Bt): lepidópteros\n• Beauveria bassiana: amplio espectro\n• Metarhizium anisopliae: coleópteros, termitas\n• Lecanicillium lecanii: mosca blanca, pulgones\n• Virus de granulosis (CpGV): carpocapsa\n\n**4. Nematodos entomopatógenos:**\n• Steinernema spp.\n• Heterorhabditis spp.\n• Plagas del suelo\n\n**Estrategias:**\n• Conservación: proteger fauna benéfica existente\n• Inoculación: liberaciones puntuales\n• Inundación: liberaciones masivas\n• Importación clásica: nuevas especies\n\n**Factores de éxito:**\n• Calidad del producto biológico\n• Momento de aplicación/liberación\n• Compatibilidad con químicos\n• Condiciones ambientales",
-      "keywords": ["control", "biologico", "enemigos", "naturales", "biocontroladores", "depredadores", "parasitoides"]
+      "keywords": [
+        "control",
+        "biologico",
+        "enemigos",
+        "naturales",
+        "biocontroladores",
+        "depredadores",
+        "parasitoides"
+      ]
     },
     {
       "id": 174,
@@ -1512,7 +1988,16 @@
         "NPK fertilizantes"
       ],
       "answer": "**Nutrición vegetal y fertilización** \n\n**Macronutrientes primarios (N-P-K):**\n\n**Nitrógeno (N):**\n• Función: crecimiento vegetativo, proteínas, clorofila\n• Deficiencia: amarillamiento hojas viejas, enanismo\n• Exceso: mucho follaje, poco fruto, susceptibilidad plagas\n• Fuentes: urea, nitrato amónico, sulfato amónico\n\n**Fósforo (P):**\n• Función: raíces, floración, energía (ATP)\n• Deficiencia: hojas púrpura, raíces pobres\n• Móvil poco en suelo\n• Fuentes: superfosfato, MAP, DAP\n\n**Potasio (K):**\n• Función: calidad frutos, resistencia estrés\n• Deficiencia: bordes quemados hojas viejas\n• Importante en fructificación\n• Fuentes: cloruro potásico, sulfato potásico\n\n**Macronutrientes secundarios:**\n\n**Calcio (Ca):**\n• Función: paredes celulares, estructura\n• Deficiencia: pudrición apical (tomate, pimiento)\n• Baja movilidad en planta\n\n**Magnesio (Mg):**\n• Función: centro de clorofila\n• Deficiencia: clorosis intervenal hojas viejas\n\n**Azufre (S):**\n• Función: aminoácidos, proteínas\n• Deficiencia: similar a N, pero hojas jóvenes\n\n**Ley del mínimo (Liebig):**\nEl crecimiento está limitado por el nutriente más escaso, aunque haya abundancia de otros.",
-      "keywords": ["fertilizacion", "nutricion", "vegetal", "macronutrientes", "npk", "nitrogeno", "fosforo", "potasio"]
+      "keywords": [
+        "fertilizacion",
+        "nutricion",
+        "vegetal",
+        "macronutrientes",
+        "npk",
+        "nitrogeno",
+        "fosforo",
+        "potasio"
+      ]
     },
     {
       "id": 175,
@@ -1524,7 +2009,15 @@
         "Oligoelementos agricultura"
       ],
       "answer": "**Micronutrientes y deficiencias nutricionales** \n\n**Micronutrientes esenciales:**\n\n**Hierro (Fe):**\n• Función: síntesis clorofila, enzimas\n• Deficiencia: clorosis intervenal hojas jóvenes\n• Común en pH alto (>7.5)\n• Aplicación: quelatos Fe-EDDHA, Fe-DTPA\n\n**Zinc (Zn):**\n• Función: auxinas, enzimas\n• Deficiencia: hojas pequeñas, rosetas, internudos cortos\n• Crítico en maíz, frutales\n• Aplicación: sulfato de zinc foliar\n\n**Manganeso (Mn):**\n• Función: fotosíntesis, enzimas\n• Deficiencia: clorosis intervenal con manchas necróticas\n• Más común en pH alto\n\n**Boro (B):**\n• Función: paredes celulares, transporte azúcares\n• Deficiencia: frutos deformes, polinización pobre\n• Toxicidad fácil (estrecho margen)\n• Crítico en frutales, brassicas\n\n**Cobre (Cu):**\n• Función: enzimas, lignificación\n• Deficiencia: hojas enrolladas, marchitez\n• Común en suelos orgánicos\n\n**Molibdeno (Mo):**\n• Función: fijación de N (leguminosas), reducción nitratos\n• Deficiencia: similar a N\n• Más disponible a pH alto\n\n**Diagnóstico:**\n• Análisis foliar: tejido en momento correcto\n• Análisis de suelo: disponibilidad\n• Síntomas visuales: confirmar con análisis\n\n**Nota:** pH del suelo afecta disponibilidad de todos los micronutrientes.",
-      "keywords": ["micronutrientes", "deficiencias", "nutricionales", "hierro", "zinc", "boro", "manganeso"]
+      "keywords": [
+        "micronutrientes",
+        "deficiencias",
+        "nutricionales",
+        "hierro",
+        "zinc",
+        "boro",
+        "manganeso"
+      ]
     },
     {
       "id": 176,
@@ -1536,7 +2029,14 @@
         "Eficiencia de riego"
       ],
       "answer": "**Sistemas de riego agrícola** \n\n**1. Riego por goteo:**\n• Eficiencia: 85-95%\n• Agua directa a raíz\n• Permite fertirrigación\n• Reduce enfermedades foliares\n• Mayor inversión inicial\n• Ideal: hortalizas, frutales\n\n**2. Riego por aspersión:**\n• Eficiencia: 70-85%\n• Cubre grandes áreas\n• Puede aumentar enfermedades\n• Tipos: pivote, enrollador, fijo\n• Ideal: cereales, forrajes, papa\n\n**3. Riego por surcos:**\n• Eficiencia: 50-70%\n• Bajo costo inicial\n• Alta demanda de agua\n• Mano de obra intensiva\n• Tradicional en muchos cultivos\n\n**4. Riego por inundación:**\n• Eficiencia: 40-60%\n• Cultivos específicos: arroz\n• Pérdidas por evaporación altas\n\n**Programación del riego:**\n\n**Métodos:**\n• Balance hídrico (ETo × Kc)\n• Tensiómetros/sensores de humedad\n• Aspecto del cultivo (no recomendado)\n\n**Conceptos clave:**\n• ETo: evapotranspiración de referencia\n• Kc: coeficiente del cultivo (varía con etapa)\n• ETc = ETo × Kc (necesidad del cultivo)\n• Punto de marchitez permanente\n• Capacidad de campo\n• Agua disponible\n\n**Momentos críticos:**\n• Germinación/trasplante\n• Floración\n• Cuajado y llenado de frutos\n• Evitar estrés en estas etapas",
-      "keywords": ["riego", "goteo", "aspersion", "sistemas", "eficiencia", "programacion"]
+      "keywords": [
+        "riego",
+        "goteo",
+        "aspersion",
+        "sistemas",
+        "eficiencia",
+        "programacion"
+      ]
     },
     {
       "id": 177,
@@ -1548,7 +2048,14 @@
         "pH del suelo agricultura"
       ],
       "answer": "**Análisis e interpretación de suelos** \n\n**Importancia del análisis:**\n• Base para plan de fertilización\n• Identificar limitantes\n• Ahorrar en insumos\n• Realizar cada 2-3 años\n\n**Muestreo correcto:**\n• 15-20 submuestras por lote homogéneo\n• Profundidad: 0-20 cm (cultivos anuales)\n• Evitar: cerca cercas, abrevaderos, caminos\n• Mezclar, cuartear, enviar 1 kg\n• Época: post-cosecha o 1-2 meses antes siembra\n\n**Parámetros principales:**\n\n**pH (acidez/alcalinidad):**\n• <5.5: muy ácido (encalar)\n• 5.5-6.5: ácido (óptimo muchos cultivos)\n• 6.5-7.5: neutro\n• >7.5: alcalino (problemas Fe, Zn)\n\n**Materia orgánica (MO):**\n• <2%: bajo (agregar enmiendas orgánicas)\n• 2-4%: medio\n• >4%: alto\n\n**Fósforo disponible (Bray, Olsen):**\n• <10 ppm: bajo\n• 10-20 ppm: medio\n• >20 ppm: alto\n\n**Potasio intercambiable:**\n• <0.2 meq/100g: bajo\n• 0.2-0.4: medio\n• >0.4: alto\n\n**CIC (Capacidad Intercambio Catiónico):**\n• Capacidad del suelo de retener nutrientes\n• Arcillosos: alta CIC\n• Arenosos: baja CIC\n\n**Saturación de bases:**\n• Ca: 65-75%\n• Mg: 15-20%\n• K: 3-5%\n• Desequilibrios causan antagonismos",
-      "keywords": ["analisis", "suelo", "muestreo", "ph", "interpretacion", "fertilidad"]
+      "keywords": [
+        "analisis",
+        "suelo",
+        "muestreo",
+        "ph",
+        "interpretacion",
+        "fertilidad"
+      ]
     },
     {
       "id": 178,
@@ -1560,7 +2067,15 @@
         "Rotación de fungicidas"
       ],
       "answer": "**Fungicidas: clasificación y uso correcto** \n\n**Por modo de acción:**\n\n**Contacto (preventivos):**\n• Actúan en superficie\n• No penetran tejido\n• Protegen antes de infección\n• Ej: mancozeb, clorotalonil, cobre\n• Se lavan con lluvia\n\n**Sistémicos (curativos):**\n• Penetran y translocan en planta\n• Actúan post-infección (limitado)\n• Ej: triazoles, estrobilurinas\n• Mayor riesgo de resistencia\n\n**Translaminar:**\n• Penetran hoja, no translocan mucho\n• Ej: dimetomorf, mandipropamid\n\n**Grupos FRAC principales:**\n\n**Grupo 3 - Triazoles (DMI):**\n• Propiconazol, tebuconazol, difenoconazol\n• Amplio espectro\n• Resistencia moderada\n\n**Grupo 11 - Estrobilurinas (QoI):**\n• Azoxistrobin, pyraclostrobin, trifloxistrobin\n• Alto riesgo resistencia\n• Nunca usar solos\n\n**Grupo 7 - Carboxamidas (SDHI):**\n• Boscalid, fluxapyroxad, penthiopyrad\n• Riesgo alto resistencia\n• Mezclar siempre\n\n**Grupo M - Multisitio:**\n• Mancozeb, clorotalonil, cobre\n• Bajo riesgo resistencia\n• Base de programas\n\n**Manejo anti-resistencia:**\n• Rotar grupos químicos\n• Mezclar multisitio + específico\n• No más de 2-3 aplicaciones consecutivas mismo grupo\n• Usar dosis correcta (ni alta ni baja)\n• Integrar con control cultural",
-      "keywords": ["fungicidas", "modos", "accion", "grupos", "rotacion", "resistencia", "frac"]
+      "keywords": [
+        "fungicidas",
+        "modos",
+        "accion",
+        "grupos",
+        "rotacion",
+        "resistencia",
+        "frac"
+      ]
     },
     {
       "id": 179,
@@ -1572,7 +2087,15 @@
         "IRAC clasificación"
       ],
       "answer": "**Insecticidas: clasificación y uso responsable** \n\n**Por modo de entrada:**\n• Contacto: tocan al insecto\n• Ingestión: insecto come tejido tratado\n• Sistémico: se mueve en planta\n• Translaminar: penetra hoja\n\n**Grupos IRAC principales:**\n\n**Grupo 1 - Organofosforados/Carbamatos:**\n• Clorpirifos, malatión, carbaril\n• Amplio espectro, no selectivos\n• Tóxicos a enemigos naturales\n• Restricciones crecientes\n\n**Grupo 3 - Piretroides:**\n• Cipermetrina, lambda-cialotrina, deltametrina\n• Contacto e ingestión\n• Baja selectividad\n• Resistencia común\n\n**Grupo 4 - Neonicotinoides:**\n• Imidacloprid, thiamethoxam, acetamiprid\n• Sistémicos\n• Controversial: abejas\n• Restricciones en muchos países\n\n**Grupo 5 - Spinosinas:**\n• Spinosad, spinetoram\n• Origen natural (fermentación)\n• Selectivo a algunos benéficos\n• Uso en orgánico (spinosad)\n\n**Grupo 11 - Bt (Bacillus thuringiensis):**\n• Proteínas insecticidas\n• Muy específico (lepidópteros, coleópteros)\n• Seguro para benéficos\n• Uso orgánico aprobado\n\n**Grupo 28 - Diamidas:**\n• Clorantraniliprole, flubendiamida\n• Lepidópteros\n• Relativamente selectivo\n\n**Principios de uso:**\n• Aplicar solo cuando necesario (umbrales)\n• Rotar modos de acción\n• Preferir selectivos\n• Proteger polinizadores (no aplicar en floración)\n• Respetar periodos de carencia",
-      "keywords": ["insecticidas", "modos", "accion", "irac", "grupos", "rotacion", "plagas"]
+      "keywords": [
+        "insecticidas",
+        "modos",
+        "accion",
+        "irac",
+        "grupos",
+        "rotacion",
+        "plagas"
+      ]
     },
     {
       "id": 180,
@@ -1584,7 +2107,14 @@
         "Cultivos de cobertura"
       ],
       "answer": "**Rotación de cultivos: principios y beneficios** \n\n**Definición:**\nAlternancia planificada de diferentes cultivos en el mismo terreno a través del tiempo.\n\n**Beneficios principales:**\n\n**Control de enfermedades:**\n• Rompe ciclo de patógenos\n• Reduce inóculo en suelo\n• Ej: no repetir solanáceas (Fusarium, Verticillium)\n\n**Control de plagas:**\n• Dificulta establecimiento\n• Interrumpe reproducción\n• Reduce nematodos\n\n**Control de malezas:**\n• Diferentes épocas de siembra\n• Competencia variable\n• Uso de distintos herbicidas\n\n**Mejora de suelo:**\n• Diferentes profundidades de raíces\n• Leguminosas fijan N\n• Varía extracción de nutrientes\n• Aporte de materia orgánica\n\n**Principios de planificación:**\n• Alternar familias botánicas\n• Alternar cultivos de raíz profunda/superficial\n• Incluir leguminosas (fijación N)\n• Considerar cultivos de cobertura\n• No repetir susceptibles al mismo patógeno\n\n**Ejemplo rotación 4 años:**\n1. Maíz (gramínea, alta demanda N)\n2. Soja (leguminosa, fija N)\n3. Trigo (gramínea, diferente ciclo)\n4. Girasol o barbecho verde\n\n**Cultivos de cobertura:**\n• Avena, centeno, vicia\n• Protegen suelo de erosión\n• Aportan materia orgánica\n• Controlan malezas\n• Mejoran estructura",
-      "keywords": ["rotacion", "cultivos", "beneficios", "planificacion", "cobertura", "familias"]
+      "keywords": [
+        "rotacion",
+        "cultivos",
+        "beneficios",
+        "planificacion",
+        "cobertura",
+        "familias"
+      ]
     },
     {
       "id": 181,
@@ -1596,7 +2126,14 @@
         "Amarillamiento unilateral tomate"
       ],
       "answer": "**Marchitez por Fusarium (Fusarium oxysporum f. sp. lycopersici)** \n\n**Agente causal:**\n• Hongo Fusarium oxysporum f. sp. lycopersici\n• Razas 1, 2 y 3 conocidas\n• Sobrevive décadas en suelo como clamidosporas\n• Específico de tomate\n\n**Síntomas:**\n• Amarillamiento de hojas inferiores\n• Frecuentemente unilateral (un lado de planta)\n• Marchitez progresiva ascendente\n• Decoloración vascular marrón (corte tallo)\n• Muerte de planta en semanas\n• Síntomas más severos en clima cálido\n\n**Condiciones favorables:**\n• Temperatura suelo 27-28°C óptima\n• Suelos ácidos (pH <6.0)\n• Suelos arenosos\n• Estrés de planta (sequía, daño raíz)\n\n**NO hay control químico efectivo post-infección.**\n\n**Control:**\n• Variedades resistentes (genes I, I-2, I-3) ESENCIAL\n• Rotación 5-7 años (persistencia)\n• pH suelo >6.5 (encalar)\n• Desinfección de suelo: solarización, vapor\n• Material de trasplante sano\n• Eliminar plantas enfermas y raíces\n• Injerto sobre portainjertos resistentes",
-      "keywords": ["fusarium", "marchitez", "vascular", "oxysporum", "amarillamiento", "tomate"]
+      "keywords": [
+        "fusarium",
+        "marchitez",
+        "vascular",
+        "oxysporum",
+        "amarillamiento",
+        "tomate"
+      ]
     },
     {
       "id": 182,
@@ -1608,7 +2145,13 @@
         "Amarillamiento en V tomate"
       ],
       "answer": "**Marchitez por Verticillium (Verticillium dahliae)** \n\n**Agente causal:**\n• Hongo Verticillium dahliae (polífago)\n• V. albo-atrum (menos común)\n• Amplio rango de hospederos (>400 especies)\n• Sobrevive como microesclerocios 10+ años\n\n**Síntomas:**\n• Amarillamiento en V desde borde de hojas\n• Marchitez durante día caluroso, recupera de noche\n• Progresión de abajo hacia arriba\n• Decoloración vascular marrón clara (vs. Fusarium más oscuro)\n• Menos agresivo que Fusarium\n• Reduce producción, raramente mata planta\n\n**Diferencias con Fusarium:**\n• Verticillium: prefiere temperaturas frescas (20-24°C)\n• Verticillium: amplio rango de hospederos\n• Fusarium: amarillamiento más unilateral\n• Ambos: decoloración vascular\n\n**Control:**\n• Variedades resistentes (gen Ve)\n• Rotación con gramíneas (no soluciona del todo)\n• Solarización del suelo\n• pH neutro a ligeramente alcalino\n• Biofumigación con brassicas\n• Eliminar residuos infectados\n• Evitar exceso de nitrógeno",
-      "keywords": ["verticillium", "marchitez", "dahliae", "amarillamiento", "tomate"]
+      "keywords": [
+        "verticillium",
+        "marchitez",
+        "dahliae",
+        "amarillamiento",
+        "tomate"
+      ]
     },
     {
       "id": 183,
@@ -1620,7 +2163,14 @@
         "Agallas raíces"
       ],
       "answer": "**Nematodos agalladores (Meloidogyne spp.)** \n\n**Agentes causales:**\n• Meloidogyne incognita, M. javanica, M. arenaria\n• Parásitos obligados de raíces\n• Microscópicos (0.5-1 mm)\n• Afectan tomate, papa, pimiento, muchos cultivos\n\n**Síntomas:**\n• Agallas (nódulos) en raíces - diagnóstico\n• Raíces deformadas, con \"verrugas\"\n• Parte aérea: amarillamiento, enanismo\n• Marchitez en días calurosos\n• Reducción de producción 20-50%\n• Favorece entrada de Fusarium\n\n**Ciclo:**\n• Huevo → J2 (infectivo) → parasita raíz → adulto\n• Completan ciclo en 25-30 días (cálido)\n• Hembra pone 200-500 huevos\n• Múltiples generaciones por temporada\n\n**Control:**\n• Rotación con gramíneas, crucíferas\n• Variedades resistentes (gen Mi en tomate)\n• Injerto en portainjertos resistentes\n• Solarización del suelo (6-8 semanas)\n• Biofumigación con mostaza, rábano\n• Nematicidas: fluopyram, oxamilo\n• Agentes biológicos: Paecilomyces, Purpureocillium\n• Barbecho limpio\n\n**Muestreo:**\n• Análisis de suelo (extracción de juveniles)\n• Extracción de raíces (hembras, huevos)",
-      "keywords": ["nematodos", "meloidogyne", "agallas", "nodulos", "raices", "tomate"]
+      "keywords": [
+        "nematodos",
+        "meloidogyne",
+        "agallas",
+        "nodulos",
+        "raices",
+        "tomate"
+      ]
     },
     {
       "id": 184,
@@ -1632,7 +2182,15 @@
         "Deficiencia calcio tomate"
       ],
       "answer": "**Pudrición apical / Peseta (desorden fisiológico)** \n\n**NO es una enfermedad infecciosa - es nutricional**\n\n**Causa:**\n• Deficiencia localizada de calcio en fruto\n• Calcio es inmóvil en floema\n• Fruto joven en rápido crecimiento no recibe suficiente Ca\n\n**Síntomas:**\n• Mancha acuosa en extremo distal (punta) del fruto\n• Se torna marrón oscuro a negro\n• Zona hundida, seca, coriácea\n• Puede haber pudrición secundaria\n• Más común en primeros racimos\n• Afecta tomate, pimiento, calabaza\n\n**Factores predisponentes:**\n• Riego irregular (estrés hídrico)\n• Exceso de nitrógeno amoniacal\n• Salinidad alta\n• Daño a raíces\n• Alta temperatura y baja humedad\n• Exceso de K o Mg (antagonismo con Ca)\n• Crecimiento muy rápido del fruto\n\n**Control/Prevención:**\n• Riego regular y consistente (CRÍTICO)\n• Mulch para mantener humedad\n• Calcio al suelo según análisis\n• Aplicaciones foliares Ca (cloruro, nitrato)\n• No exceder nitrógeno\n• Equilibrio K:Ca:Mg en fertirrigación\n• Variedades menos susceptibles\n• Evitar daño a raíces\n\n**Nota:** Aplicar calcio foliar directo al fruto es poco efectivo; el manejo del riego es clave.",
-      "keywords": ["pudricion", "apical", "blossom", "end", "rot", "calcio", "tomate"]
+      "keywords": [
+        "pudricion",
+        "apical",
+        "blossom",
+        "end",
+        "rot",
+        "calcio",
+        "tomate"
+      ]
     },
     {
       "id": 185,
@@ -1644,7 +2202,14 @@
         "Daño trips hojas flores"
       ],
       "answer": "**Trips (Thysanoptera) en cultivos** \n\n**Especies principales:**\n• Frankliniella occidentalis (trips occidental de las flores)\n• Thrips tabaci (trips de la cebolla)\n• Thrips palmi (trips del melón)\n\n**Identificación:**\n• Insectos diminutos (1-2 mm)\n• Cuerpo alargado, alas plumosas\n• Colores: amarillo, marrón, negro\n• Muy móviles, saltan\n\n**Daños directos:**\n• Raspado-succión de células\n• Manchas plateadas en hojas\n• Cicatrices y deformación en frutos\n• Necrosis en pétalos de flores\n• Caída de flores\n\n**Daños indirectos (transmisión de virus):**\n• TSWV (Virus del bronceado del tomate)\n• INSV, IYSV\n• Transmisión persistente propagativa\n• Una vez infectivo, lo es de por vida\n\n**Control químico:**\n• Spinosad, spinetoram (efectivos)\n• Abamectina\n• Acrinatrin, cipermetrina (contacto)\n• Resistencia común a muchos productos\n\n**Control biológico:**\n• Orius spp. (chinche depredador)\n• Amblyseius swirskii, A. cucumeris (ácaros)\n• Beauveria bassiana\n• Steinernema feltiae (nematodos)\n\n**Control cultural:**\n• Trampas azules pegajosas\n• Mallas antitrips\n• Eliminar malezas hospederas\n• Eliminar residuos de cultivo",
-      "keywords": ["trips", "thrips", "frankliniella", "tabaci", "plateado", "virus"]
+      "keywords": [
+        "trips",
+        "thrips",
+        "frankliniella",
+        "tabaci",
+        "plateado",
+        "virus"
+      ]
     },
     {
       "id": 186,
@@ -1656,7 +2221,14 @@
         "Serpentinas hojas"
       ],
       "answer": "**Minadores de hojas (Liriomyza spp., Tuta absoluta)** \n\n**Especies principales:**\n• Liriomyza trifolii (minador americano)\n• Liriomyza huidobrensis (minador del guisante)\n• Tuta absoluta (polilla del tomate) - especial importancia\n\n**Identificación Liriomyza:**\n• Mosca pequeña (2-3 mm)\n• Cuerpo negro con manchas amarillas\n• Larva blanco-amarillenta dentro de hoja\n\n**Daño:**\n• Larvas minan entre epidermis de hoja\n• Galerías serpenteantes visibles\n• Reduce fotosíntesis\n• Entrada para patógenos\n• Excremento visible dentro de mina\n\n**Tuta absoluta (polilla del tomate):**\n• Plaga devastadora en tomate\n• Larva también mina tallos y frutos\n• Galerías en fruto con excremento\n• Pérdidas totales posibles\n\n**Control de Liriomyza:**\n• Trampas amarillas\n• Parasitoides: Diglyphus isaea, Dacnusa sibirica\n• Spinosad, abamectina\n• Cyromazina (IGR)\n\n**Control de Tuta:**\n• Trampas de feromona (monitoreo y captura masiva)\n• Bt (Bacillus thuringiensis) contra larvas\n• Spinosad, clorantraniliprol\n• Nesidiocoris tenuis (mírido depredador)\n• Trichogramma achaeae (parasitoide huevos)\n• Mallas en invernadero\n• Eliminar plantas afectadas",
-      "keywords": ["minador", "liriomyza", "tuta", "galerias", "serpentinas", "hojas"]
+      "keywords": [
+        "minador",
+        "liriomyza",
+        "tuta",
+        "galerias",
+        "serpentinas",
+        "hojas"
+      ]
     },
     {
       "id": 187,
@@ -1668,7 +2240,14 @@
         "Antracnosis pimiento tomate"
       ],
       "answer": "**Antracnosis de frutos (Colletotrichum spp.)** \n\n**Agentes causales:**\n• Colletotrichum gloeosporioides (complejo)\n• Colletotrichum acutatum (complejo)\n• Colletotrichum coccodes\n• Amplio rango de hospederos\n\n**Cultivos afectados:**\n• Pimiento, tomate (solanáceas)\n• Fresa, mango, papaya (frutas)\n• Frijol, soja (leguminosas)\n\n**Síntomas generales:**\n• Lesiones circulares hundidas en frutos\n• Centro se torna oscuro\n• Anillos concéntricos posibles\n• Masas de esporas rosado-naranja (acérvulos)\n• Infección latente común: síntomas en madurez\n• Pudrición post-cosecha importante\n\n**Condiciones favorables:**\n• Alta humedad (>90%)\n• Temperatura 25-30°C\n• Lluvia (dispersión de esporas)\n• Heridas en frutos\n• Frutos maduros más susceptibles\n\n**Control químico:**\n• Preventivo: mancozeb, clorotalonil\n• Sistémico: azoxistrobin, difenoconazol\n• Prochloraz, imazalil (post-cosecha)\n• Aplicar desde floración\n\n**Control cultural:**\n• Eliminar frutos infectados\n• Buena ventilación\n• Evitar daño mecánico a frutos\n• Rotación de cultivos\n• Cosechar en seco\n• Cadena de frío post-cosecha",
-      "keywords": ["antracnosis", "colletotrichum", "hundidas", "frutos", "pimiento", "tomate"]
+      "keywords": [
+        "antracnosis",
+        "colletotrichum",
+        "hundidas",
+        "frutos",
+        "pimiento",
+        "tomate"
+      ]
     },
     {
       "id": 188,
@@ -1680,7 +2259,15 @@
         "Marchitez Phytophthora"
       ],
       "answer": "**Phytophthora en solanáceas (P. capsici, P. nicotianae)** \n\n**Agentes causales:**\n• Phytophthora capsici (principal en pimiento)\n• Phytophthora nicotianae (tomate, tabaco)\n• Oomicetos (no hongos verdaderos)\n• Producen zoosporas móviles en agua\n\n**Síntomas según órgano:**\n\n**Raíz y cuello:**\n• Pudrición acuosa marrón\n• Constricción del cuello\n• Marchitez irreversible\n• Muerte rápida de planta\n\n**Frutos (P. capsici):**\n• Pudrición acuosa que avanza rápido\n• Micelio blanco en superficie\n• Afecta frutos en contacto con suelo\n\n**Condiciones favorables:**\n• Suelos encharcados (CRÍTICO)\n• Temperatura 25-30°C\n• Riego por inundación o aspersión\n• Compactación del suelo\n\n**Control:**\n• Drenaje excelente del suelo\n• Camellones elevados\n• Riego por goteo (no mojar cuello)\n• Metalaxil-M (preventivo, resistencia existe)\n• Fosetil-Al, propamocarb\n• Fosfonatos (fosfito potásico)\n• Trichoderma harzianum (biocontrol)\n• Variedades tolerantes limitadas\n• Injerto en portainjertos resistentes\n• Rotación 3-4 años\n• Solarización",
-      "keywords": ["phytophthora", "capsici", "pudricion", "raiz", "cuello", "pimiento", "marchitez"]
+      "keywords": [
+        "phytophthora",
+        "capsici",
+        "pudricion",
+        "raiz",
+        "cuello",
+        "pimiento",
+        "marchitez"
+      ]
     },
     {
       "id": 189,
@@ -1691,7 +2278,17 @@
         "Información sobre tizón norteño"
       ],
       "answer": "**¿Qué es el Tizón Norteño del Maíz?**\n\nEl tizón norteño es una enfermedad fungosa causada por **Exserohilum turcicum** (antes llamado Helminthosporium turcicum). Es una de las enfermedades foliares más importantes del maíz a nivel mundial.\n\n**Características principales:**\n• Afecta principalmente las hojas\n• Reduce la capacidad fotosintética\n• Puede causar pérdidas del 30-50% en ataques severos\n• Más agresivo en climas frescos y húmedos\n• El hongo sobrevive en rastrojos de maíz\n\n**Nombre científico:** Exserohilum turcicum\n**Nombres comunes:** Tizón norteño, Northern Leaf Blight, Helmintosporiosis\n**Tipo de patógeno:** Hongo (Ascomycete)",
-      "keywords": ["tizon", "norteno", "que", "es", "exserohilum", "turcicum", "helminthosporium", "maiz", "hongo"]
+      "keywords": [
+        "tizon",
+        "norteno",
+        "que",
+        "es",
+        "exserohilum",
+        "turcicum",
+        "helminthosporium",
+        "maiz",
+        "hongo"
+      ]
     },
     {
       "id": 190,
@@ -1703,7 +2300,17 @@
         "Manchas en hojas de maíz forma cigarro"
       ],
       "answer": "**Síntomas del Tizón Norteño del Maíz**\n\n**Síntomas visuales característicos:**\n• **Manchas en forma de cigarro o canoa** (3-15 cm de largo)\n• Color inicial gris-verdoso\n• Evoluciona a marrón o pajizo al secarse\n• Bordes difusos, no muy definidos\n• Pueden fusionarse y secar hojas completas\n\n**Patrón de avance:**\n• Inicia en hojas inferiores\n• Progresa hacia arriba\n• En casos severos: muerte prematura del follaje\n\n**Condiciones que favorecen:**\n• Temperatura: 18-27°C (óptimo 20-25°C)\n• Humedad relativa alta (>90%)\n• Rocío prolongado sobre hojas\n• Lluvias frecuentes\n\n**Diferenciación de otras enfermedades:**\n• A diferencia de la roya: NO tiene pústulas\n• A diferencia de mancha gris: lesiones más grandes y alargadas",
-      "keywords": ["sintomas", "identificar", "tizon", "norteno", "manchas", "cigarro", "canoa", "hojas", "maiz"]
+      "keywords": [
+        "sintomas",
+        "identificar",
+        "tizon",
+        "norteno",
+        "manchas",
+        "cigarro",
+        "canoa",
+        "hojas",
+        "maiz"
+      ]
     },
     {
       "id": 191,
@@ -1715,7 +2322,17 @@
         "¿Cómo curar el tizón norteño?"
       ],
       "answer": "**Control del Tizón Norteño del Maíz**\n\n**Control químico (fungicidas):**\n• **Triazoles:** Propiconazol, Tebuconazol, Epoxiconazol\n• **Estrobilurinas:** Azoxistrobin, Pyraclostrobin, Trifloxistrobin\n• **Mezclas recomendadas:** Azoxistrobin + Propiconazol\n\n**Momento de aplicación:**\n• Primera aplicación: V8-V10 (8-10 hojas)\n• Segunda aplicación: VT (emisión de espiga) si persiste\n• Aplicar ANTES de que llegue a las hojas superiores\n\n**Dosis típicas:**\n• Triazoles: 0.5-1.0 L/ha\n• Estrobilurinas: 0.3-0.5 L/ha\n• Mezclas comerciales: según etiqueta\n\n**Tecnología de aplicación:**\n• Volumen: 150-200 L/ha\n• Boquillas de cono hueco\n• Buena cobertura del follaje\n• Aplicar en horas frescas\n\n**Importante:** Rotar grupos químicos para evitar resistencia",
-      "keywords": ["control", "tratamiento", "fungicida", "tizon", "norteno", "curar", "aplicar", "triazol", "estrobilurina"]
+      "keywords": [
+        "control",
+        "tratamiento",
+        "fungicida",
+        "tizon",
+        "norteno",
+        "curar",
+        "aplicar",
+        "triazol",
+        "estrobilurina"
+      ]
     },
     {
       "id": 192,
@@ -1726,7 +2343,17 @@
         "Evitar tizón norteño en maíz"
       ],
       "answer": "**Prevención del Tizón Norteño del Maíz**\n\n**1. Selección de híbridos:**\n• Usar variedades con genes de resistencia (Ht1, Ht2, Ht3, HtN)\n• Consultar catálogos de semilleras\n• La resistencia parcial reduce severidad\n\n**2. Manejo de rastrojos:**\n• Enterrar o picar residuos de cosecha\n• El hongo sobrevive en rastrojos\n• Descomposición reduce inóculo\n\n**3. Rotación de cultivos:**\n• Alternar con soja, sorgo u otros no hospedantes\n• Mínimo 1-2 años sin maíz\n• Reduce presión de inóculo\n\n**4. Fecha de siembra:**\n• Evitar siembras muy tardías\n• Siembras tempranas escapan del pico de enfermedad\n\n**5. Densidad de siembra:**\n• No exceder densidad recomendada\n• Mayor ventilación = menos humedad foliar\n\n**6. Nutrición balanceada:**\n• Evitar exceso de nitrógeno\n• Plantas bien nutridas más resistentes",
-      "keywords": ["prevenir", "prevencion", "evitar", "tizon", "norteno", "hibridos", "resistencia", "rotacion", "rastrojos"]
+      "keywords": [
+        "prevenir",
+        "prevencion",
+        "evitar",
+        "tizon",
+        "norteno",
+        "hibridos",
+        "resistencia",
+        "rotacion",
+        "rastrojos"
+      ]
     },
     {
       "id": 193,
@@ -1738,7 +2365,16 @@
         "Manchas en forma de cigarro en maíz"
       ],
       "answer": "**Diagnóstico: Probable Tizón Norteño**\n\nBasado en los síntomas descritos (manchas alargadas/grises), es probable que sea **Tizón Norteño (Exserohilum turcicum)**.\n\n**Confirme observando:**\n✓ Manchas de 3-15 cm en forma de cigarro\n✓ Color gris-verdoso a marrón\n✓ Inicia en hojas inferiores\n✓ Sin pústulas (descarta roya)\n\n**Acción inmediata:**\n1. Si está en etapas V8-VT: aplicar fungicida\n2. Usar Azoxistrobin + Propiconazol o similar\n3. Dosis: según etiqueta del producto\n4. Repetir en 14-21 días si continúa lloviendo\n\n**Si el maíz ya está en llenado de grano (R3+):**\n• La aplicación puede no ser económica\n• Cosechar lo antes posible\n• Para próxima siembra: usar híbrido resistente\n\n**¿Necesita más ayuda?** Tome una foto de cerca de las manchas para confirmar.",
-      "keywords": ["manchas", "alargadas", "grises", "secando", "hojas", "maiz", "cigarro", "diagnostico"]
+      "keywords": [
+        "manchas",
+        "alargadas",
+        "grises",
+        "secando",
+        "hojas",
+        "maiz",
+        "cigarro",
+        "diagnostico"
+      ]
     },
     {
       "id": 194,
@@ -1749,7 +2385,16 @@
         "¿Es grave el tizón norteño?"
       ],
       "answer": "**Impacto Económico del Tizón Norteño**\n\n**Pérdidas potenciales:**\n• Ataques leves: 5-15% de pérdida\n• Ataques moderados: 15-30% de pérdida\n• Ataques severos: 30-50% o más\n• En casos extremos con marchitez total: >70%\n\n**Factores que aumentan pérdidas:**\n• Infección temprana (antes de floración)\n• Afectación de hojas superiores (espiga y arriba)\n• Híbridos susceptibles\n• Alta presión de enfermedad continua\n\n**¿Cuándo es grave?**\n• Si >50% del área foliar afectada en floración\n• Si llega a las 3 hojas superiores\n• Si hay pronóstico de más lluvias\n\n**¿Cuándo es tolerable?**\n• Si inicia después del llenado de grano (R3+)\n• Si solo afecta hojas inferiores\n• Si el clima se torna seco\n\n**Recomendación económica:**\n• Costo de fungicida vs. valor de pérdida esperada\n• En maíz de alto potencial: proteger con fungicida\n• En maíz de bajo potencial: evaluar costo-beneficio",
-      "keywords": ["dano", "perdidas", "grave", "tizon", "norteno", "economico", "rendimiento", "impacto"]
+      "keywords": [
+        "dano",
+        "perdidas",
+        "grave",
+        "tizon",
+        "norteno",
+        "economico",
+        "rendimiento",
+        "impacto"
+      ]
     },
     {
       "id": 195,
@@ -1762,6 +2407,166 @@
         "y qué me dices de la fertilización del maíz"
       ],
       "answer": "**Fertilización del maíz** \n\n**En siembra:**\n• NPK 15-15-15: 200 kg/ha\n\n**A 30 días:**\n• Urea: 150 kg/ha\n\n**A 60 días:**\n• Urea: 100 kg/ha\n\n**Casero:**\n• 1 cucharada fertilizante/planta en siembra\n• 1 cucharada urea/planta a 30 días\n\n No aplicar urea en contacto con semilla"
+    },
+    {
+      "id": 196,
+      "category": "cultivo",
+      "questions": [
+        "¿Cómo cultivar tomates?"
+      ],
+      "answer": "Para cultivar tomates necesitas: 1) Suelo bien drenado y rico en materia orgánica, 2) Riego regular pero sin encharcamiento, 3) Sol directo 6-8 horas diarias, 4) Fertilizar cada 2-3 semanas, 5) Podar brotes laterales, 6) Entutorar las plantas cuando crezcan.",
+      "keywords": [
+        "cultivar",
+        "tomates"
+      ]
+    },
+    {
+      "id": 197,
+      "category": "fertilizacion",
+      "questions": [
+        "¿Qué fertilizante usar para maíz?"
+      ],
+      "answer": "Para maíz usa fertilizante NPK 15-15-15 al sembrar. A los 30 días aplica nitrógeno (urea). A los 60 días repite la aplicación de nitrógeno. El compost orgánico antes de siembra mejora mucho el suelo.",
+      "keywords": [
+        "fertilizante",
+        "usar",
+        "maiz"
+      ]
+    },
+    {
+      "id": 198,
+      "category": "siembra",
+      "questions": [
+        "¿Cuándo plantar frijoles?"
+      ],
+      "answer": "Siembra frijoles al inicio de lluvias cuando el suelo tenga más de 15°C. En zonas templadas: marzo-mayo y agosto-septiembre. Evita épocas de heladas. El frijol necesita 90-120 días para cosecha.",
+      "keywords": [
+        "plantar",
+        "frijoles"
+      ]
+    },
+    {
+      "id": 199,
+      "category": "siembra",
+      "questions": [
+        "época de siembra de frijol"
+      ],
+      "answer": "El frijol se siembra al inicio del período de lluvias. Necesita temperatura de 15-25°C. En clima cálido puedes sembrar casi todo el año. En clima frío, evita heladas y temperaturas bajo 10°C.",
+      "keywords": [
+        "epoca",
+        "siembra",
+        "frijol"
+      ]
+    },
+    {
+      "id": 200,
+      "category": "diagnostico",
+      "questions": [
+        "Síntomas de enfermedad en plantas"
+      ],
+      "answer": "Síntomas comunes: hojas amarillas (falta nitrógeno o exceso agua), manchas marrones (hongos), marchitamiento (problemas de raíz), hojas enrolladas (virus o ácaros), crecimiento lento (falta nutrientes).",
+      "keywords": [
+        "sintomas",
+        "enfermedad",
+        "plantas"
+      ]
+    },
+    {
+      "id": 201,
+      "category": "diagnostico",
+      "questions": [
+        "hojas amarillas en mis plantas"
+      ],
+      "answer": "Las hojas amarillas pueden indicar: exceso de riego, falta de nitrógeno, deficiencia de hierro, o raíces dañadas. Revisa el drenaje, reduce el riego y aplica fertilizante nitrogenado si el suelo está seco.",
+      "keywords": [
+        "hojas",
+        "amarillas",
+        "plantas"
+      ]
+    },
+    {
+      "id": 202,
+      "category": "fertilizacion",
+      "questions": [
+        "¿Qué es el compost?"
+      ],
+      "answer": "El compost es abono orgánico hecho de residuos vegetales descompuestos. Mejora la estructura del suelo, retiene agua, aporta nutrientes y aumenta la actividad microbiana. Es excelente para cualquier cultivo.",
+      "keywords": [
+        "compost"
+      ]
+    },
+    {
+      "id": 203,
+      "category": "plagas",
+      "questions": [
+        "control de malezas"
+      ],
+      "answer": "Controla malezas con: mulch o cobertura del suelo, deshierbe manual regular, rotación de cultivos, y herbicidas selectivos si es necesario. Las malezas compiten por agua y nutrientes con tus cultivos.",
+      "keywords": [
+        "control",
+        "malezas"
+      ]
+    },
+    {
+      "id": 204,
+      "category": "riego",
+      "questions": [
+        "¿Cuánto regar mis plantas?"
+      ],
+      "answer": "La cantidad de riego depende del cultivo, clima y suelo. En general, riega cuando los primeros 5cm de suelo estén secos. Hortalizas necesitan 25-50mm por semana. Evita encharcamiento.",
+      "keywords": [
+        "cuanto",
+        "regar",
+        "plantas"
+      ]
+    },
+    {
+      "id": 205,
+      "category": "plagas",
+      "questions": [
+        "pulgones en mis plantas"
+      ],
+      "answer": "Los pulgones se controlan con: agua jabonosa, aceite de neem, mariquitas (depredador natural), o insecticidas específicos. Revisa el envés de las hojas donde se esconden. Actúa rápido porque se multiplican velozmente.",
+      "keywords": [
+        "pulgones",
+        "plantas"
+      ]
+    },
+    {
+      "id": 206,
+      "category": "diagnostico",
+      "questions": [
+        "hongos en las hojas"
+      ],
+      "answer": "Los hongos causan manchas, pudrición y marchitez. Controla con: buena ventilación, evitar mojar hojas, fungicidas cúpricos o azufre, y eliminando partes afectadas. La prevención es clave.",
+      "keywords": [
+        "hongos",
+        "hojas"
+      ]
+    },
+    {
+      "id": 207,
+      "category": "cultivo",
+      "questions": [
+        "¿Qué sembrar en verano?"
+      ],
+      "answer": "En verano siembra: tomate, pimiento, berenjena, sandía, melón, pepino, calabaza y maíz. Estos cultivos necesitan calor y sol directo. Asegura buen riego porque el calor aumenta la evaporación.",
+      "keywords": [
+        "sembrar",
+        "verano"
+      ]
+    },
+    {
+      "id": 208,
+      "category": "siembra",
+      "questions": [
+        "¿Qué sembrar en invierno?"
+      ],
+      "answer": "En invierno siembra: lechuga, espinaca, brócoli, coliflor, repollo, zanahoria, rábano y acelga. Estos cultivos toleran el frío y algunos mejoran su sabor con temperaturas bajas.",
+      "keywords": [
+        "sembrar",
+        "invierno"
+      ]
     }
   ]
 }

@@ -368,6 +368,18 @@ class SemanticSearchHelper(private val context: Context) {
                 entryIds.add(id)
             }
         }
+
+        if (questions.size != embeddings.size) {
+            Log.w(
+                TAG,
+                "Desalineacion KB/embeddings: preguntas=${questions.size}, embeddings=${embeddings.size}. Se activa fallback textual para cobertura completa."
+            )
+            AppLogger.log(
+                TAG,
+                "KB/embeddings desalineados (q=${questions.size}, emb=${embeddings.size}). MindSpore encoder desactivado."
+            )
+            useMindSporeEncoder = false
+        }
         
         kbEmbeddings = embeddings
         kbQuestions = questions
