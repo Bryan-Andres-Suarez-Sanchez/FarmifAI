@@ -23997,6 +23997,1864 @@
         "continuidad",
         "operativa"
       ]
+    },
+    {
+      "id": 1193,
+      "category": "cultivo",
+      "questions": [
+        "Como manejar cafe en <1000 msnm",
+        "Recomendaciones para cafe en <1000 msnm",
+        "Riesgos de cafe en <1000 msnm",
+        "Que priorizar en cafetal de <1000 msnm"
+      ],
+      "answer": "En cafe cultivado en <1000 msnm, suele presentarse temperaturas altas y maduracion acelerada. La estrategia tecnica recomendada es sombra regulada y manejo hidrico fino, ajustando decisiones por lote y fenologia.",
+      "keywords": [
+        "cafe",
+        "altitud",
+        "manejo",
+        "1000",
+        "msnm",
+        "temperaturas",
+        "altas",
+        "maduracion",
+        "acelerada",
+        "sombra",
+        "regulada",
+        "hidrico",
+        "fino"
+      ]
+    },
+    {
+      "id": 1194,
+      "category": "cultivo",
+      "questions": [
+        "Como manejar cafe en 1000-1200 msnm",
+        "Recomendaciones para cafe en 1000-1200 msnm",
+        "Riesgos de cafe en 1000-1200 msnm",
+        "Que priorizar en cafetal de 1000-1200 msnm"
+      ],
+      "answer": "En cafe cultivado en 1000-1200 msnm, suele presentarse ambiente calido-intermedio. La estrategia tecnica recomendada es balance entre productividad y sanidad, ajustando decisiones por lote y fenologia.",
+      "keywords": [
+        "cafe",
+        "altitud",
+        "manejo",
+        "1000",
+        "1200",
+        "msnm",
+        "ambiente",
+        "calido",
+        "intermedio",
+        "balance",
+        "entre",
+        "productividad",
+        "sanidad"
+      ]
+    },
+    {
+      "id": 1195,
+      "category": "cultivo",
+      "questions": [
+        "Como manejar cafe en 1200-1400 msnm",
+        "Recomendaciones para cafe en 1200-1400 msnm",
+        "Riesgos de cafe en 1200-1400 msnm",
+        "Que priorizar en cafetal de 1200-1400 msnm"
+      ],
+      "answer": "En cafe cultivado en 1200-1400 msnm, suele presentarse transicion climatica con buena adaptabilidad. La estrategia tecnica recomendada es lotes diferenciados por exposicion, ajustando decisiones por lote y fenologia.",
+      "keywords": [
+        "cafe",
+        "altitud",
+        "manejo",
+        "1200",
+        "1400",
+        "msnm",
+        "transicion",
+        "climatica",
+        "con",
+        "buena",
+        "adaptabilidad",
+        "lotes",
+        "diferenciados",
+        "por",
+        "exposicion"
+      ]
+    },
+    {
+      "id": 1196,
+      "category": "cultivo",
+      "questions": [
+        "Como manejar cafe en 1400-1600 msnm",
+        "Recomendaciones para cafe en 1400-1600 msnm",
+        "Riesgos de cafe en 1400-1600 msnm",
+        "Que priorizar en cafetal de 1400-1600 msnm"
+      ],
+      "answer": "En cafe cultivado en 1400-1600 msnm, suele presentarse condiciones frecuentes para buena taza. La estrategia tecnica recomendada es consistencia en cosecha selectiva, ajustando decisiones por lote y fenologia.",
+      "keywords": [
+        "cafe",
+        "altitud",
+        "manejo",
+        "1400",
+        "1600",
+        "msnm",
+        "condiciones",
+        "frecuentes",
+        "para",
+        "buena",
+        "taza",
+        "consistencia",
+        "cosecha",
+        "selectiva"
+      ]
+    },
+    {
+      "id": 1197,
+      "category": "cultivo",
+      "questions": [
+        "Como manejar cafe en 1600-1800 msnm",
+        "Recomendaciones para cafe en 1600-1800 msnm",
+        "Riesgos de cafe en 1600-1800 msnm",
+        "Que priorizar en cafetal de 1600-1800 msnm"
+      ],
+      "answer": "En cafe cultivado en 1600-1800 msnm, suele presentarse maduracion mas lenta y potencial de calidad. La estrategia tecnica recomendada es control sanitario preventivo, ajustando decisiones por lote y fenologia.",
+      "keywords": [
+        "cafe",
+        "altitud",
+        "manejo",
+        "1600",
+        "1800",
+        "msnm",
+        "maduracion",
+        "mas",
+        "lenta",
+        "potencial",
+        "calidad",
+        "control",
+        "sanitario",
+        "preventivo"
+      ]
+    },
+    {
+      "id": 1198,
+      "category": "cultivo",
+      "questions": [
+        "Como manejar cafe en 1800-2000 msnm",
+        "Recomendaciones para cafe en 1800-2000 msnm",
+        "Riesgos de cafe en 1800-2000 msnm",
+        "Que priorizar en cafetal de 1800-2000 msnm"
+      ],
+      "answer": "En cafe cultivado en 1800-2000 msnm, suele presentarse mayor amplitud termica. La estrategia tecnica recomendada es manejo de nutricion por etapa, ajustando decisiones por lote y fenologia.",
+      "keywords": [
+        "cafe",
+        "altitud",
+        "manejo",
+        "1800",
+        "2000",
+        "msnm",
+        "mayor",
+        "amplitud",
+        "termica",
+        "nutricion",
+        "por",
+        "etapa"
+      ]
+    },
+    {
+      "id": 1199,
+      "category": "cultivo",
+      "questions": [
+        "Como manejar cafe en >2000 msnm",
+        "Recomendaciones para cafe en >2000 msnm",
+        "Riesgos de cafe en >2000 msnm",
+        "Que priorizar en cafetal de >2000 msnm"
+      ],
+      "answer": "En cafe cultivado en >2000 msnm, suele presentarse crecimiento mas lento y alto riesgo de frio. La estrategia tecnica recomendada es variedad adaptada y manejo conservador, ajustando decisiones por lote y fenologia.",
+      "keywords": [
+        "cafe",
+        "altitud",
+        "manejo",
+        "2000",
+        "msnm",
+        "crecimiento",
+        "mas",
+        "lento",
+        "alto",
+        "riesgo",
+        "frio",
+        "variedad",
+        "adaptada",
+        "conservador"
+      ]
+    },
+    {
+      "id": 1200,
+      "category": "cultivo",
+      "questions": [
+        "Como manejar cafe en ladera baja",
+        "Recomendaciones para cafe en ladera baja",
+        "Riesgos de cafe en ladera baja",
+        "Que priorizar en cafetal de ladera baja"
+      ],
+      "answer": "En cafe cultivado en ladera baja, suele presentarse mayor estres termico en dias soleados. La estrategia tecnica recomendada es cobertura de suelo y sombreo, ajustando decisiones por lote y fenologia.",
+      "keywords": [
+        "cafe",
+        "altitud",
+        "manejo",
+        "ladera",
+        "baja",
+        "mayor",
+        "estres",
+        "termico",
+        "dias",
+        "soleados",
+        "cobertura",
+        "suelo",
+        "sombreo"
+      ]
+    },
+    {
+      "id": 1201,
+      "category": "cultivo",
+      "questions": [
+        "Como manejar cafe en ladera media",
+        "Recomendaciones para cafe en ladera media",
+        "Riesgos de cafe en ladera media",
+        "Que priorizar en cafetal de ladera media"
+      ],
+      "answer": "En cafe cultivado en ladera media, suele presentarse variacion de humedad por pendiente. La estrategia tecnica recomendada es curvas a nivel y drenaje, ajustando decisiones por lote y fenologia.",
+      "keywords": [
+        "cafe",
+        "altitud",
+        "manejo",
+        "ladera",
+        "media",
+        "variacion",
+        "humedad",
+        "por",
+        "pendiente",
+        "curvas",
+        "nivel",
+        "drenaje"
+      ]
+    },
+    {
+      "id": 1202,
+      "category": "cultivo",
+      "questions": [
+        "Como manejar cafe en ladera alta",
+        "Recomendaciones para cafe en ladera alta",
+        "Riesgos de cafe en ladera alta",
+        "Que priorizar en cafetal de ladera alta"
+      ],
+      "answer": "En cafe cultivado en ladera alta, suele presentarse mayor exposicion a viento y frio. La estrategia tecnica recomendada es barreras vivas y monitoreo, ajustando decisiones por lote y fenologia.",
+      "keywords": [
+        "cafe",
+        "altitud",
+        "manejo",
+        "ladera",
+        "alta",
+        "mayor",
+        "exposicion",
+        "viento",
+        "frio",
+        "barreras",
+        "vivas",
+        "monitoreo"
+      ]
+    },
+    {
+      "id": 1203,
+      "category": "cultivo",
+      "questions": [
+        "Como manejar cafe en zona de valle",
+        "Recomendaciones para cafe en zona de valle",
+        "Riesgos de cafe en zona de valle",
+        "Que priorizar en cafetal de zona de valle"
+      ],
+      "answer": "En cafe cultivado en zona de valle, suele presentarse mayor acumulacion de humedad. La estrategia tecnica recomendada es aireacion y vigilancia de enfermedades, ajustando decisiones por lote y fenologia.",
+      "keywords": [
+        "cafe",
+        "altitud",
+        "manejo",
+        "zona",
+        "valle",
+        "mayor",
+        "acumulacion",
+        "humedad",
+        "aireacion",
+        "vigilancia",
+        "enfermedades"
+      ]
+    },
+    {
+      "id": 1204,
+      "category": "cultivo",
+      "questions": [
+        "Como manejar cafe en zona de cresta",
+        "Recomendaciones para cafe en zona de cresta",
+        "Riesgos de cafe en zona de cresta",
+        "Que priorizar en cafetal de zona de cresta"
+      ],
+      "answer": "En cafe cultivado en zona de cresta, suele presentarse evaporacion mas alta. La estrategia tecnica recomendada es retencion de humedad y cobertura, ajustando decisiones por lote y fenologia.",
+      "keywords": [
+        "cafe",
+        "altitud",
+        "manejo",
+        "zona",
+        "cresta",
+        "evaporacion",
+        "mas",
+        "alta",
+        "retencion",
+        "humedad",
+        "cobertura"
+      ]
+    },
+    {
+      "id": 1205,
+      "category": "cultivo",
+      "questions": [
+        "Como manejar cafe en orientacion oriente",
+        "Recomendaciones para cafe en orientacion oriente",
+        "Riesgos de cafe en orientacion oriente",
+        "Que priorizar en cafetal de orientacion oriente"
+      ],
+      "answer": "En cafe cultivado en orientacion oriente, suele presentarse radiacion matinal predominante. La estrategia tecnica recomendada es ajuste de podas y sombra, ajustando decisiones por lote y fenologia.",
+      "keywords": [
+        "cafe",
+        "altitud",
+        "manejo",
+        "orientacion",
+        "oriente",
+        "radiacion",
+        "matinal",
+        "predominante",
+        "ajuste",
+        "podas",
+        "sombra"
+      ]
+    },
+    {
+      "id": 1206,
+      "category": "cultivo",
+      "questions": [
+        "Como manejar cafe en orientacion occidente",
+        "Recomendaciones para cafe en orientacion occidente",
+        "Riesgos de cafe en orientacion occidente",
+        "Que priorizar en cafetal de orientacion occidente"
+      ],
+      "answer": "En cafe cultivado en orientacion occidente, suele presentarse radiacion intensa en tarde. La estrategia tecnica recomendada es proteger tejido en horas criticas, ajustando decisiones por lote y fenologia.",
+      "keywords": [
+        "cafe",
+        "altitud",
+        "manejo",
+        "orientacion",
+        "occidente",
+        "radiacion",
+        "intensa",
+        "tarde",
+        "proteger",
+        "tejido",
+        "horas",
+        "criticas"
+      ]
+    },
+    {
+      "id": 1207,
+      "category": "cultivo",
+      "questions": [
+        "Como manejar cafe en microcuenca humeda",
+        "Recomendaciones para cafe en microcuenca humeda",
+        "Riesgos de cafe en microcuenca humeda",
+        "Que priorizar en cafetal de microcuenca humeda"
+      ],
+      "answer": "En cafe cultivado en microcuenca humeda, suele presentarse ambiente predisponente a enfermedad. La estrategia tecnica recomendada es sanidad y ventilacion, ajustando decisiones por lote y fenologia.",
+      "keywords": [
+        "cafe",
+        "altitud",
+        "manejo",
+        "microcuenca",
+        "humeda",
+        "ambiente",
+        "predisponente",
+        "enfermedad",
+        "sanidad",
+        "ventilacion"
+      ]
+    },
+    {
+      "id": 1208,
+      "category": "cultivo",
+      "questions": [
+        "Como manejar cafe en microcuenca seca",
+        "Recomendaciones para cafe en microcuenca seca",
+        "Riesgos de cafe en microcuenca seca",
+        "Que priorizar en cafetal de microcuenca seca"
+      ],
+      "answer": "En cafe cultivado en microcuenca seca, suele presentarse alto riesgo de estres hidrico. La estrategia tecnica recomendada es cosecha de agua y riego de apoyo, ajustando decisiones por lote y fenologia.",
+      "keywords": [
+        "cafe",
+        "altitud",
+        "manejo",
+        "microcuenca",
+        "seca",
+        "alto",
+        "riesgo",
+        "estres",
+        "hidrico",
+        "cosecha",
+        "agua",
+        "riego",
+        "apoyo"
+      ]
+    },
+    {
+      "id": 1209,
+      "category": "cultivo",
+      "questions": [
+        "Como integrar guamo en sistemas de cafe",
+        "Beneficios de guamo en cafetal",
+        "Riesgos de usar guamo como sombra en cafe",
+        "Manejo recomendado de guamo en cafe"
+      ],
+      "answer": "En caficultura, guamo puede aportar sombra y aporte de biomasa. Para que funcione bien, se recomienda podas para evitar exceso de humedad y monitorear respuesta del lote.",
+      "keywords": [
+        "cafe",
+        "sombra",
+        "agroforesteria",
+        "guamo",
+        "aporte",
+        "biomasa",
+        "podas",
+        "para",
+        "evitar",
+        "exceso",
+        "humedad"
+      ]
+    },
+    {
+      "id": 1210,
+      "category": "cultivo",
+      "questions": [
+        "Como integrar nogal cafetero en sistemas de cafe",
+        "Beneficios de nogal cafetero en cafetal",
+        "Riesgos de usar nogal cafetero como sombra en cafe",
+        "Manejo recomendado de nogal cafetero en cafe"
+      ],
+      "answer": "En caficultura, nogal cafetero puede aportar estructura de sombra y diversificacion. Para que funcione bien, se recomienda distancia y densidad controlada y monitorear respuesta del lote.",
+      "keywords": [
+        "cafe",
+        "sombra",
+        "agroforesteria",
+        "nogal",
+        "cafetero",
+        "estructura",
+        "diversificacion",
+        "distancia",
+        "densidad",
+        "controlada"
+      ]
+    },
+    {
+      "id": 1211,
+      "category": "cultivo",
+      "questions": [
+        "Como integrar poro en sistemas de cafe",
+        "Beneficios de poro en cafetal",
+        "Riesgos de usar poro como sombra en cafe",
+        "Manejo recomendado de poro en cafe"
+      ],
+      "answer": "En caficultura, poro puede aportar aporte de materia organica y sombra. Para que funcione bien, se recomienda manejo de competencia radicular y monitorear respuesta del lote.",
+      "keywords": [
+        "cafe",
+        "sombra",
+        "agroforesteria",
+        "poro",
+        "aporte",
+        "materia",
+        "organica",
+        "manejo",
+        "competencia",
+        "radicular"
+      ]
+    },
+    {
+      "id": 1212,
+      "category": "cultivo",
+      "questions": [
+        "Como integrar matarraton en sistemas de cafe",
+        "Beneficios de matarraton en cafetal",
+        "Riesgos de usar matarraton como sombra en cafe",
+        "Manejo recomendado de matarraton en cafe"
+      ],
+      "answer": "En caficultura, matarraton puede aportar biomasa y fijacion biologica. Para que funcione bien, se recomienda podas sincronizadas con necesidades del cafeto y monitorear respuesta del lote.",
+      "keywords": [
+        "cafe",
+        "sombra",
+        "agroforesteria",
+        "matarraton",
+        "biomasa",
+        "fijacion",
+        "biologica",
+        "podas",
+        "sincronizadas",
+        "con",
+        "necesidades",
+        "del",
+        "cafeto"
+      ]
+    },
+    {
+      "id": 1213,
+      "category": "cultivo",
+      "questions": [
+        "Como integrar inga en sistemas de cafe",
+        "Beneficios de inga en cafetal",
+        "Riesgos de usar inga como sombra en cafe",
+        "Manejo recomendado de inga en cafe"
+      ],
+      "answer": "En caficultura, inga puede aportar sombra funcional en agroforesteria. Para que funcione bien, se recomienda regulacion periodica de copa y monitorear respuesta del lote.",
+      "keywords": [
+        "cafe",
+        "sombra",
+        "agroforesteria",
+        "inga",
+        "funcional",
+        "regulacion",
+        "periodica",
+        "copa"
+      ]
+    },
+    {
+      "id": 1214,
+      "category": "cultivo",
+      "questions": [
+        "Como integrar cedro en sistemas de cafe",
+        "Beneficios de cedro en cafetal",
+        "Riesgos de usar cedro como sombra en cafe",
+        "Manejo recomendado de cedro en cafe"
+      ],
+      "answer": "En caficultura, cedro puede aportar componente maderable con sombra parcial. Para que funcione bien, se recomienda balance luz-produccion y monitorear respuesta del lote.",
+      "keywords": [
+        "cafe",
+        "sombra",
+        "agroforesteria",
+        "cedro",
+        "componente",
+        "maderable",
+        "con",
+        "parcial",
+        "balance",
+        "luz",
+        "produccion"
+      ]
+    },
+    {
+      "id": 1215,
+      "category": "cultivo",
+      "questions": [
+        "Como integrar guayacan en sistemas de cafe",
+        "Beneficios de guayacan en cafetal",
+        "Riesgos de usar guayacan como sombra en cafe",
+        "Manejo recomendado de guayacan en cafe"
+      ],
+      "answer": "En caficultura, guayacan puede aportar arbol de soporte ecologico. Para que funcione bien, se recomienda evitar sombreo excesivo y monitorear respuesta del lote.",
+      "keywords": [
+        "cafe",
+        "sombra",
+        "agroforesteria",
+        "guayacan",
+        "arbol",
+        "soporte",
+        "ecologico",
+        "evitar",
+        "sombreo",
+        "excesivo"
+      ]
+    },
+    {
+      "id": 1216,
+      "category": "cultivo",
+      "questions": [
+        "Como integrar carbonero en sistemas de cafe",
+        "Beneficios de carbonero en cafetal",
+        "Riesgos de usar carbonero como sombra en cafe",
+        "Manejo recomendado de carbonero en cafe"
+      ],
+      "answer": "En caficultura, carbonero puede aportar sombra y cobertura vertical. Para que funcione bien, se recomienda control de densidad y monitorear respuesta del lote.",
+      "keywords": [
+        "cafe",
+        "sombra",
+        "agroforesteria",
+        "carbonero",
+        "cobertura",
+        "vertical",
+        "control",
+        "densidad"
+      ]
+    },
+    {
+      "id": 1217,
+      "category": "cultivo",
+      "questions": [
+        "Como integrar laurel en sistemas de cafe",
+        "Beneficios de laurel en cafetal",
+        "Riesgos de usar laurel como sombra en cafe",
+        "Manejo recomendado de laurel en cafe"
+      ],
+      "answer": "En caficultura, laurel puede aportar componente de sistema mixto. Para que funcione bien, se recomienda podas preventivas y monitorear respuesta del lote.",
+      "keywords": [
+        "cafe",
+        "sombra",
+        "agroforesteria",
+        "laurel",
+        "componente",
+        "sistema",
+        "mixto",
+        "podas",
+        "preventivas"
+      ]
+    },
+    {
+      "id": 1218,
+      "category": "cultivo",
+      "questions": [
+        "Como integrar guanabano en sistemas de cafe",
+        "Beneficios de guanabano en cafetal",
+        "Riesgos de usar guanabano como sombra en cafe",
+        "Manejo recomendado de guanabano en cafe"
+      ],
+      "answer": "En caficultura, guanabano puede aportar diversificacion con frutal. Para que funcione bien, se recomienda manejo de competencia y monitorear respuesta del lote.",
+      "keywords": [
+        "cafe",
+        "sombra",
+        "agroforesteria",
+        "guanabano",
+        "diversificacion",
+        "con",
+        "frutal",
+        "manejo",
+        "competencia"
+      ]
+    },
+    {
+      "id": 1219,
+      "category": "cultivo",
+      "questions": [
+        "Como integrar naranjo en sistemas de cafe",
+        "Beneficios de naranjo en cafetal",
+        "Riesgos de usar naranjo como sombra en cafe",
+        "Manejo recomendado de naranjo en cafe"
+      ],
+      "answer": "En caficultura, naranjo puede aportar diversificacion e ingreso adicional. Para que funcione bien, se recomienda orden de copa y luz y monitorear respuesta del lote.",
+      "keywords": [
+        "cafe",
+        "sombra",
+        "agroforesteria",
+        "naranjo",
+        "diversificacion",
+        "ingreso",
+        "adicional",
+        "orden",
+        "copa",
+        "luz"
+      ]
+    },
+    {
+      "id": 1220,
+      "category": "cultivo",
+      "questions": [
+        "Como integrar aguacate en sistemas de cafe",
+        "Beneficios de aguacate en cafetal",
+        "Riesgos de usar aguacate como sombra en cafe",
+        "Manejo recomendado de aguacate en cafe"
+      ],
+      "answer": "En caficultura, aguacate puede aportar arbol de valor economico complementario. Para que funcione bien, se recomienda ajuste de distancia de siembra y monitorear respuesta del lote.",
+      "keywords": [
+        "cafe",
+        "sombra",
+        "agroforesteria",
+        "aguacate",
+        "arbol",
+        "valor",
+        "economico",
+        "complementario",
+        "ajuste",
+        "distancia",
+        "siembra"
+      ]
+    },
+    {
+      "id": 1221,
+      "category": "cultivo",
+      "questions": [
+        "Como integrar platano en sistemas de cafe",
+        "Beneficios de platano en cafetal",
+        "Riesgos de usar platano como sombra en cafe",
+        "Manejo recomendado de platano en cafe"
+      ],
+      "answer": "En caficultura, platano puede aportar sombrio transitorio y flujo de caja. Para que funcione bien, se recomienda evitar competencia temprana y monitorear respuesta del lote.",
+      "keywords": [
+        "cafe",
+        "sombra",
+        "agroforesteria",
+        "platano",
+        "sombrio",
+        "transitorio",
+        "flujo",
+        "caja",
+        "evitar",
+        "competencia",
+        "temprana"
+      ]
+    },
+    {
+      "id": 1222,
+      "category": "cultivo",
+      "questions": [
+        "Como integrar banano en sistemas de cafe",
+        "Beneficios de banano en cafetal",
+        "Riesgos de usar banano como sombra en cafe",
+        "Manejo recomendado de banano en cafe"
+      ],
+      "answer": "En caficultura, banano puede aportar proteccion inicial del cafeto joven. Para que funcione bien, se recomienda manejo de densidad y monitorear respuesta del lote.",
+      "keywords": [
+        "cafe",
+        "sombra",
+        "agroforesteria",
+        "banano",
+        "proteccion",
+        "inicial",
+        "del",
+        "cafeto",
+        "joven",
+        "manejo",
+        "densidad"
+      ]
+    },
+    {
+      "id": 1223,
+      "category": "cultivo",
+      "questions": [
+        "Como integrar acacia en sistemas de cafe",
+        "Beneficios de acacia en cafetal",
+        "Riesgos de usar acacia como sombra en cafe",
+        "Manejo recomendado de acacia en cafe"
+      ],
+      "answer": "En caficultura, acacia puede aportar sombra y servicios ecosistemicos. Para que funcione bien, se recomienda poda de regulacion y monitorear respuesta del lote.",
+      "keywords": [
+        "cafe",
+        "sombra",
+        "agroforesteria",
+        "acacia",
+        "servicios",
+        "ecosistemicos",
+        "poda",
+        "regulacion"
+      ]
+    },
+    {
+      "id": 1224,
+      "category": "cultivo",
+      "questions": [
+        "Como integrar guadua en sistemas de cafe",
+        "Beneficios de guadua en cafetal",
+        "Riesgos de usar guadua como sombra en cafe",
+        "Manejo recomendado de guadua en cafe"
+      ],
+      "answer": "En caficultura, guadua puede aportar barrera y proteccion de suelos. Para que funcione bien, se recomienda manejo de bordes y monitorear respuesta del lote.",
+      "keywords": [
+        "cafe",
+        "sombra",
+        "agroforesteria",
+        "guadua",
+        "barrera",
+        "proteccion",
+        "suelos",
+        "manejo",
+        "bordes"
+      ]
+    },
+    {
+      "id": 1225,
+      "category": "fertilizacion",
+      "questions": [
+        "Como manejar interaccion N-K en cafe",
+        "Impacto de N-K en nutricion de cafeto",
+        "Problemas por desbalance N-K en cafe",
+        "Recomendacion tecnica sobre N-K para cafe"
+      ],
+      "answer": "En cafe, la interaccion N-K influye en crecimiento y llenado de fruto. Para minimizar riesgos se recomienda balancear dosis segun carga y analisis con base en analisis y seguimiento por lote.",
+      "keywords": [
+        "cafe",
+        "nutricion",
+        "interaccion",
+        "crecimiento",
+        "llenado",
+        "fruto",
+        "balancear",
+        "dosis",
+        "segun",
+        "carga",
+        "analisis"
+      ]
+    },
+    {
+      "id": 1226,
+      "category": "fertilizacion",
+      "questions": [
+        "Como manejar interaccion N-P en cafe",
+        "Impacto de N-P en nutricion de cafeto",
+        "Problemas por desbalance N-P en cafe",
+        "Recomendacion tecnica sobre N-P para cafe"
+      ],
+      "answer": "En cafe, la interaccion N-P influye en vigor y desarrollo radicular. Para minimizar riesgos se recomienda ajustar etapa fenologica con base en analisis y seguimiento por lote.",
+      "keywords": [
+        "cafe",
+        "nutricion",
+        "interaccion",
+        "vigor",
+        "desarrollo",
+        "radicular",
+        "ajustar",
+        "etapa",
+        "fenologica"
+      ]
+    },
+    {
+      "id": 1227,
+      "category": "fertilizacion",
+      "questions": [
+        "Como manejar interaccion K-Mg en cafe",
+        "Impacto de K-Mg en nutricion de cafeto",
+        "Problemas por desbalance K-Mg en cafe",
+        "Recomendacion tecnica sobre K-Mg para cafe"
+      ],
+      "answer": "En cafe, la interaccion K-Mg influye en antagonismo por desbalance cationico. Para minimizar riesgos se recomienda evitar exceso unilateral con base en analisis y seguimiento por lote.",
+      "keywords": [
+        "cafe",
+        "nutricion",
+        "interaccion",
+        "antagonismo",
+        "por",
+        "desbalance",
+        "cationico",
+        "evitar",
+        "exceso",
+        "unilateral"
+      ]
+    },
+    {
+      "id": 1228,
+      "category": "fertilizacion",
+      "questions": [
+        "Como manejar interaccion Ca-Mg en cafe",
+        "Impacto de Ca-Mg en nutricion de cafeto",
+        "Problemas por desbalance Ca-Mg en cafe",
+        "Recomendacion tecnica sobre Ca-Mg para cafe"
+      ],
+      "answer": "En cafe, la interaccion Ca-Mg influye en estructura de suelo y absorcion. Para minimizar riesgos se recomienda revisar saturacion de bases con base en analisis y seguimiento por lote.",
+      "keywords": [
+        "cafe",
+        "nutricion",
+        "interaccion",
+        "estructura",
+        "suelo",
+        "absorcion",
+        "revisar",
+        "saturacion",
+        "bases"
+      ]
+    },
+    {
+      "id": 1229,
+      "category": "fertilizacion",
+      "questions": [
+        "Como manejar interaccion Ca-K en cafe",
+        "Impacto de Ca-K en nutricion de cafeto",
+        "Problemas por desbalance Ca-K en cafe",
+        "Recomendacion tecnica sobre Ca-K para cafe"
+      ],
+      "answer": "En cafe, la interaccion Ca-K influye en competencia por sitios de intercambio. Para minimizar riesgos se recomienda mantener relacion equilibrada con base en analisis y seguimiento por lote.",
+      "keywords": [
+        "cafe",
+        "nutricion",
+        "interaccion",
+        "competencia",
+        "por",
+        "sitios",
+        "intercambio",
+        "mantener",
+        "relacion",
+        "equilibrada"
+      ]
+    },
+    {
+      "id": 1230,
+      "category": "fertilizacion",
+      "questions": [
+        "Como manejar interaccion P-Zn en cafe",
+        "Impacto de P-Zn en nutricion de cafeto",
+        "Problemas por desbalance P-Zn en cafe",
+        "Recomendacion tecnica sobre P-Zn para cafe"
+      ],
+      "answer": "En cafe, la interaccion P-Zn influye en bloqueos por sobreaplicacion de fosforo. Para minimizar riesgos se recomienda dosificar con precision con base en analisis y seguimiento por lote.",
+      "keywords": [
+        "cafe",
+        "nutricion",
+        "interaccion",
+        "bloqueos",
+        "por",
+        "sobreaplicacion",
+        "fosforo",
+        "dosificar",
+        "con",
+        "precision"
+      ]
+    },
+    {
+      "id": 1231,
+      "category": "fertilizacion",
+      "questions": [
+        "Como manejar interaccion N-S en cafe",
+        "Impacto de N-S en nutricion de cafeto",
+        "Problemas por desbalance N-S en cafe",
+        "Recomendacion tecnica sobre N-S para cafe"
+      ],
+      "answer": "En cafe, la interaccion N-S influye en sintesis de proteinas. Para minimizar riesgos se recomienda acompanar fuentes nitrogenadas con base en analisis y seguimiento por lote.",
+      "keywords": [
+        "cafe",
+        "nutricion",
+        "interaccion",
+        "sintesis",
+        "proteinas",
+        "acompanar",
+        "fuentes",
+        "nitrogenadas"
+      ]
+    },
+    {
+      "id": 1232,
+      "category": "fertilizacion",
+      "questions": [
+        "Como manejar interaccion B-Ca en cafe",
+        "Impacto de B-Ca en nutricion de cafeto",
+        "Problemas por desbalance B-Ca en cafe",
+        "Recomendacion tecnica sobre B-Ca para cafe"
+      ],
+      "answer": "En cafe, la interaccion B-Ca influye en floracion y cuajado. Para minimizar riesgos se recomienda controlar dosis de micronutrientes con base en analisis y seguimiento por lote.",
+      "keywords": [
+        "cafe",
+        "nutricion",
+        "interaccion",
+        "floracion",
+        "cuajado",
+        "controlar",
+        "dosis",
+        "micronutrientes"
+      ]
+    },
+    {
+      "id": 1233,
+      "category": "fertilizacion",
+      "questions": [
+        "Como manejar interaccion Fe-Mn en cafe",
+        "Impacto de Fe-Mn en nutricion de cafeto",
+        "Problemas por desbalance Fe-Mn en cafe",
+        "Recomendacion tecnica sobre Fe-Mn para cafe"
+      ],
+      "answer": "En cafe, la interaccion Fe-Mn influye en equilibrio en suelos acidos. Para minimizar riesgos se recomienda ajustar pH y monitoreo con base en analisis y seguimiento por lote.",
+      "keywords": [
+        "cafe",
+        "nutricion",
+        "interaccion",
+        "equilibrio",
+        "suelos",
+        "acidos",
+        "ajustar",
+        "monitoreo"
+      ]
+    },
+    {
+      "id": 1234,
+      "category": "fertilizacion",
+      "questions": [
+        "Como manejar interaccion Cu-Zn en cafe",
+        "Impacto de Cu-Zn en nutricion de cafeto",
+        "Problemas por desbalance Cu-Zn en cafe",
+        "Recomendacion tecnica sobre Cu-Zn para cafe"
+      ],
+      "answer": "En cafe, la interaccion Cu-Zn influye en interacciones de micronutrientes. Para minimizar riesgos se recomienda evitar sobredosis con base en analisis y seguimiento por lote.",
+      "keywords": [
+        "cafe",
+        "nutricion",
+        "interaccion",
+        "interacciones",
+        "micronutrientes",
+        "evitar",
+        "sobredosis"
+      ]
+    },
+    {
+      "id": 1235,
+      "category": "fertilizacion",
+      "questions": [
+        "Como manejar interaccion Na-Ca en cafe",
+        "Impacto de Na-Ca en nutricion de cafeto",
+        "Problemas por desbalance Na-Ca en cafe",
+        "Recomendacion tecnica sobre Na-Ca para cafe"
+      ],
+      "answer": "En cafe, la interaccion Na-Ca influye en dispersion de suelos y estructura. Para minimizar riesgos se recomienda controlar sodicidad con base en analisis y seguimiento por lote.",
+      "keywords": [
+        "cafe",
+        "nutricion",
+        "interaccion",
+        "dispersion",
+        "suelos",
+        "estructura",
+        "controlar",
+        "sodicidad"
+      ]
+    },
+    {
+      "id": 1236,
+      "category": "fertilizacion",
+      "questions": [
+        "Como manejar interaccion K-B en cafe",
+        "Impacto de K-B en nutricion de cafeto",
+        "Problemas por desbalance K-B en cafe",
+        "Recomendacion tecnica sobre K-B para cafe"
+      ],
+      "answer": "En cafe, la interaccion K-B influye en calidad de fruto y transporte. Para minimizar riesgos se recomienda aplicar segun demanda con base en analisis y seguimiento por lote.",
+      "keywords": [
+        "cafe",
+        "nutricion",
+        "interaccion",
+        "calidad",
+        "fruto",
+        "transporte",
+        "aplicar",
+        "segun",
+        "demanda"
+      ]
+    },
+    {
+      "id": 1237,
+      "category": "fertilizacion",
+      "questions": [
+        "Como manejar interaccion P-Ca en cafe",
+        "Impacto de P-Ca en nutricion de cafeto",
+        "Problemas por desbalance P-Ca en cafe",
+        "Recomendacion tecnica sobre P-Ca para cafe"
+      ],
+      "answer": "En cafe, la interaccion P-Ca influye en disponibilidad en suelos reactivos. Para minimizar riesgos se recomienda usar estrategias por ambiente con base en analisis y seguimiento por lote.",
+      "keywords": [
+        "cafe",
+        "nutricion",
+        "interaccion",
+        "disponibilidad",
+        "suelos",
+        "reactivos",
+        "usar",
+        "estrategias",
+        "por",
+        "ambiente"
+      ]
+    },
+    {
+      "id": 1238,
+      "category": "fertilizacion",
+      "questions": [
+        "Como manejar interaccion Mg-S en cafe",
+        "Impacto de Mg-S en nutricion de cafeto",
+        "Problemas por desbalance Mg-S en cafe",
+        "Recomendacion tecnica sobre Mg-S para cafe"
+      ],
+      "answer": "En cafe, la interaccion Mg-S influye en metabolismo fotosintetico. Para minimizar riesgos se recomienda corregir deficiencias sin excesos con base en analisis y seguimiento por lote.",
+      "keywords": [
+        "cafe",
+        "nutricion",
+        "interaccion",
+        "metabolismo",
+        "fotosintetico",
+        "corregir",
+        "deficiencias",
+        "sin",
+        "excesos"
+      ]
+    },
+    {
+      "id": 1239,
+      "category": "fertilizacion",
+      "questions": [
+        "Como manejar interaccion N-B en cafe",
+        "Impacto de N-B en nutricion de cafeto",
+        "Problemas por desbalance N-B en cafe",
+        "Recomendacion tecnica sobre N-B para cafe"
+      ],
+      "answer": "En cafe, la interaccion N-B influye en brotacion y floracion. Para minimizar riesgos se recomienda fraccionar aplicaciones con base en analisis y seguimiento por lote.",
+      "keywords": [
+        "cafe",
+        "nutricion",
+        "interaccion",
+        "brotacion",
+        "floracion",
+        "fraccionar",
+        "aplicaciones"
+      ]
+    },
+    {
+      "id": 1240,
+      "category": "fertilizacion",
+      "questions": [
+        "Como manejar interaccion K-Ca-Mg en cafe",
+        "Impacto de K-Ca-Mg en nutricion de cafeto",
+        "Problemas por desbalance K-Ca-Mg en cafe",
+        "Recomendacion tecnica sobre K-Ca-Mg para cafe"
+      ],
+      "answer": "En cafe, la interaccion K-Ca-Mg influye en triangulo cationico del suelo. Para minimizar riesgos se recomienda optimizar relacion para absorcion con base en analisis y seguimiento por lote.",
+      "keywords": [
+        "cafe",
+        "nutricion",
+        "interaccion",
+        "triangulo",
+        "cationico",
+        "del",
+        "suelo",
+        "optimizar",
+        "relacion",
+        "para",
+        "absorcion"
+      ]
+    },
+    {
+      "id": 1241,
+      "category": "diagnostico",
+      "questions": [
+        "Como hacer diagnostico rapido de campo en cafe",
+        "Paso a paso de diagnostico rapido de campo para cafetal",
+        "Checklist de diagnostico rapido de campo en finca cafetera",
+        "Errores comunes en diagnostico rapido de campo de cafe"
+      ],
+      "answer": "Para cafe, el protocolo de diagnostico rapido de campo se basa en recorrer lote, mapear focos y priorizar accion en 48 horas. Aplicarlo con disciplina mejora decisiones tecnicas y reduce respuestas tardias.",
+      "keywords": [
+        "cafe",
+        "protocolo",
+        "campo",
+        "diagnostico",
+        "rapido",
+        "recorrer",
+        "lote",
+        "mapear",
+        "focos",
+        "priorizar",
+        "accion",
+        "horas"
+      ]
+    },
+    {
+      "id": 1242,
+      "category": "diagnostico",
+      "questions": [
+        "Como hacer muestreo de broca en cafe",
+        "Paso a paso de muestreo de broca para cafetal",
+        "Checklist de muestreo de broca en finca cafetera",
+        "Errores comunes en muestreo de broca de cafe"
+      ],
+      "answer": "Para cafe, el protocolo de muestreo de broca se basa en definir puntos, contar incidencia y activar umbral. Aplicarlo con disciplina mejora decisiones tecnicas y reduce respuestas tardias.",
+      "keywords": [
+        "cafe",
+        "protocolo",
+        "campo",
+        "muestreo",
+        "broca",
+        "definir",
+        "puntos",
+        "contar",
+        "incidencia",
+        "activar",
+        "umbral"
+      ]
+    },
+    {
+      "id": 1243,
+      "category": "diagnostico",
+      "questions": [
+        "Como hacer muestreo de roya en cafe",
+        "Paso a paso de muestreo de roya para cafetal",
+        "Checklist de muestreo de roya en finca cafetera",
+        "Errores comunes en muestreo de roya de cafe"
+      ],
+      "answer": "Para cafe, el protocolo de muestreo de roya se basa en evaluar severidad por estrato y orientar intervencion. Aplicarlo con disciplina mejora decisiones tecnicas y reduce respuestas tardias.",
+      "keywords": [
+        "cafe",
+        "protocolo",
+        "campo",
+        "muestreo",
+        "roya",
+        "evaluar",
+        "severidad",
+        "por",
+        "estrato",
+        "orientar",
+        "intervencion"
+      ]
+    },
+    {
+      "id": 1244,
+      "category": "diagnostico",
+      "questions": [
+        "Como hacer verificacion de humedad de pergamino en cafe",
+        "Paso a paso de verificacion de humedad de pergamino para cafetal",
+        "Checklist de verificacion de humedad de pergamino en finca cafetera",
+        "Errores comunes en verificacion de humedad de pergamino de cafe"
+      ],
+      "answer": "Para cafe, el protocolo de verificacion de humedad de pergamino se basa en medir antes de embodegar y registrar lote. Aplicarlo con disciplina mejora decisiones tecnicas y reduce respuestas tardias.",
+      "keywords": [
+        "cafe",
+        "protocolo",
+        "campo",
+        "verificacion",
+        "humedad",
+        "pergamino",
+        "medir",
+        "antes",
+        "embodegar",
+        "registrar",
+        "lote"
+      ]
+    },
+    {
+      "id": 1245,
+      "category": "diagnostico",
+      "questions": [
+        "Como hacer control de fermentacion en cafe",
+        "Paso a paso de control de fermentacion para cafetal",
+        "Checklist de control de fermentacion en finca cafetera",
+        "Errores comunes en control de fermentacion de cafe"
+      ],
+      "answer": "Para cafe, el protocolo de control de fermentacion se basa en estandarizar tiempo, limpieza y temperatura. Aplicarlo con disciplina mejora decisiones tecnicas y reduce respuestas tardias.",
+      "keywords": [
+        "cafe",
+        "protocolo",
+        "campo",
+        "control",
+        "fermentacion",
+        "estandarizar",
+        "tiempo",
+        "limpieza",
+        "temperatura"
+      ]
+    },
+    {
+      "id": 1246,
+      "category": "diagnostico",
+      "questions": [
+        "Como hacer control de secado en cafe",
+        "Paso a paso de control de secado para cafetal",
+        "Checklist de control de secado en finca cafetera",
+        "Errores comunes en control de secado de cafe"
+      ],
+      "answer": "Para cafe, el protocolo de control de secado se basa en uniformar capa, volteo y proteccion nocturna. Aplicarlo con disciplina mejora decisiones tecnicas y reduce respuestas tardias.",
+      "keywords": [
+        "cafe",
+        "protocolo",
+        "campo",
+        "control",
+        "secado",
+        "uniformar",
+        "capa",
+        "volteo",
+        "proteccion",
+        "nocturna"
+      ]
+    },
+    {
+      "id": 1247,
+      "category": "diagnostico",
+      "questions": [
+        "Como hacer auditoria interna de bodega en cafe",
+        "Paso a paso de auditoria interna de bodega para cafetal",
+        "Checklist de auditoria interna de bodega en finca cafetera",
+        "Errores comunes en auditoria interna de bodega de cafe"
+      ],
+      "answer": "Para cafe, el protocolo de auditoria interna de bodega se basa en revisar higiene, ventilacion y trazabilidad. Aplicarlo con disciplina mejora decisiones tecnicas y reduce respuestas tardias.",
+      "keywords": [
+        "cafe",
+        "protocolo",
+        "campo",
+        "auditoria",
+        "interna",
+        "bodega",
+        "revisar",
+        "higiene",
+        "ventilacion",
+        "trazabilidad"
+      ]
+    },
+    {
+      "id": 1248,
+      "category": "diagnostico",
+      "questions": [
+        "Como hacer revision de drenajes en cafe",
+        "Paso a paso de revision de drenajes para cafetal",
+        "Checklist de revision de drenajes en finca cafetera",
+        "Errores comunes en revision de drenajes de cafe"
+      ],
+      "answer": "Para cafe, el protocolo de revision de drenajes se basa en inspeccionar flujo y puntos de encharcamiento. Aplicarlo con disciplina mejora decisiones tecnicas y reduce respuestas tardias.",
+      "keywords": [
+        "cafe",
+        "protocolo",
+        "campo",
+        "revision",
+        "drenajes",
+        "inspeccionar",
+        "flujo",
+        "puntos",
+        "encharcamiento"
+      ]
+    },
+    {
+      "id": 1249,
+      "category": "diagnostico",
+      "questions": [
+        "Como hacer chequeo de compactacion en cafe",
+        "Paso a paso de chequeo de compactacion para cafetal",
+        "Checklist de chequeo de compactacion en finca cafetera",
+        "Errores comunes en chequeo de compactacion de cafe"
+      ],
+      "answer": "Para cafe, el protocolo de chequeo de compactacion se basa en evaluar penetracion y salud radicular. Aplicarlo con disciplina mejora decisiones tecnicas y reduce respuestas tardias.",
+      "keywords": [
+        "cafe",
+        "protocolo",
+        "campo",
+        "chequeo",
+        "compactacion",
+        "evaluar",
+        "penetracion",
+        "salud",
+        "radicular"
+      ]
+    },
+    {
+      "id": 1250,
+      "category": "diagnostico",
+      "questions": [
+        "Como hacer evaluacion de cobertura de suelo en cafe",
+        "Paso a paso de evaluacion de cobertura de suelo para cafetal",
+        "Checklist de evaluacion de cobertura de suelo en finca cafetera",
+        "Errores comunes en evaluacion de cobertura de suelo de cafe"
+      ],
+      "answer": "Para cafe, el protocolo de evaluacion de cobertura de suelo se basa en detectar zonas desnudas y riesgo de erosion. Aplicarlo con disciplina mejora decisiones tecnicas y reduce respuestas tardias.",
+      "keywords": [
+        "cafe",
+        "protocolo",
+        "campo",
+        "evaluacion",
+        "cobertura",
+        "suelo",
+        "detectar",
+        "zonas",
+        "desnudas",
+        "riesgo",
+        "erosion"
+      ]
+    },
+    {
+      "id": 1251,
+      "category": "diagnostico",
+      "questions": [
+        "Como hacer calibracion de despulpadora en cafe",
+        "Paso a paso de calibracion de despulpadora para cafetal",
+        "Checklist de calibracion de despulpadora en finca cafetera",
+        "Errores comunes en calibracion de despulpadora de cafe"
+      ],
+      "answer": "Para cafe, el protocolo de calibracion de despulpadora se basa en ajustar equipo para reducir dano mecanico. Aplicarlo con disciplina mejora decisiones tecnicas y reduce respuestas tardias.",
+      "keywords": [
+        "cafe",
+        "protocolo",
+        "campo",
+        "calibracion",
+        "despulpadora",
+        "ajustar",
+        "equipo",
+        "para",
+        "reducir",
+        "dano",
+        "mecanico"
+      ]
+    },
+    {
+      "id": 1252,
+      "category": "diagnostico",
+      "questions": [
+        "Como hacer plan de repase de cosecha en cafe",
+        "Paso a paso de plan de repase de cosecha para cafetal",
+        "Checklist de plan de repase de cosecha en finca cafetera",
+        "Errores comunes en plan de repase de cosecha de cafe"
+      ],
+      "answer": "Para cafe, el protocolo de plan de repase de cosecha se basa en definir frecuencia y responsables. Aplicarlo con disciplina mejora decisiones tecnicas y reduce respuestas tardias.",
+      "keywords": [
+        "cafe",
+        "protocolo",
+        "campo",
+        "plan",
+        "repase",
+        "cosecha",
+        "definir",
+        "frecuencia",
+        "responsables"
+      ]
+    },
+    {
+      "id": 1253,
+      "category": "diagnostico",
+      "questions": [
+        "Como hacer control de residuos de poda en cafe",
+        "Paso a paso de control de residuos de poda para cafetal",
+        "Checklist de control de residuos de poda en finca cafetera",
+        "Errores comunes en control de residuos de poda de cafe"
+      ],
+      "answer": "Para cafe, el protocolo de control de residuos de poda se basa en retiro y manejo sanitario por foco. Aplicarlo con disciplina mejora decisiones tecnicas y reduce respuestas tardias.",
+      "keywords": [
+        "cafe",
+        "protocolo",
+        "campo",
+        "control",
+        "residuos",
+        "poda",
+        "retiro",
+        "manejo",
+        "sanitario",
+        "por",
+        "foco"
+      ]
+    },
+    {
+      "id": 1254,
+      "category": "diagnostico",
+      "questions": [
+        "Como hacer revision de sombra en cafe",
+        "Paso a paso de revision de sombra para cafetal",
+        "Checklist de revision de sombra en finca cafetera",
+        "Errores comunes en revision de sombra de cafe"
+      ],
+      "answer": "Para cafe, el protocolo de revision de sombra se basa en estimar porcentaje y podar segun necesidad. Aplicarlo con disciplina mejora decisiones tecnicas y reduce respuestas tardias.",
+      "keywords": [
+        "cafe",
+        "protocolo",
+        "campo",
+        "revision",
+        "sombra",
+        "estimar",
+        "porcentaje",
+        "podar",
+        "segun",
+        "necesidad"
+      ]
+    },
+    {
+      "id": 1255,
+      "category": "diagnostico",
+      "questions": [
+        "Como hacer control de agua en beneficio en cafe",
+        "Paso a paso de control de agua en beneficio para cafetal",
+        "Checklist de control de agua en beneficio en finca cafetera",
+        "Errores comunes en control de agua en beneficio de cafe"
+      ],
+      "answer": "Para cafe, el protocolo de control de agua en beneficio se basa en registrar consumo y optimizar uso. Aplicarlo con disciplina mejora decisiones tecnicas y reduce respuestas tardias.",
+      "keywords": [
+        "cafe",
+        "protocolo",
+        "campo",
+        "control",
+        "agua",
+        "beneficio",
+        "registrar",
+        "consumo",
+        "optimizar",
+        "uso"
+      ]
+    },
+    {
+      "id": 1256,
+      "category": "diagnostico",
+      "questions": [
+        "Como hacer seguimiento de indicadores por lote en cafe",
+        "Paso a paso de seguimiento de indicadores por lote para cafetal",
+        "Checklist de seguimiento de indicadores por lote en finca cafetera",
+        "Errores comunes en seguimiento de indicadores por lote de cafe"
+      ],
+      "answer": "Para cafe, el protocolo de seguimiento de indicadores por lote se basa en actualizar productividad, sanidad y calidad. Aplicarlo con disciplina mejora decisiones tecnicas y reduce respuestas tardias.",
+      "keywords": [
+        "cafe",
+        "protocolo",
+        "campo",
+        "seguimiento",
+        "indicadores",
+        "por",
+        "lote",
+        "actualizar",
+        "productividad",
+        "sanidad",
+        "calidad"
+      ]
+    },
+    {
+      "id": 1257,
+      "category": "general",
+      "questions": [
+        "Como aplicar segmentacion por lote en cafe",
+        "Beneficio de segmentacion por lote para vender cafe",
+        "Plan practico de segmentacion por lote en finca cafetera",
+        "Que medir para mejorar segmentacion por lote en cafe"
+      ],
+      "answer": "En cafe, segmentacion por lote ayuda a vender cada lote por su potencial y consistencia. Su exito depende de registros ordenados, ejecucion por lote y seguimiento continuo.",
+      "keywords": [
+        "cafe",
+        "mercado",
+        "valor",
+        "segmentacion",
+        "por",
+        "lote",
+        "vender",
+        "cada",
+        "potencial",
+        "consistencia"
+      ]
+    },
+    {
+      "id": 1258,
+      "category": "general",
+      "questions": [
+        "Como aplicar historial de calidad en cafe",
+        "Beneficio de historial de calidad para vender cafe",
+        "Plan practico de historial de calidad en finca cafetera",
+        "Que medir para mejorar historial de calidad en cafe"
+      ],
+      "answer": "En cafe, historial de calidad ayuda a demostrar mejora continua frente a compradores. Su exito depende de registros ordenados, ejecucion por lote y seguimiento continuo.",
+      "keywords": [
+        "cafe",
+        "mercado",
+        "valor",
+        "historial",
+        "calidad",
+        "demostrar",
+        "mejora",
+        "continua",
+        "frente",
+        "compradores"
+      ]
+    },
+    {
+      "id": 1259,
+      "category": "general",
+      "questions": [
+        "Como aplicar trazabilidad robusta en cafe",
+        "Beneficio de trazabilidad robusta para vender cafe",
+        "Plan practico de trazabilidad robusta en finca cafetera",
+        "Que medir para mejorar trazabilidad robusta en cafe"
+      ],
+      "answer": "En cafe, trazabilidad robusta ayuda a justificar diferencial de precio. Su exito depende de registros ordenados, ejecucion por lote y seguimiento continuo.",
+      "keywords": [
+        "cafe",
+        "mercado",
+        "valor",
+        "trazabilidad",
+        "robusta",
+        "justificar",
+        "diferencial",
+        "precio"
+      ]
+    },
+    {
+      "id": 1260,
+      "category": "general",
+      "questions": [
+        "Como aplicar estandarizacion de proceso en cafe",
+        "Beneficio de estandarizacion de proceso para vender cafe",
+        "Plan practico de estandarizacion de proceso en finca cafetera",
+        "Que medir para mejorar estandarizacion de proceso en cafe"
+      ],
+      "answer": "En cafe, estandarizacion de proceso ayuda a reducir variabilidad de taza. Su exito depende de registros ordenados, ejecucion por lote y seguimiento continuo.",
+      "keywords": [
+        "cafe",
+        "mercado",
+        "valor",
+        "estandarizacion",
+        "proceso",
+        "reducir",
+        "variabilidad",
+        "taza"
+      ]
+    },
+    {
+      "id": 1261,
+      "category": "general",
+      "questions": [
+        "Como aplicar catacion periodica en cafe",
+        "Beneficio de catacion periodica para vender cafe",
+        "Plan practico de catacion periodica en finca cafetera",
+        "Que medir para mejorar catacion periodica en cafe"
+      ],
+      "answer": "En cafe, catacion periodica ayuda a tomar decisiones con retroalimentacion sensorial. Su exito depende de registros ordenados, ejecucion por lote y seguimiento continuo.",
+      "keywords": [
+        "cafe",
+        "mercado",
+        "valor",
+        "catacion",
+        "periodica",
+        "tomar",
+        "decisiones",
+        "con",
+        "retroalimentacion",
+        "sensorial"
+      ]
+    },
+    {
+      "id": 1262,
+      "category": "general",
+      "questions": [
+        "Como aplicar estrategia de microlotes en cafe",
+        "Beneficio de estrategia de microlotes para vender cafe",
+        "Plan practico de estrategia de microlotes en finca cafetera",
+        "Que medir para mejorar estrategia de microlotes en cafe"
+      ],
+      "answer": "En cafe, estrategia de microlotes ayuda a capturar valor en nichos especializados. Su exito depende de registros ordenados, ejecucion por lote y seguimiento continuo.",
+      "keywords": [
+        "cafe",
+        "mercado",
+        "valor",
+        "estrategia",
+        "microlotes",
+        "capturar",
+        "nichos",
+        "especializados"
+      ]
+    },
+    {
+      "id": 1263,
+      "category": "general",
+      "questions": [
+        "Como aplicar negociacion con evidencia tecnica en cafe",
+        "Beneficio de negociacion con evidencia tecnica para vender cafe",
+        "Plan practico de negociacion con evidencia tecnica en finca cafetera",
+        "Que medir para mejorar negociacion con evidencia tecnica en cafe"
+      ],
+      "answer": "En cafe, negociacion con evidencia tecnica ayuda a aumentar confianza comercial. Su exito depende de registros ordenados, ejecucion por lote y seguimiento continuo.",
+      "keywords": [
+        "cafe",
+        "mercado",
+        "valor",
+        "negociacion",
+        "con",
+        "evidencia",
+        "tecnica",
+        "aumentar",
+        "confianza",
+        "comercial"
+      ]
+    },
+    {
+      "id": 1264,
+      "category": "general",
+      "questions": [
+        "Como aplicar gestionar prima de calidad en cafe",
+        "Beneficio de gestionar prima de calidad para vender cafe",
+        "Plan practico de gestionar prima de calidad en finca cafetera",
+        "Que medir para mejorar gestionar prima de calidad en cafe"
+      ],
+      "answer": "En cafe, gestionar prima de calidad ayuda a alinear practica de campo con mercado. Su exito depende de registros ordenados, ejecucion por lote y seguimiento continuo.",
+      "keywords": [
+        "cafe",
+        "mercado",
+        "valor",
+        "gestionar",
+        "prima",
+        "calidad",
+        "alinear",
+        "practica",
+        "campo",
+        "con"
+      ]
+    },
+    {
+      "id": 1265,
+      "category": "general",
+      "questions": [
+        "Como aplicar estabilidad de humedad en bodega en cafe",
+        "Beneficio de estabilidad de humedad en bodega para vender cafe",
+        "Plan practico de estabilidad de humedad en bodega en finca cafetera",
+        "Que medir para mejorar estabilidad de humedad en bodega en cafe"
+      ],
+      "answer": "En cafe, estabilidad de humedad en bodega ayuda a evitar perdida de valor por deterioro. Su exito depende de registros ordenados, ejecucion por lote y seguimiento continuo.",
+      "keywords": [
+        "cafe",
+        "mercado",
+        "valor",
+        "estabilidad",
+        "humedad",
+        "bodega",
+        "evitar",
+        "perdida",
+        "por",
+        "deterioro"
+      ]
+    },
+    {
+      "id": 1266,
+      "category": "general",
+      "questions": [
+        "Como aplicar consistencia de cosecha selectiva en cafe",
+        "Beneficio de consistencia de cosecha selectiva para vender cafe",
+        "Plan practico de consistencia de cosecha selectiva en finca cafetera",
+        "Que medir para mejorar consistencia de cosecha selectiva en cafe"
+      ],
+      "answer": "En cafe, consistencia de cosecha selectiva ayuda a disminuir defectos de taza. Su exito depende de registros ordenados, ejecucion por lote y seguimiento continuo.",
+      "keywords": [
+        "cafe",
+        "mercado",
+        "valor",
+        "consistencia",
+        "cosecha",
+        "selectiva",
+        "disminuir",
+        "defectos",
+        "taza"
+      ]
+    },
+    {
+      "id": 1267,
+      "category": "general",
+      "questions": [
+        "Como aplicar marca de origen de finca en cafe",
+        "Beneficio de marca de origen de finca para vender cafe",
+        "Plan practico de marca de origen de finca en finca cafetera",
+        "Que medir para mejorar marca de origen de finca en cafe"
+      ],
+      "answer": "En cafe, marca de origen de finca ayuda a comunicar identidad y diferenciales. Su exito depende de registros ordenados, ejecucion por lote y seguimiento continuo.",
+      "keywords": [
+        "cafe",
+        "mercado",
+        "valor",
+        "marca",
+        "origen",
+        "finca",
+        "comunicar",
+        "identidad",
+        "diferenciales"
+      ]
+    },
+    {
+      "id": 1268,
+      "category": "general",
+      "questions": [
+        "Como aplicar planeacion de oferta en cafe",
+        "Beneficio de planeacion de oferta para vender cafe",
+        "Plan practico de planeacion de oferta en finca cafetera",
+        "Que medir para mejorar planeacion de oferta en cafe"
+      ],
+      "answer": "En cafe, planeacion de oferta ayuda a cumplir entregas con calidad estable. Su exito depende de registros ordenados, ejecucion por lote y seguimiento continuo.",
+      "keywords": [
+        "cafe",
+        "mercado",
+        "valor",
+        "planeacion",
+        "oferta",
+        "cumplir",
+        "entregas",
+        "con",
+        "calidad",
+        "estable"
+      ]
+    },
+    {
+      "id": 1269,
+      "category": "general",
+      "questions": [
+        "Como aplicar control de costos ocultos en cafe",
+        "Beneficio de control de costos ocultos para vender cafe",
+        "Plan practico de control de costos ocultos en finca cafetera",
+        "Que medir para mejorar control de costos ocultos en cafe"
+      ],
+      "answer": "En cafe, control de costos ocultos ayuda a mejorar margen real de operacion. Su exito depende de registros ordenados, ejecucion por lote y seguimiento continuo.",
+      "keywords": [
+        "cafe",
+        "mercado",
+        "valor",
+        "control",
+        "costos",
+        "ocultos",
+        "mejorar",
+        "margen",
+        "real",
+        "operacion"
+      ]
+    },
+    {
+      "id": 1270,
+      "category": "general",
+      "questions": [
+        "Como aplicar evaluacion de riesgo comercial en cafe",
+        "Beneficio de evaluacion de riesgo comercial para vender cafe",
+        "Plan practico de evaluacion de riesgo comercial en finca cafetera",
+        "Que medir para mejorar evaluacion de riesgo comercial en cafe"
+      ],
+      "answer": "En cafe, evaluacion de riesgo comercial ayuda a diversificar canales de venta. Su exito depende de registros ordenados, ejecucion por lote y seguimiento continuo.",
+      "keywords": [
+        "cafe",
+        "mercado",
+        "valor",
+        "evaluacion",
+        "riesgo",
+        "comercial",
+        "diversificar",
+        "canales",
+        "venta"
+      ]
+    },
+    {
+      "id": 1271,
+      "category": "general",
+      "questions": [
+        "Como aplicar acuerdos de largo plazo en cafe",
+        "Beneficio de acuerdos de largo plazo para vender cafe",
+        "Plan practico de acuerdos de largo plazo en finca cafetera",
+        "Que medir para mejorar acuerdos de largo plazo en cafe"
+      ],
+      "answer": "En cafe, acuerdos de largo plazo ayuda a dar estabilidad al flujo de caja. Su exito depende de registros ordenados, ejecucion por lote y seguimiento continuo.",
+      "keywords": [
+        "cafe",
+        "mercado",
+        "valor",
+        "acuerdos",
+        "largo",
+        "plazo",
+        "dar",
+        "estabilidad",
+        "flujo",
+        "caja"
+      ]
+    },
+    {
+      "id": 1272,
+      "category": "general",
+      "questions": [
+        "Como aplicar documentacion para compradores en cafe",
+        "Beneficio de documentacion para compradores para vender cafe",
+        "Plan practico de documentacion para compradores en finca cafetera",
+        "Que medir para mejorar documentacion para compradores en cafe"
+      ],
+      "answer": "En cafe, documentacion para compradores ayuda a mostrar trazabilidad y protocolo. Su exito depende de registros ordenados, ejecucion por lote y seguimiento continuo.",
+      "keywords": [
+        "cafe",
+        "mercado",
+        "valor",
+        "documentacion",
+        "para",
+        "compradores",
+        "mostrar",
+        "trazabilidad",
+        "protocolo"
+      ]
     }
   ]
 }
