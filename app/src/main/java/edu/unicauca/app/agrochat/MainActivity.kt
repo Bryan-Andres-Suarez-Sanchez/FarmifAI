@@ -3053,8 +3053,12 @@ fun ModernMessageBubble(
                                 enabled = feedbackState?.helpful == null,
                                 label = { Text("Me sirvio") },
                                 colors = FilterChipDefaults.filterChipColors(
+                                    containerColor = AgroColors.SurfaceLight,
+                                    labelColor = Color.White,
                                     selectedContainerColor = AgroColors.Accent,
-                                    selectedLabelColor = Color.White
+                                    selectedLabelColor = Color.White,
+                                    disabledContainerColor = AgroColors.SurfaceLight.copy(alpha = 0.9f),
+                                    disabledLabelColor = Color.White.copy(alpha = 0.85f)
                                 )
                             )
                             FilterChip(
@@ -3063,8 +3067,12 @@ fun ModernMessageBubble(
                                 enabled = feedbackState?.helpful == null,
                                 label = { Text("No me sirvio") },
                                 colors = FilterChipDefaults.filterChipColors(
+                                    containerColor = AgroColors.SurfaceLight,
+                                    labelColor = Color.White,
                                     selectedContainerColor = Color(0xFFE57373),
-                                    selectedLabelColor = Color.White
+                                    selectedLabelColor = Color.White,
+                                    disabledContainerColor = AgroColors.SurfaceLight.copy(alpha = 0.9f),
+                                    disabledLabelColor = Color.White.copy(alpha = 0.85f)
                                 )
                             )
                         }
@@ -3130,8 +3138,12 @@ private fun FeedbackBinaryQuestion(
                 enabled = enabled,
                 label = { Text("Si") },
                 colors = FilterChipDefaults.filterChipColors(
+                    containerColor = AgroColors.SurfaceLight,
+                    labelColor = Color.White,
                     selectedContainerColor = AgroColors.Accent,
-                    selectedLabelColor = Color.White
+                    selectedLabelColor = Color.White,
+                    disabledContainerColor = AgroColors.SurfaceLight.copy(alpha = 0.9f),
+                    disabledLabelColor = Color.White.copy(alpha = 0.85f)
                 )
             )
             FilterChip(
@@ -3140,8 +3152,12 @@ private fun FeedbackBinaryQuestion(
                 enabled = enabled,
                 label = { Text("No") },
                 colors = FilterChipDefaults.filterChipColors(
+                    containerColor = AgroColors.SurfaceLight,
+                    labelColor = Color.White,
                     selectedContainerColor = Color(0xFFE57373),
-                    selectedLabelColor = Color.White
+                    selectedLabelColor = Color.White,
+                    disabledContainerColor = AgroColors.SurfaceLight.copy(alpha = 0.9f),
+                    disabledLabelColor = Color.White.copy(alpha = 0.85f)
                 )
             )
         }
