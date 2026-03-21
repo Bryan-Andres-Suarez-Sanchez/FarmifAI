@@ -90,18 +90,61 @@ class SemanticSearchHelper(private val context: Context) {
         "insectos" to "plaga",
         "enfermedades" to "enfermedad",
         "hongos" to "hongo",
+        "cafe" to "cafe",
+        "cafeto" to "cafe",
+        "cafetal" to "cafe",
+        "cafetera" to "cafe",
+        "cafetero" to "cafe",
+        "caficultura" to "cafe",
         "siembra" to "siembra",
         "sembrar" to "siembra",
         "plantar" to "siembra",
+        "vivero" to "siembra",
+        "colino" to "siembra",
+        "chapola" to "siembra",
+        "densidad" to "siembra",
         "cosechar" to "cosecha",
-        "cosechas" to "cosecha"
+        "cosechas" to "cosecha",
+        "maduro" to "cosecha",
+        "maduracion" to "cosecha",
+        "cereza" to "cosecha",
+        "beneficio" to "poscosecha",
+        "despulpado" to "poscosecha",
+        "fermentado" to "poscosecha",
+        "fermentacion" to "poscosecha",
+        "secado" to "poscosecha",
+        "pergamino" to "poscosecha",
+        "humedad" to "poscosecha",
+        "poda" to "poda",
+        "podas" to "poda",
+        "podar" to "poda",
+        "zoca" to "renovacion",
+        "zoqueo" to "renovacion",
+        "renovar" to "renovacion",
+        "renovacion" to "renovacion",
+        "variedades" to "variedad",
+        "broca" to "broca",
+        "roya" to "roya"
     )
     private val intentKeywords = mapOf(
-        "fertilizacion" to setOf("fertilizacion", "npk", "urea", "nitrogeno", "fosforo", "potasio"),
-        "riego" to setOf("riego", "goteo", "agua", "irrigacion"),
-        "plaga" to setOf("plaga", "gusano", "mosca", "pulgon", "trips", "minador"),
-        "enfermedad" to setOf("enfermedad", "hongo", "virus", "bacteria", "tizon", "roya", "pudricion", "mancha"),
-        "siembra" to setOf("siembra", "cultivo", "cosecha", "semilla")
+        "fertilizacion" to setOf(
+            "fertilizacion", "npk", "urea", "nitrogeno", "fosforo", "potasio",
+            "calcio", "magnesio", "boro", "zinc", "hierro", "manganeso", "dolomita"
+        ),
+        "riego" to setOf("riego", "goteo", "agua", "irrigacion", "sequia", "humedad"),
+        "plaga" to setOf(
+            "plaga", "gusano", "mosca", "pulgon", "trips", "minador",
+            "broca", "cochinilla", "acaro", "nematodo", "arriera", "barrenador"
+        ),
+        "enfermedad" to setOf(
+            "enfermedad", "hongo", "virus", "bacteria", "tizon", "roya", "pudricion",
+            "mancha", "cercospora", "antracnosis", "llaga", "hemileia", "rosado"
+        ),
+        "siembra" to setOf("siembra", "cultivo", "semilla", "vivero", "colino", "densidad", "variedad"),
+        "cosecha" to setOf("cosecha", "maduro", "cereza", "recoleccion", "repase"),
+        "poda" to setOf("poda", "podar", "zoqueo", "zoca", "renovacion"),
+        "calidad" to setOf("calidad", "taza", "defecto", "pasilla", "quaker", "trazabilidad", "especialidad"),
+        "poscosecha" to setOf("beneficio", "despulpado", "fermentacion", "secado", "pergamino", "humedad")
     )
     private val genericIntentTokens: Set<String> = run {
         val tokens = mutableSetOf<String>()
@@ -763,16 +806,24 @@ class SemanticSearchHelper(private val context: Context) {
             // Cultivos
             "tomate", "maiz", "papa", "frijol", "cafe", "cebolla", "lechuga", "zanahoria",
             "pepino", "pimenton", "aji", "yuca", "platano", "aguacate", "mango", "naranja",
+            "cafeto", "cafetal", "caficultura", "variedad", "castillo", "caturra", "bourbon",
+            "geisha", "tabi", "colombia", "catimor", "cenicafe", "typica", "pacamara",
             // Problemas
             "plaga", "enfermedad", "hongo", "virus", "bacteria", "gusano", "mosca", "arana",
             "pulgon", "trips", "minador", "marchitez", "pudricion", "mancha", "amarillo",
-            "amarillamiento", "secas", "marchitas", "caidas", "manchadas",
+            "amarillamiento", "secas", "marchitas", "caidas", "manchadas", "broca", "cochinilla",
+            "acaro", "nematodo", "roya", "cercospora", "antracnosis", "llaga", "gallo",
             "tizon", "norteno",
             // Recursos
             "fertilizante", "abono", "npk", "organico", "riego", "goteo", "agua", "suelo",
             "tierra", "sustrato", "semilla", "nutriente", "nitrogeno", "fosforo", "potasio",
+            "calcio", "magnesio", "boro", "zinc", "hierro", "manganeso", "dolomita",
             // Partes de planta
             "hoja", "hojas", "raiz", "tallo", "flor", "fruto", "frutos",
+            // Cafe: manejo, cosecha y calidad
+            "poda", "podas", "renovacion", "zoqueo", "zoca", "beneficio", "despulpado",
+            "fermentacion", "secado", "pergamino", "humedad", "cereza", "maduro",
+            "trazabilidad", "pasilla", "quaker", "taza", "especialidad",
             // Otros
             "mejor", "cuando", "como", "porque", "cantidad", "frecuencia"
         )
@@ -811,6 +862,20 @@ class SemanticSearchHelper(private val context: Context) {
             setOf("maiz", "elote", "choclo"),
             setOf("papa", "patata", "papas", "patatas"),
             setOf("cafe", "cafeto", "cafetal"),
+            setOf("broca", "hypothenemus", "hampei"),
+            setOf("roya", "hemileia"),
+            setOf("cercospora", "mancha", "hierro"),
+            setOf("antracnosis", "colletotrichum"),
+            setOf("poda", "podar", "zoqueo", "zoca", "renovacion"),
+            setOf("beneficio", "despulpado", "fermentacion", "lavado"),
+            setOf("secado", "secar", "pergamino", "humedad"),
+            setOf("calidad", "taza", "sensorial", "especialidad"),
+            setOf("colino", "almacigo", "vivero", "chapola"),
+            setOf("cochinilla", "escama", "chupador"),
+            setOf("nematodo", "agalla", "radicular"),
+            setOf("arvenses", "maleza", "cobertura"),
+            setOf("maduro", "maduracion", "cereza"),
+            setOf("grano", "pasilla", "quaker"),
             setOf("mejor", "optimo", "recomendado", "ideal"),
             setOf("cuando", "epoca", "momento", "tiempo"),
             setOf("como", "manera", "forma", "metodo")
