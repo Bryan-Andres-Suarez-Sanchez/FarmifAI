@@ -73,7 +73,9 @@ class FeedbackEventStore(context: Context) {
             .put("user_query", userQuery.take(1200))
             .put("assistant_response", assistantResponse.take(2400))
 
-        appendEvent(now, event)
+        // Se guarda localmente para trazabilidad, pero no se encola envio remoto
+        // hasta que el usuario marque al menos una respuesta del feedback.
+        appendEvent(now, event, enqueueRemote = false)
     }
 
     suspend fun recordFeedbackUpdate(
@@ -95,7 +97,8 @@ class FeedbackEventStore(context: Context) {
             .put("user_query", userQuery.take(1200))
             .put("assistant_response", assistantResponse.take(2400))
 
-        appendEvent(now, event)
+        // Cualquier respuesta del feedback dispara la cola de envio remoto.
+        appendEvent(now, event, enqueueRemote = true)
     }
 
     private fun baseEvent(
@@ -117,29 +120,35 @@ class FeedbackEventStore(context: Context) {
             .put("app_package", BuildConfig.APPLICATION_ID)
     }
 
-    private suspend fun appendEvent(nowMs: Long, event: JSONObject) = withContext(Dispatchers.IO) {
+    private suspend fun appendEvent(
+        nowMs: Long,
+        event: JSONObject,
+        enqueueRemote: Boolean
+    ) = withContext(Dispatchers.IO) {
         val outFile = File(rootDir, "feedback_events_${dayFormatter.format(Date(nowMs))}.jsonl")
         synchronized(fileLock) {
             outFile.parentFile?.mkdirs()
             outFile.appendText(event.toString() + "\n")
         }
-        try {
-            enqueueLiveEvent(event)
-            flushPendingLiveEvents(nowMs)
-        } catch (error: Exception) {
-            Log.w(TAG, "No se pudo enviar evento a endpoint live: ${error.message}")
-            updateLiveSyncStatus(
-                nowMs = nowMs,
-                success = false,
-                responseCode = null,
-                errorMessage = error.message ?: "unknown_error",
-                pendingCount = countPendingLiveEvents()
-            )
-        }
-        try {
-            uploadDailySnapshotIfNeeded(outFile, nowMs, event.optString("event_type", "unknown"))
-        } catch (error: Exception) {
-            Log.w(TAG, "No se pudo sincronizar feedback a internet: ${error.message}")
+        if (enqueueRemote) {
+            try {
+                enqueueLiveEvent(event)
+                flushPendingLiveEvents(nowMs)
+            } catch (error: Exception) {
+                Log.w(TAG, "No se pudo enviar evento a endpoint live: ${error.message}")
+                updateLiveSyncStatus(
+                    nowMs = nowMs,
+                    success = false,
+                    responseCode = null,
+                    errorMessage = error.message ?: "unknown_error",
+                    pendingCount = countPendingLiveEvents()
+                )
+            }
+            try {
+                uploadDailySnapshotIfNeeded(outFile, nowMs, event.optString("event_type", "unknown"))
+            } catch (error: Exception) {
+                Log.w(TAG, "No se pudo sincronizar feedback a internet: ${error.message}")
+            }
         }
     }
 
