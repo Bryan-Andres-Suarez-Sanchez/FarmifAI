@@ -100,8 +100,11 @@ class SemanticSearchHelper(private val context: Context) {
         "sembrar" to "siembra",
         "plantar" to "siembra",
         "vivero" to "siembra",
-        "colino" to "siembra",
+        "almacigo" to "siembra",
         "chapola" to "siembra",
+        "colino" to "siembra",
+        "plateo" to "siembra",
+        "prendimiento" to "siembra",
         "densidad" to "siembra",
         "cosechar" to "cosecha",
         "cosechas" to "cosecha",
@@ -131,6 +134,7 @@ class SemanticSearchHelper(private val context: Context) {
         "poda" to "poda",
         "podas" to "poda",
         "podar" to "poda",
+        "recepa" to "renovacion",
         "zoca" to "renovacion",
         "zoqueo" to "renovacion",
         "renovar" to "renovacion",
@@ -143,7 +147,12 @@ class SemanticSearchHelper(private val context: Context) {
         "bourbon" to "variedad",
         "tabi" to "variedad",
         "broca" to "broca",
-        "roya" to "roya"
+        "roya" to "roya",
+        "catacion" to "calidad",
+        "fragancia" to "calidad",
+        "retrogusto" to "calidad",
+        "inoculo" to "enfermedad",
+        "umbral" to "plaga"
     )
     private val intentKeywords = mapOf(
         "fertilizacion" to setOf(
@@ -164,7 +173,8 @@ class SemanticSearchHelper(private val context: Context) {
         "poda" to setOf("poda", "podar", "zoqueo", "zoca", "renovacion"),
         "calidad" to setOf(
             "calidad", "taza", "defecto", "pasilla", "quaker", "trazabilidad", "especialidad",
-            "catacion", "sensorial", "aroma", "sabor", "fragancia", "acidez", "cuerpo", "dulzor"
+            "catacion", "sensorial", "aroma", "sabor", "fragancia", "acidez", "cuerpo", "dulzor",
+            "retrogusto", "balance", "microlote", "prima"
         ),
         "poscosecha" to setOf(
             "beneficio", "despulpado", "fermentacion", "secado", "pergamino", "humedad",
