@@ -2567,6 +2567,1801 @@
         "sembrar",
         "invierno"
       ]
+    },
+    {
+      "id": 209,
+      "category": "cultivo",
+      "questions": [
+        "¿Cuál es el clima ideal para café arábica?",
+        "Clima óptimo para cultivar café",
+        "Condiciones climáticas del café arábica",
+        "Qué clima necesita el café"
+      ],
+      "answer": "Para café arábica funciona mejor un clima templado-húmedo: temperatura media de 14-28°C (óptimo), lluvia anual de 1.400-2.300 mm y suelos bien drenados. Si tienes extremos de frío/calor o lluvias muy irregulares, conviene ajustar sombra, nutrición y renovación para estabilizar producción.",
+      "keywords": [
+        "cafe",
+        "clima",
+        "temperatura",
+        "lluvia",
+        "arabica",
+        "produccion"
+      ]
+    },
+    {
+      "id": 210,
+      "category": "cultivo",
+      "questions": [
+        "Temperatura recomendada para café",
+        "Rango de temperatura del café",
+        "¿A qué temperatura produce mejor el café?",
+        "Temperatura mínima y máxima para café"
+      ],
+      "answer": "Como referencia técnica, arábica responde mejor entre 14 y 28°C; por debajo de 10°C y por encima de 34°C aumenta el estrés y cae el rendimiento. En fincas calientes, subir sombra y materia orgánica ayuda a amortiguar temperatura del suelo.",
+      "keywords": [
+        "cafe",
+        "temperatura",
+        "estres",
+        "sombra",
+        "suelo"
+      ]
+    },
+    {
+      "id": 211,
+      "category": "cultivo",
+      "questions": [
+        "¿Cuánta lluvia necesita el café?",
+        "Precipitación ideal para café",
+        "Lluvia anual cultivo de café",
+        "Rango de lluvia café arábica"
+      ],
+      "answer": "El rango útil está alrededor de 1.400-2.300 mm/año (con distribución relativamente uniforme). Con sequías largas sube riesgo de aborto floral y broca; con excesos sin drenaje suben enfermedades radiculares.",
+      "keywords": [
+        "cafe",
+        "lluvia",
+        "precipitacion",
+        "sequias",
+        "drenaje",
+        "enfermedades"
+      ]
+    },
+    {
+      "id": 212,
+      "category": "cultivo",
+      "questions": [
+        "Altitud recomendada para café arábica",
+        "¿A qué altura se da bien el café?",
+        "msnm ideal para café",
+        "Altura de cultivo café"
+      ],
+      "answer": "En sistemas de arábica se reportan muy buenos resultados desde 1.300 m y frecuentemente entre 1.500-2.000 m, según zona. La altitud no trabaja sola: debe ir acompañada de buena nutrición, variedad adecuada y manejo de sombra.",
+      "keywords": [
+        "cafe",
+        "altitud",
+        "msnm",
+        "arabica",
+        "sombra",
+        "variedad"
+      ]
+    },
+    {
+      "id": 213,
+      "category": "cultivo",
+      "questions": [
+        "pH ideal del suelo para café",
+        "Acidez del suelo en cafetal",
+        "¿Qué pH necesita el café?",
+        "Rango de pH café"
+      ],
+      "answer": "Un objetivo técnico común para suelo cafetero está cerca de pH 5,5 a 6,0. Con pH muy bajo se limita la disponibilidad de nutrientes y puede aumentar toxicidad de aluminio; por eso conviene analizar suelo y corregir con enmiendas cuando aplique.",
+      "keywords": [
+        "cafe",
+        "ph",
+        "suelo",
+        "acidez",
+        "enmiendas",
+        "nutrientes"
+      ]
+    },
+    {
+      "id": 214,
+      "category": "cultivo",
+      "questions": [
+        "Tipo de suelo ideal para café",
+        "¿Qué suelos no sirven para café?",
+        "Suelo recomendado cafetal",
+        "Textura de suelo para café"
+      ],
+      "answer": "El café responde mejor en suelos profundos, con buena materia orgánica y drenaje. Suelos muy arenosos, muy superficiales o con arcillas pesadas compactadas suelen reducir desarrollo radicular y estabilidad productiva.",
+      "keywords": [
+        "cafe",
+        "suelo",
+        "textura",
+        "drenaje",
+        "raiz",
+        "materia",
+        "organica"
+      ]
+    },
+    {
+      "id": 215,
+      "category": "riego",
+      "questions": [
+        "¿El café tolera encharcamiento?",
+        "Drenaje en cultivo de café",
+        "Exceso de agua en cafetal",
+        "Manejo de encharcamiento en café"
+      ],
+      "answer": "No conviene el encharcamiento en café. El exceso de agua daña raíces y predispone enfermedades. Prioriza drenajes funcionales, coberturas nobles y manejo de suelo para infiltrar agua sin asfixiar raíces.",
+      "keywords": [
+        "cafe",
+        "encharcamiento",
+        "drenaje",
+        "raices",
+        "coberturas",
+        "suelo"
+      ]
+    },
+    {
+      "id": 216,
+      "category": "cultivo",
+      "questions": [
+        "¿El café necesita sombra?",
+        "Sombra recomendada en cafetales",
+        "Café a pleno sol o con sombra",
+        "Porcentaje de sombra para café"
+      ],
+      "answer": "La sombra debe ser manejada, no extrema. En Colombia se recomienda regularla alrededor de 30% en sistemas con sombrío, con podas oportunas. Muy poca sombra sube estrés térmico; demasiada sombra baja aireación y puede favorecer enfermedades.",
+      "keywords": [
+        "cafe",
+        "sombra",
+        "sombrio",
+        "podas",
+        "enfermedades",
+        "estres"
+      ]
+    },
+    {
+      "id": 217,
+      "category": "siembra",
+      "questions": [
+        "Distancia de siembra del café",
+        "Marco de plantación café",
+        "¿A qué distancia sembrar café?",
+        "Separación entre matas de café"
+      ],
+      "answer": "Como guía técnica frecuente: plantas a 2-3 m y surcos de 3-5 m en sistemas de contorno, ajustando a variedad, pendiente y tipo de manejo. Lo importante es equilibrar densidad, aireación y facilidad de labores.",
+      "keywords": [
+        "cafe",
+        "siembra",
+        "distancia",
+        "densidad",
+        "surcos",
+        "pendiente"
+      ]
+    },
+    {
+      "id": 218,
+      "category": "siembra",
+      "questions": [
+        "Época de siembra del café",
+        "¿Cuándo sembrar café?",
+        "Meses recomendados para sembrar café",
+        "Siembra de café según lluvias"
+      ],
+      "answer": "La regla práctica es sembrar en periodo de lluvias de tu zona para asegurar prendimiento. Si llega verano fuerte, hay que proteger colinos y apoyar con riego de establecimiento.",
+      "keywords": [
+        "cafe",
+        "siembra",
+        "epoca",
+        "lluvias",
+        "colinos",
+        "establecimiento"
+      ]
+    },
+    {
+      "id": 219,
+      "category": "siembra",
+      "questions": [
+        "¿Cómo seleccionar colinos de café para llevar al lote?",
+        "Calidad de colinos de café",
+        "Selección de plantas para siembra café",
+        "Qué colino de café escoger"
+      ],
+      "answer": "Elige colinos sanos, vigorosos y bien formados. Llévalos al campo antes de deformaciones de raíz por bolsa y evita golpes en transporte. Una mala planta de arranque cuesta producción por varios años.",
+      "keywords": [
+        "cafe",
+        "colinos",
+        "almacigo",
+        "siembra",
+        "raiz",
+        "vigor"
+      ]
+    },
+    {
+      "id": 220,
+      "category": "siembra",
+      "questions": [
+        "Sistema de café a sol",
+        "Sistema de café con sombra",
+        "Diferencia café al sol y bajo sombrío",
+        "¿Qué sistema de producción usar en café?"
+      ],
+      "answer": "Puedes producir café a pleno sol o bajo sombrío, según ambiente y suelo. En ladera y alta erosión, el sistema con sombra bien manejada suele ayudar a conservar suelo y regular microclima.",
+      "keywords": [
+        "cafe",
+        "sol",
+        "sombra",
+        "sistema",
+        "erosion",
+        "microclima"
+      ]
+    },
+    {
+      "id": 221,
+      "category": "cultivo",
+      "questions": [
+        "Sombrío transitorio en café",
+        "Uso de plátano como sombra en café",
+        "Sombra temporal para cafetal",
+        "Sombrío con musáceas en café"
+      ],
+      "answer": "El sombrío transitorio (por ejemplo plátano/banano) protege al cafeto joven, aporta biomasa y puede dar ingreso adicional. Debe manejarse para que no compita en exceso por luz, agua y nutrientes.",
+      "keywords": [
+        "cafe",
+        "sombrio",
+        "transitorio",
+        "platano",
+        "banano",
+        "biomasa"
+      ]
+    },
+    {
+      "id": 222,
+      "category": "cultivo",
+      "questions": [
+        "Sombrío permanente en café",
+        "Árboles de sombra permanente para cafetal",
+        "Distancias del sombrío permanente",
+        "Guamo en café distancia"
+      ],
+      "answer": "En sombrío permanente se usan especies como guamo y otras compatibles. Referencias técnicas mencionan marcos de 12-15 m para árboles permanentes, con podas para mantener cerca de 30% de sombra efectiva.",
+      "keywords": [
+        "cafe",
+        "sombrio",
+        "permanente",
+        "guamo",
+        "podas",
+        "distancia"
+      ]
+    },
+    {
+      "id": 223,
+      "category": "cultivo",
+      "questions": [
+        "Asocio de café con maíz o frijol",
+        "Intercultivo en café joven",
+        "¿Se puede sembrar frijol entre café?",
+        "Asocio temporal en cafetal nuevo"
+      ],
+      "answer": "En los primeros años puede asociarse con cultivos como maíz o fríjol según diseño del lote. Esto ayuda al flujo de caja, pero exige ordenar competencia por agua/nutrientes y conservar cobertura del suelo.",
+      "keywords": [
+        "cafe",
+        "asocio",
+        "maiz",
+        "frijol",
+        "cobertura",
+        "suelo"
+      ]
+    },
+    {
+      "id": 224,
+      "category": "cultivo",
+      "questions": [
+        "Renovación de cafetales por zoca",
+        "Renovación por siembra en café",
+        "¿Cuándo renovar un cafetal?",
+        "Zoca o siembra en renovación"
+      ],
+      "answer": "Los dos sistemas clave son renovación por zoca y por siembra. Renovar mantiene cafetales jóvenes, mejora manejo de plagas/enfermedades y aumenta eficiencia de fertilización y labores.",
+      "keywords": [
+        "cafe",
+        "renovacion",
+        "zoca",
+        "siembra",
+        "plagas",
+        "productividad"
+      ]
+    },
+    {
+      "id": 225,
+      "category": "fertilizacion",
+      "questions": [
+        "¿Por qué hacer análisis de suelo en café?",
+        "Importancia del análisis de suelo cafetal",
+        "Fertilización racional en café",
+        "Cómo decidir fertilización del café"
+      ],
+      "answer": "La fertilización en café debe basarse en análisis de suelo (y de hojas cuando sea posible), no en recetas fijas. Así aplicas lo que realmente falta, reduces costos y evitas degradar el suelo.",
+      "keywords": [
+        "cafe",
+        "fertilizacion",
+        "analisis",
+        "suelo",
+        "costos",
+        "nutricion"
+      ]
+    },
+    {
+      "id": 226,
+      "category": "fertilizacion",
+      "questions": [
+        "Muestreo de suelo para café",
+        "¿Cómo tomar muestra de suelo en cafetal?",
+        "Profundidad de muestra de suelo café",
+        "Frecuencia análisis de suelo café"
+      ],
+      "answer": "Para muestreo representativo en café: toma submuestras en al menos 20 sitios por bloque (2-4 ha), profundidad cercana a 15 cm, mezcla bien y etiqueta. Idealmente hazlo una vez al año antes de floración.",
+      "keywords": [
+        "cafe",
+        "muestreo",
+        "suelo",
+        "floracion",
+        "analisis",
+        "bloque"
+      ]
+    },
+    {
+      "id": 227,
+      "category": "fertilizacion",
+      "questions": [
+        "Errores al tomar muestras de suelo en café",
+        "Qué no hacer en muestreo de suelo cafetal",
+        "Mala toma de muestra suelo café",
+        "Evitar errores análisis de suelo café"
+      ],
+      "answer": "Evita muestrear justo después de fertilizar, no tomes muestra pegada a árboles de sombra y no mezcles zonas con suelos muy diferentes. Esos errores distorsionan la recomendación de fertilización.",
+      "keywords": [
+        "cafe",
+        "muestreo",
+        "suelo",
+        "errores",
+        "fertilizacion",
+        "sombra"
+      ]
+    },
+    {
+      "id": 228,
+      "category": "fertilizacion",
+      "questions": [
+        "Muestreo foliar en café",
+        "¿Cómo tomar hojas para análisis en café?",
+        "Cuántas hojas muestrear en cafetal",
+        "Análisis foliar del café"
+      ],
+      "answer": "Para análisis foliar se recomienda muestrear hojas de la 3ra o 4ta pareja en ramas activas, en árboles promedio del lote. Como guía, al menos 40 árboles por bloque y mínimo 100 hojas por muestra compuesta.",
+      "keywords": [
+        "cafe",
+        "foliar",
+        "hojas",
+        "analisis",
+        "nutricion",
+        "muestreo"
+      ]
+    },
+    {
+      "id": 229,
+      "category": "fertilizacion",
+      "questions": [
+        "Rangos nutricionales hoja de café",
+        "Niveles de N P K en hoja de café",
+        "Interpretación análisis foliar café",
+        "Valores de referencia foliar café"
+      ],
+      "answer": "Como referencia técnica en hojas de café: N 2,5-3,0%, P 0,15-0,20%, K 2,1-2,6%, Ca 0,75-1,5%, Mg 0,25-0,40%. Interpreta siempre con un agrónomo local porque variedad, clima y edad cambian objetivos.",
+      "keywords": [
+        "cafe",
+        "analisis",
+        "foliar",
+        "nitrogeno",
+        "fosforo",
+        "potasio"
+      ]
+    },
+    {
+      "id": 230,
+      "category": "fertilizacion",
+      "questions": [
+        "Parámetros de suelo objetivo en café",
+        "Objetivo de pH y materia orgánica en cafetal",
+        "Meta de conductividad en suelo café",
+        "Valores guía de suelo para café"
+      ],
+      "answer": "Como guía general reportada para café: pH cercano a 5,5-6,0, materia orgánica 1-3% y conductividad baja (<0,2 dS/m). Úsalo como referencia inicial y ajusta con análisis de tu finca.",
+      "keywords": [
+        "cafe",
+        "suelo",
+        "ph",
+        "materia",
+        "organica",
+        "conductividad"
+      ]
+    },
+    {
+      "id": 231,
+      "category": "fertilizacion",
+      "questions": [
+        "Función del nitrógeno en café",
+        "Para qué sirve N en el cafeto",
+        "Importancia del nitrógeno en café",
+        "Nutriente N en café"
+      ],
+      "answer": "El nitrógeno impulsa crecimiento vegetativo, proteínas, enzimas y fotosíntesis. Si falta, la planta se debilita y baja el llenado de fruto; si sobra, puede disparar brotes tiernos y desbalancear el cultivo.",
+      "keywords": [
+        "cafe",
+        "nitrogeno",
+        "fotosintesis",
+        "crecimiento",
+        "fruto"
+      ]
+    },
+    {
+      "id": 232,
+      "category": "fertilizacion",
+      "questions": [
+        "Función del fósforo en café",
+        "Para qué sirve P en cafeto",
+        "Importancia del fósforo en café",
+        "Nutriente fósforo café"
+      ],
+      "answer": "El fósforo participa en energía celular, formación de raíces, floración y maduración. Es clave en etapa de establecimiento y en lotes que buscan buena estructura radicular.",
+      "keywords": [
+        "cafe",
+        "fosforo",
+        "raiz",
+        "floracion",
+        "maduracion"
+      ]
+    },
+    {
+      "id": 233,
+      "category": "fertilizacion",
+      "questions": [
+        "Función del potasio en café",
+        "Para qué sirve K en el café",
+        "Importancia del potasio en cafetal",
+        "Nutriente K en café"
+      ],
+      "answer": "El potasio es crítico para calidad de fruto, balance hídrico y tolerancia a estrés. También participa en resistencia general de la planta, por eso no conviene descuidarlo en lotes productivos.",
+      "keywords": [
+        "cafe",
+        "potasio",
+        "calidad",
+        "agua",
+        "estres",
+        "resistencia"
+      ]
+    },
+    {
+      "id": 234,
+      "category": "fertilizacion",
+      "questions": [
+        "Función del calcio y magnesio en café",
+        "Para qué sirven Ca y Mg en cafeto",
+        "Calcio magnesio en cultivo de café",
+        "Nutrientes secundarios café"
+      ],
+      "answer": "El calcio fortalece paredes celulares y raíces; el magnesio es núcleo de la clorofila. Ambos sostienen vigor, coloración y llenado. Cuando hay deficiencias, corrige con enmiendas según análisis.",
+      "keywords": [
+        "cafe",
+        "calcio",
+        "magnesio",
+        "clorofila",
+        "enmiendas",
+        "vigor"
+      ]
+    },
+    {
+      "id": 235,
+      "category": "fertilizacion",
+      "questions": [
+        "Función del boro en café",
+        "Boro en floración de café",
+        "Para qué sirve el B en cafeto",
+        "Micronutriente boro café"
+      ],
+      "answer": "El boro apoya crecimiento de brotes y raíces nuevas, floración y cuajado. Se maneja con dosis precisas; excesos de micronutrientes también causan daño.",
+      "keywords": [
+        "cafe",
+        "boro",
+        "floracion",
+        "cuajado",
+        "micronutriente"
+      ]
+    },
+    {
+      "id": 236,
+      "category": "fertilizacion",
+      "questions": [
+        "Programa NPK año 1 café",
+        "Dosis de fertilizante primer año café",
+        "Fertilización café recién sembrado",
+        "Plan nutricional año 1 cafeto"
+      ],
+      "answer": "Una referencia técnica para arábica en establecimiento: año 1, alrededor de 30 g/planta de NPK 15-15-15 antes de finalizar lluvias. Ajusta siempre con análisis de suelo y recomendación local.",
+      "keywords": [
+        "cafe",
+        "npk",
+        "ano1",
+        "fertilizacion",
+        "establecimiento"
+      ]
+    },
+    {
+      "id": 237,
+      "category": "fertilizacion",
+      "questions": [
+        "Programa NPK año 2 café",
+        "Dosis fertilización segundo año café",
+        "Fertilizante café año dos",
+        "Plan nutricional año 2 cafeto"
+      ],
+      "answer": "Como guía para año 2: tres aplicaciones de ~30 g/planta de NPK 15-15-15 (inicio de lluvias, mitad de año y septiembre) y, cuando aplique, dolomita ~500 g/planta.",
+      "keywords": [
+        "cafe",
+        "npk",
+        "ano2",
+        "dolomita",
+        "fertilizacion"
+      ]
+    },
+    {
+      "id": 238,
+      "category": "fertilizacion",
+      "questions": [
+        "Programa NPK año 3 café",
+        "Dosis de fertilizante tercer año café",
+        "Fertilizante para café en producción temprana",
+        "Plan nutricional año 3 cafeto"
+      ],
+      "answer": "Referencia frecuente en año 3: ~60 g/planta de NPK 15-15-15 por aplicación, tres veces al año. Si el lote tiene potencial alto, se puede requerir ajuste al alza con soporte de análisis.",
+      "keywords": [
+        "cafe",
+        "npk",
+        "ano3",
+        "produccion",
+        "analisis",
+        "fertilizacion"
+      ]
+    },
+    {
+      "id": 239,
+      "category": "fertilizacion",
+      "questions": [
+        "Programa NPK año 4 café",
+        "Dosis fertilización cuarto año café",
+        "Fertilizante café año 4",
+        "Plan nutricional cafetal año 4"
+      ],
+      "answer": "Como referencia: ~90 g/planta de NPK 15-15-15 por aplicación (3 veces/año) y revisión de enmiendas según pH y saturación de bases.",
+      "keywords": [
+        "cafe",
+        "npk",
+        "ano4",
+        "ph",
+        "enmiendas",
+        "fertilizacion"
+      ]
+    },
+    {
+      "id": 240,
+      "category": "fertilizacion",
+      "questions": [
+        "Programa NPK año 5 en adelante café",
+        "Fertilización cafetal adulto",
+        "Dosis en café de 5 años",
+        "Plan nutricional café adulto"
+      ],
+      "answer": "Para cafetal adulto, una guía técnica usa ~120 g/planta de NPK 15-15-15 por aplicación, 3 veces/año. No es receta universal: confirma con análisis de suelo/hoja y carga esperada.",
+      "keywords": [
+        "cafe",
+        "npk",
+        "adulto",
+        "ano5",
+        "carga",
+        "fertilizacion"
+      ]
+    },
+    {
+      "id": 241,
+      "category": "fertilizacion",
+      "questions": [
+        "Uso de dolomita en café",
+        "¿Cuánta dolomita aplicar al cafeto?",
+        "Cal y magnesio en café",
+        "Corrección de acidez con dolomita café"
+      ],
+      "answer": "Una referencia práctica es aplicar dolomita (Ca+Mg) alrededor de 500 g/planta cada dos años, idealmente antes de terminar lluvias, para que se incorpore al suelo.",
+      "keywords": [
+        "cafe",
+        "dolomita",
+        "calcio",
+        "magnesio",
+        "acidez",
+        "suelo"
+      ]
+    },
+    {
+      "id": 242,
+      "category": "fertilizacion",
+      "questions": [
+        "¿Dónde aplicar fertilizante en café?",
+        "Ubicación del abono en cafeto",
+        "Fertilización en banda café",
+        "Aplicación al rededor de la gotera café"
+      ],
+      "answer": "Ubica el fertilizante en banda alrededor de la línea de gotera, no pegado al tallo, para favorecer absorción y reducir pérdidas. Complementa con cobertura orgánica y humedad adecuada.",
+      "keywords": [
+        "cafe",
+        "fertilizante",
+        "gotera",
+        "banda",
+        "absorcion",
+        "suelo"
+      ]
+    },
+    {
+      "id": 243,
+      "category": "fertilizacion",
+      "questions": [
+        "¿Se puede usar pulpa fresca en café?",
+        "Pulpa sin compostar en cafetal",
+        "Riesgo de usar estiércol fresco en café",
+        "Compostaje de subproductos café"
+      ],
+      "answer": "Evita aplicar pulpa o estiércol frescos directamente: pueden quemar plantas, inmovilizar nitrógeno y elevar riesgos sanitarios. Es mejor compostar y luego incorporar de forma racional.",
+      "keywords": [
+        "cafe",
+        "pulpa",
+        "compost",
+        "estiercol",
+        "nitrogeno",
+        "riesgo"
+      ]
+    },
+    {
+      "id": 244,
+      "category": "fertilizacion",
+      "questions": [
+        "Materia orgánica en café",
+        "Lombricompuesto para cafetal",
+        "Uso de pulpa descompuesta en café",
+        "Fuentes orgánicas para café"
+      ],
+      "answer": "La pulpa de café descompuesta y el lombricompuesto son fuentes útiles de materia orgánica. Mejoran estructura del suelo y eficiencia del fertilizante mineral cuando se usan con manejo técnico.",
+      "keywords": [
+        "cafe",
+        "materia",
+        "organica",
+        "pulpa",
+        "lombricompuesto",
+        "suelo"
+      ]
+    },
+    {
+      "id": 245,
+      "category": "fertilizacion",
+      "questions": [
+        "Nutrientes que se van en la cosecha de café",
+        "Reposición de nutrientes en cafetal",
+        "Por qué fertilizar después de cosecha café",
+        "Reciclaje de nutrientes en café"
+      ],
+      "answer": "Con la cosecha se exportan nutrientes del lote. Por eso hay que reponer con fertilización y reciclar residuos bien compostados (pulpa, podas, hojarasca) para sostener productividad y calidad.",
+      "keywords": [
+        "cafe",
+        "cosecha",
+        "nutrientes",
+        "reposicion",
+        "podas",
+        "compost"
+      ]
+    },
+    {
+      "id": 246,
+      "category": "plagas",
+      "questions": [
+        "¿Qué es la broca del café?",
+        "Broca del cafeto descripción",
+        "Cómo es el insecto broca café",
+        "Identificación de broca en café"
+      ],
+      "answer": "La broca es un escarabajo pequeño (aprox. 1,5 mm), negro, que perfora el fruto y se desarrolla dentro del grano. Es la plaga económica más importante del café en Colombia.",
+      "keywords": [
+        "broca",
+        "cafe",
+        "insecto",
+        "escarabajo",
+        "fruto",
+        "grano"
+      ]
+    },
+    {
+      "id": 247,
+      "category": "plagas",
+      "questions": [
+        "Ciclo de vida de la broca del café",
+        "Huevos y larvas de la broca",
+        "Cuánto tarda la broca en desarrollarse",
+        "Etapas biológicas de la broca"
+      ],
+      "answer": "En términos prácticos: la hembra oviposita dentro del fruto (12-33 huevos reportados), la eclosión depende de clima (días) y luego larvas y pupas se desarrollan dentro de la semilla. Por eso el control debe romper ese ciclo en campo y beneficio.",
+      "keywords": [
+        "broca",
+        "ciclo",
+        "huevos",
+        "larvas",
+        "pupas",
+        "control"
+      ]
+    },
+    {
+      "id": 248,
+      "category": "plagas",
+      "questions": [
+        "Daño económico de la broca",
+        "Cómo afecta la broca el precio del café",
+        "Pérdidas por broca en café",
+        "Defecto broca de punto"
+      ],
+      "answer": "La broca reduce peso y calidad, y puede generar descuentos en compra por defectos. Si sube la infestación, el caficultor pierde rendimiento y precio.",
+      "keywords": [
+        "broca",
+        "perdidas",
+        "precio",
+        "calidad",
+        "defecto",
+        "cafe"
+      ]
+    },
+    {
+      "id": 249,
+      "category": "plagas",
+      "questions": [
+        "¿Cuándo aumenta la broca?",
+        "Broca en época seca",
+        "Clima y dinámica de broca café",
+        "Sequía y broca del café"
+      ],
+      "answer": "En muchas zonas cafeteras la broca se acelera en periodos secos y con cosecha deficiente. Mantener recolección oportuna y repase reduce focos de multiplicación.",
+      "keywords": [
+        "broca",
+        "sequias",
+        "cosecha",
+        "repase",
+        "focos",
+        "cafe"
+      ]
+    },
+    {
+      "id": 250,
+      "category": "plagas",
+      "questions": [
+        "Broca después del zoqueo",
+        "Riesgo de zoquear con frutos brocados",
+        "Manejo de broca en zoca",
+        "Zoqueo y dispersión de broca"
+      ],
+      "answer": "Si zoqueas sin retirar frutos brocados, la plaga puede multiplicarse y dispersarse a lotes vecinos. Antes de zoca, retira y maneja adecuadamente frutos infestados.",
+      "keywords": [
+        "broca",
+        "zoca",
+        "zoqueo",
+        "frutos",
+        "infestacion",
+        "lotes"
+      ]
+    },
+    {
+      "id": 251,
+      "category": "plagas",
+      "questions": [
+        "¿Cómo muestrear broca en café?",
+        "Método de muestreo de broca por hectárea",
+        "Cuántos sitios evaluar para broca",
+        "Muestreo de rama para broca"
+      ],
+      "answer": "Guía usada en caficultura colombiana: 30 sitios por hectárea; en cada sitio, un árbol y una rama productiva con 30-100 frutos. Cuenta total de frutos y frutos brocados para estimar infestación.",
+      "keywords": [
+        "broca",
+        "muestreo",
+        "hectarea",
+        "rama",
+        "infestacion",
+        "frutos"
+      ]
+    },
+    {
+      "id": 252,
+      "category": "plagas",
+      "questions": [
+        "Frecuencia de monitoreo de broca",
+        "Cada cuánto evaluar broca en cafetal",
+        "Monitoreo mensual de broca",
+        "Seguimiento broca por lotes"
+      ],
+      "answer": "Evalúa broca al menos una vez al mes por lote. El dato de infestación solo sirve si se registra por lote y se usa para decidir controles a tiempo.",
+      "keywords": [
+        "broca",
+        "monitoreo",
+        "mensual",
+        "lotes",
+        "control"
+      ]
+    },
+    {
+      "id": 253,
+      "category": "plagas",
+      "questions": [
+        "Umbral de broca en cosecha",
+        "Nivel máximo de broca permitido",
+        "Qué porcentaje de broca tolerar",
+        "Broca límite en cafetal"
+      ],
+      "answer": "Como referencia técnica: durante cosecha se busca no superar 5% de infestación en campo para proteger calidad comercial. En periodos entre cosechas, el objetivo recomendado es aún más bajo.",
+      "keywords": [
+        "broca",
+        "umbral",
+        "cosecha",
+        "infestacion",
+        "calidad"
+      ]
+    },
+    {
+      "id": 254,
+      "category": "plagas",
+      "questions": [
+        "Umbral de broca entre cosechas",
+        "Broca en intercosecha",
+        "Meta de infestación broca fuera de cosecha",
+        "Nivel deseable broca cafetal"
+      ],
+      "answer": "Entre cosechas, la meta práctica es mantener broca por debajo de 2% para no llegar con presión alta al siguiente pico productivo.",
+      "keywords": [
+        "broca",
+        "intercosecha",
+        "umbral",
+        "infestacion",
+        "cafetal"
+      ]
+    },
+    {
+      "id": 255,
+      "category": "plagas",
+      "questions": [
+        "Posiciones A B C D de la broca",
+        "Qué significan posiciones de broca",
+        "Penetración de broca en fruto",
+        "Lectura de posiciones broca"
+      ],
+      "answer": "Las posiciones A-B indican broca iniciando/perforando canal; C-D indican broca más interna o con descendencia. Esta lectura ayuda a decidir si una medida de control tendrá buen impacto.",
+      "keywords": [
+        "broca",
+        "posicion",
+        "penetracion",
+        "fruto",
+        "control"
+      ]
+    },
+    {
+      "id": 256,
+      "category": "plagas",
+      "questions": [
+        "¿Cuándo aplicar control químico para broca?",
+        "Insecticida para broca según posiciones",
+        "Momento técnico para asperjar broca",
+        "Aplicación por focos broca"
+      ],
+      "answer": "El control químico se justifica cuando hay infestación relevante y proporción alta de broca en posiciones A/B (aún expuesta), priorizando focos o puntos calientes y productos de bajo riesgo toxicológico.",
+      "keywords": [
+        "broca",
+        "quimico",
+        "posiciones",
+        "focos",
+        "asperjar",
+        "toxicologico"
+      ]
+    },
+    {
+      "id": 257,
+      "category": "plagas",
+      "questions": [
+        "Qué es el control cultural RE-RE en café",
+        "Control cultural de broca",
+        "Re-Re en cafetal",
+        "Cómo hacer repase de broca"
+      ],
+      "answer": "El RE-RE combina recolección oportuna y repase para retirar frutos maduros, sobremaduros y secos en árbol/suelo. Es la base del control de broca y puede explicar gran parte del éxito sanitario del lote.",
+      "keywords": [
+        "broca",
+        "re-re",
+        "repase",
+        "recoleccion",
+        "control",
+        "cafe"
+      ]
+    },
+    {
+      "id": 258,
+      "category": "plagas",
+      "questions": [
+        "¿Cuántas veces hacer repase para broca?",
+        "Frecuencia de repase en café",
+        "Repase de broca dos veces al año",
+        "Repase después de cosecha"
+      ],
+      "answer": "Como práctica recomendada, el repase de broca se realiza dos veces al año al finalizar cosecha principal y mitaca, retirando frutos remanentes que sostienen la plaga.",
+      "keywords": [
+        "broca",
+        "repase",
+        "mitaca",
+        "cosecha",
+        "plaga"
+      ]
+    },
+    {
+      "id": 259,
+      "category": "plagas",
+      "questions": [
+        "Control biológico de broca con Beauveria",
+        "Beauveria bassiana en broca del café",
+        "Hongo para controlar broca",
+        "Bioinsumo para broca café"
+      ],
+      "answer": "Beauveria bassiana es un aliado biológico clave contra broca. Funciona mejor integrado con monitoreo, recolección oportuna y manejo de focos.",
+      "keywords": [
+        "broca",
+        "beauveria",
+        "biologico",
+        "hongo",
+        "focos"
+      ]
+    },
+    {
+      "id": 260,
+      "category": "plagas",
+      "questions": [
+        "Parasitoides de la broca del café",
+        "Avispitas para broca",
+        "Prorops nasuta broca",
+        "Phymastichus coffea control"
+      ],
+      "answer": "Dentro del control biológico se han usado parasitoides como Prorops nasuta, Cephalonomia stephanoderis y Phymastichus coffea. Su mayor efecto aparece cuando se integran con buen manejo cultural.",
+      "keywords": [
+        "broca",
+        "parasitoides",
+        "prorops",
+        "cephalonomia",
+        "phymastichus"
+      ]
+    },
+    {
+      "id": 261,
+      "category": "plagas",
+      "questions": [
+        "Evitar escape de broca en beneficio",
+        "Broca sale del beneficiadero al cafetal",
+        "Manejo de broca en poscosecha",
+        "Control de broca en desagües"
+      ],
+      "answer": "Para evitar reinfestación: usa costales cerrados, procesa oportunamente, coloca mallas en desagües y maneja bien pulpas/subproductos. Si la broca escapa del beneficio, vuelve al lote.",
+      "keywords": [
+        "broca",
+        "beneficio",
+        "desagues",
+        "costales",
+        "reinfestacion"
+      ]
+    },
+    {
+      "id": 262,
+      "category": "plagas",
+      "questions": [
+        "Control de broca por focos",
+        "Puntos calientes de broca",
+        "Manejo localizado de broca",
+        "Mapeo de focos broca"
+      ],
+      "answer": "La infestación de broca no suele ser uniforme. Identificar focos permite concentrar control (biológico o químico) donde más se necesita y bajar costo total.",
+      "keywords": [
+        "broca",
+        "focos",
+        "puntos",
+        "calientes",
+        "control",
+        "costo"
+      ]
+    },
+    {
+      "id": 263,
+      "category": "plagas",
+      "questions": [
+        "Categoría toxicológica de insecticidas para broca",
+        "Insecticidas de bajo riesgo en café",
+        "Control químico seguro broca",
+        "Toxicología en manejo de broca"
+      ],
+      "answer": "Cuando se requiera control químico, prioriza productos recomendados de baja categoría toxicológica (III-IV), con equipo calibrado y enfoque por foco para reducir riesgos y residuos.",
+      "keywords": [
+        "broca",
+        "insecticidas",
+        "toxicologia",
+        "seguridad",
+        "calibracion"
+      ]
+    },
+    {
+      "id": 264,
+      "category": "diagnostico",
+      "questions": [
+        "¿Qué es la roya del café?",
+        "Hemileia vastatrix en cafetal",
+        "Importancia de roya en café",
+        "Roya cafeto explicación"
+      ],
+      "answer": "La roya del cafeto (Hemileia vastatrix) es la enfermedad más importante del café en Colombia. En variedades susceptibles y sin manejo puede causar pérdidas significativas de producción en varios ciclos de cosecha.",
+      "keywords": [
+        "roya",
+        "cafe",
+        "hemileia",
+        "enfermedad",
+        "perdidas"
+      ]
+    },
+    {
+      "id": 265,
+      "category": "diagnostico",
+      "questions": [
+        "Pérdidas por roya en café",
+        "Cuánto puede bajar la producción por roya",
+        "Impacto económico de roya del cafeto",
+        "Daño productivo roya café"
+      ],
+      "answer": "En Colombia se han reportado pérdidas de 10-30% en susceptibles sin manejo, y en escenarios críticos pueden ser mayores. La caída de follaje reduce llenado de fruto y afecta cosechas futuras.",
+      "keywords": [
+        "roya",
+        "perdidas",
+        "produccion",
+        "follaje",
+        "cafe"
+      ]
+    },
+    {
+      "id": 266,
+      "category": "diagnostico",
+      "questions": [
+        "Variedades susceptibles a roya en Colombia",
+        "Caturra roya",
+        "Geisha susceptible a roya",
+        "Qué variedad de café se enferma más de roya"
+      ],
+      "answer": "En alertas fitosanitarias recientes se mencionan como susceptibles, entre otras: Caturra, Típica, Borbón, Geisha, Maragogipe y algunos Catimores introducidos. En estas variedades el monitoreo debe ser estricto.",
+      "keywords": [
+        "roya",
+        "variedades",
+        "susceptibles",
+        "caturra",
+        "geisha",
+        "cafe"
+      ]
+    },
+    {
+      "id": 267,
+      "category": "diagnostico",
+      "questions": [
+        "Variedades resistentes a roya recomendadas",
+        "Castillo resistente roya",
+        "Variedad Tabi café",
+        "Qué sembrar para reducir roya"
+      ],
+      "answer": "Una estrategia central es usar variedades con resistencia genética, como líneas Castillo y Tabi en programas de renovación. Esto reduce presión de fungicidas y estabiliza productividad.",
+      "keywords": [
+        "roya",
+        "resistencia",
+        "castillo",
+        "tabi",
+        "renovacion"
+      ]
+    },
+    {
+      "id": 268,
+      "category": "diagnostico",
+      "questions": [
+        "¿Cuándo controlar roya del café?",
+        "Roya se controla cuando no se ve",
+        "Momento oportuno control roya",
+        "Control preventivo roya café"
+      ],
+      "answer": "La recomendación práctica es anticiparse: controlar roya antes de que escale visualmente en lote, especialmente después de floraciones fuertes y en variedades susceptibles.",
+      "keywords": [
+        "roya",
+        "control",
+        "preventivo",
+        "floracion",
+        "susceptibles"
+      ]
+    },
+    {
+      "id": 269,
+      "category": "diagnostico",
+      "questions": [
+        "Manejo integrado de roya en café",
+        "Estrategia MIE en cafetal",
+        "Control genético cultural químico roya",
+        "Cómo manejar roya integralmente"
+      ],
+      "answer": "Aplica manejo integrado: componente genético (variedad), cultural (nutrición, sombra, renovación), biológico y químico cuando corresponda. El éxito depende de oportunidad y seguimiento por lote.",
+      "keywords": [
+        "roya",
+        "manejo",
+        "integrado",
+        "genetico",
+        "cultural",
+        "quimico"
+      ]
+    },
+    {
+      "id": 270,
+      "category": "diagnostico",
+      "questions": [
+        "Por qué son importantes las hojas sanas en café",
+        "Defoliación por roya en cafeto",
+        "Roya y llenado de frutos",
+        "Follaje y producción de café"
+      ],
+      "answer": "Las hojas sanas sostienen la fotosíntesis que llena fruto y forma estructuras de cosechas futuras. Si la roya tumba follaje, baja producción actual y también la del siguiente ciclo.",
+      "keywords": [
+        "cafe",
+        "hojas",
+        "fotosintesis",
+        "roya",
+        "produccion"
+      ]
+    },
+    {
+      "id": 271,
+      "category": "diagnostico",
+      "questions": [
+        "Niveles de roya mayores al 5%",
+        "Qué hacer si sube roya en el lote",
+        "Alerta roya en cafetal",
+        "Roya alta en café"
+      ],
+      "answer": "Con incidencias altas (por ejemplo >5% en monitoreos locales), acelera plan técnico por lote: revisión varietal, nutrición, sombra, y control fitosanitario en momento oportuno según recomendación de extensión.",
+      "keywords": [
+        "roya",
+        "incidencia",
+        "alerta",
+        "lote",
+        "extension"
+      ]
+    },
+    {
+      "id": 272,
+      "category": "diagnostico",
+      "questions": [
+        "Mancha de hierro en café",
+        "Prevención de mancha de hierro cafeto",
+        "Cercospora en café manejo nutricional",
+        "Hojas y frutos con mancha de hierro"
+      ],
+      "answer": "La mancha de hierro se relaciona con desbalances nutricionales y estrés. En manejo práctico: fertilización oportuna, buena aireación y manejo de arvenses ayudan a reducir presión de la enfermedad.",
+      "keywords": [
+        "mancha",
+        "hierro",
+        "cafe",
+        "nutricion",
+        "arvenses",
+        "aireacion"
+      ]
+    },
+    {
+      "id": 273,
+      "category": "diagnostico",
+      "questions": [
+        "Mal rosado del café manejo",
+        "Corticium salmonicolor control",
+        "Ramas rosadas en cafeto",
+        "Poda para mal rosado"
+      ],
+      "answer": "Para mal rosado, una práctica clave es podar y retirar partes enfermas en época seca, desinfectar herramientas y mejorar ventilación del lote.",
+      "keywords": [
+        "mal",
+        "rosado",
+        "corticium",
+        "poda",
+        "herramientas",
+        "cafe"
+      ]
+    },
+    {
+      "id": 274,
+      "category": "diagnostico",
+      "questions": [
+        "Llaga radical en café",
+        "Rosellinia en cafetal",
+        "Control de llaga negra café",
+        "Hongos de raíz en café manejo"
+      ],
+      "answer": "En llagas radicales, el manejo incluye retirar y destruir material enfermo, mejorar aireación/drenaje y aplicar biocontroladores cuando el técnico lo recomiende.",
+      "keywords": [
+        "llaga",
+        "radical",
+        "rosellinia",
+        "drenaje",
+        "biocontrol"
+      ]
+    },
+    {
+      "id": 275,
+      "category": "diagnostico",
+      "questions": [
+        "Antracnosis y gotera en café",
+        "Exceso de sombra enfermedad café",
+        "Humedad alta y enfermedades café",
+        "Cómo reducir antracnosis en cafetal"
+      ],
+      "answer": "Exceso de sombra y humedad favorecen varias enfermedades (como antracnosis y gotera). Ajusta sombrío, poda y circulación de aire para bajar presión sanitaria.",
+      "keywords": [
+        "antracnosis",
+        "gotera",
+        "sombra",
+        "humedad",
+        "poda",
+        "cafe"
+      ]
+    },
+    {
+      "id": 276,
+      "category": "plagas",
+      "questions": [
+        "Palomilla de la raíz en café",
+        "Dysmicocus brevipes control",
+        "Raíces de café atacadas por palomilla",
+        "Plaga de raíz cafeto"
+      ],
+      "answer": "Para palomilla de la raíz, se recomienda manejo sanitario del foco y evitar encharcamientos, junto con nutrición oportuna para sostener vigor del cultivo.",
+      "keywords": [
+        "palomilla",
+        "raiz",
+        "dysmicocus",
+        "encharcamiento",
+        "cafe"
+      ]
+    },
+    {
+      "id": 277,
+      "category": "plagas",
+      "questions": [
+        "Minador de la hoja en café",
+        "Leucoptera coffeella control",
+        "Galerías en hojas de café",
+        "Plaga minador cafetal"
+      ],
+      "answer": "El minador perfora hojas desde dentro. En manejo integrado, el control biológico nativo y condiciones climáticas favorables suelen ayudar; evita aplicaciones indiscriminadas.",
+      "keywords": [
+        "minador",
+        "leucoptera",
+        "hojas",
+        "biologico",
+        "cafe"
+      ]
+    },
+    {
+      "id": 278,
+      "category": "plagas",
+      "questions": [
+        "Arañita roja en café",
+        "Ácaros en cafetal en verano",
+        "Oligonychus yothersi en café",
+        "Control de araña roja café"
+      ],
+      "answer": "La arañita roja suele subir en sequía y polvo (bordes de carretera). Mejorar cobertura, reducir estrés hídrico y conservar enemigos naturales ayuda a regularla.",
+      "keywords": [
+        "aranita",
+        "roja",
+        "acaros",
+        "sequias",
+        "cobertura",
+        "cafe"
+      ]
+    },
+    {
+      "id": 279,
+      "category": "cosecha",
+      "questions": [
+        "Recolección selectiva en café",
+        "Cosechar solo maduros en café",
+        "Porcentaje de frutos maduros recomendado",
+        "Buenas prácticas de cosecha café"
+      ],
+      "answer": "Para calidad, prioriza recolección selectiva de frutos maduros (idealmente alta proporción de maduros) y evita mezclar mucho verde, sobremaduro o frutos dañados.",
+      "keywords": [
+        "cafe",
+        "cosecha",
+        "selectiva",
+        "maduros",
+        "calidad"
+      ]
+    },
+    {
+      "id": 280,
+      "category": "cosecha",
+      "questions": [
+        "Clasificación hidráulica de café cereza",
+        "¿Qué hacer con frutos flotes en café?",
+        "Separar frutos dañados en beneficio",
+        "Flotes en café manejo"
+      ],
+      "answer": "Antes del despulpado conviene clasificar y retirar flotes/frutos dañados. Esto mejora uniformidad del proceso y reduce defectos en secado y taza.",
+      "keywords": [
+        "cafe",
+        "flotes",
+        "clasificacion",
+        "cereza",
+        "beneficio",
+        "calidad"
+      ]
+    },
+    {
+      "id": 281,
+      "category": "cosecha",
+      "questions": [
+        "Secado al sol del café en capa",
+        "Espesor de capa para secar café",
+        "Kg por metro cuadrado secado café",
+        "Cómo extender café en secador"
+      ],
+      "answer": "En secado solar se recomienda capa delgada (aprox. 2-3 cm), con volteo frecuente. Capas muy gruesas retrasan secado y elevan riesgo de moho y defectos de taza.",
+      "keywords": [
+        "cafe",
+        "secado",
+        "capa",
+        "sol",
+        "moho",
+        "taza"
+      ]
+    },
+    {
+      "id": 282,
+      "category": "cosecha",
+      "questions": [
+        "Temperatura en secador mecánico de café",
+        "¿A qué temperatura secar café pergamino?",
+        "Secado mecánico café 47 50",
+        "Control térmico en secado café"
+      ],
+      "answer": "En secadores mecánicos estáticos, una referencia técnica usa aire alrededor de 47-50°C con recambio de flujo. Temperaturas mal manejadas afectan calidad y vida útil del grano.",
+      "keywords": [
+        "cafe",
+        "secado",
+        "mecanico",
+        "temperatura",
+        "calidad"
+      ]
+    },
+    {
+      "id": 283,
+      "category": "cosecha",
+      "questions": [
+        "Humedad final del café pergamino",
+        "¿A cuánto dejar la humedad del café?",
+        "Meta de humedad comercial café",
+        "11% humedad café"
+      ],
+      "answer": "La meta de comercialización suele estar entre 10% y 12% de humedad (preferible cerca de 11%). Fuera de rango suben riesgos de deterioro o quiebre y pérdida de calidad.",
+      "keywords": [
+        "cafe",
+        "humedad",
+        "pergamino",
+        "secado",
+        "comercializacion"
+      ]
+    },
+    {
+      "id": 284,
+      "category": "cosecha",
+      "questions": [
+        "Cuánto tarda secar café en túnel solar",
+        "Tiempo de secado café 53 a 10-12%",
+        "Secado café 7 a 10 días",
+        "Duración secado café pergamino"
+      ],
+      "answer": "En ensayos de secador tipo túnel, secar desde ~53% de humedad hasta 10-12% tomó alrededor de 7-10 días, dependiendo de radiación y manejo del proceso.",
+      "keywords": [
+        "cafe",
+        "secado",
+        "tunel",
+        "dias",
+        "humedad",
+        "radiacion"
+      ]
+    },
+    {
+      "id": 285,
+      "category": "cosecha",
+      "questions": [
+        "Secado de café con capa de 2 cm",
+        "13 kg m2 en secador de café",
+        "Secado café ambiente seco y soleado",
+        "Riesgo de moho capa delgada café"
+      ],
+      "answer": "Con capa cercana a 2 cm (aprox. 13 kg/m2) y buen sol, el secado puede lograrse en 6-8 días y con menor exposición a condiciones críticas para mohos.",
+      "keywords": [
+        "cafe",
+        "secado",
+        "2cm",
+        "13kg",
+        "moho",
+        "sol"
+      ]
+    },
+    {
+      "id": 286,
+      "category": "cosecha",
+      "questions": [
+        "Secado de café con capas gruesas",
+        "Qué pasa si seco café en 4 cm o más",
+        "Capa gruesa en secado de café",
+        "Riesgo por secado lento café"
+      ],
+      "answer": "Cuando la capa supera 4 cm, sobre todo en lluvias, el secado puede alargarse mucho (hasta semanas) y aumenta riesgo de fermentaciones indeseables, mohos y defectos sensoriales.",
+      "keywords": [
+        "cafe",
+        "secado",
+        "capa",
+        "gruesa",
+        "fermentacion",
+        "mohos"
+      ]
+    },
+    {
+      "id": 287,
+      "category": "cosecha",
+      "questions": [
+        "Riesgo de OTA en secado de café",
+        "Mochos y ocratoxina en café",
+        "Cómo evitar OTA en pergamino",
+        "Actividad de agua y calidad café"
+      ],
+      "answer": "El secado lento y heterogéneo incrementa riesgo de mohos y OTA. Para prevenir: clasifica bien, retira residuos, seca en capas delgadas, voltea el grano y cierra en humedad final segura.",
+      "keywords": [
+        "cafe",
+        "ota",
+        "mohos",
+        "secado",
+        "actividad",
+        "agua"
+      ]
+    },
+    {
+      "id": 288,
+      "category": "cosecha",
+      "questions": [
+        "Almacenamiento de café pergamino seco",
+        "Condiciones de bodega para café",
+        "Temperatura y humedad para guardar café",
+        "Cómo almacenar café por meses"
+      ],
+      "answer": "Para conservar calidad: café seco (10-12%), bodega limpia/ventilada, temperatura baja (<20°C) y humedad relativa de 65-70%. Usa estibas y evita contacto con paredes y techo.",
+      "keywords": [
+        "cafe",
+        "almacenamiento",
+        "bodega",
+        "humedad",
+        "temperatura",
+        "estibas"
+      ]
+    },
+    {
+      "id": 289,
+      "category": "cosecha",
+      "questions": [
+        "Distancia de sacos a paredes en bodega de café",
+        "Estibas para almacenar café",
+        "Separación del café en almacenamiento",
+        "Cómo arrumar sacos de café"
+      ],
+      "answer": "Arruma los sacos sobre estibas limpias y deja separación de seguridad con paredes/techo (referencias técnicas hablan de ~30 cm) para evitar humedad, contaminación y calentamiento.",
+      "keywords": [
+        "cafe",
+        "sacos",
+        "estibas",
+        "bodega",
+        "paredes",
+        "humedad"
+      ]
+    },
+    {
+      "id": 290,
+      "category": "cosecha",
+      "questions": [
+        "Contaminación del café pergamino",
+        "Qué no almacenar cerca del café",
+        "Olores extraños en café almacenado",
+        "Evitar contaminación química del café"
+      ],
+      "answer": "No almacenes café junto a pinturas, combustibles, abonos, insecticidas, maderas húmedas o animales. El grano absorbe olores y contaminantes que luego dañan la taza.",
+      "keywords": [
+        "cafe",
+        "contaminacion",
+        "olores",
+        "almacenamiento",
+        "quimicos"
+      ]
+    },
+    {
+      "id": 291,
+      "category": "cosecha",
+      "questions": [
+        "Defectos no admisibles en café pergamino",
+        "Qué granos defectuosos rechazan en café",
+        "Pasillas y defectos de calidad café",
+        "Control de defectos en pergamino"
+      ],
+      "answer": "Debes retirar granos con moho visible, pulpa adherida, daños severos por insectos y defectos fuertes de olor/color. Mientras más limpio llegue el lote, mejor precio y consistencia de taza.",
+      "keywords": [
+        "cafe",
+        "defectos",
+        "pergamino",
+        "pasillas",
+        "calidad",
+        "precio"
+      ]
+    },
+    {
+      "id": 292,
+      "category": "cosecha",
+      "questions": [
+        "Color del café pergamino de buena calidad",
+        "Desviaciones de color en pergamino",
+        "Pergamino amarillo claro café",
+        "Cómo ver calidad por color café"
+      ],
+      "answer": "Un pergamino sano suele verse homogéneo y de color amarillo claro. Apariencias grisáceas, muy oscuras o manchadas suelen indicar problemas de secado, humedad o manejo.",
+      "keywords": [
+        "cafe",
+        "color",
+        "pergamino",
+        "secado",
+        "humedad",
+        "calidad"
+      ]
+    },
+    {
+      "id": 293,
+      "category": "cosecha",
+      "questions": [
+        "Transporte de café pergamino",
+        "Cómo transportar café sin contaminar",
+        "Llevar café en jeep o camioneta cubiertos",
+        "Cuidado del café durante transporte"
+      ],
+      "answer": "Durante transporte protege el café de lluvia, humo, tierra, químicos y cargas contaminantes. Lo ideal es vehículo cubierto y sacos bien cerrados.",
+      "keywords": [
+        "cafe",
+        "transporte",
+        "contaminacion",
+        "lluvia",
+        "sacos"
+      ]
+    },
+    {
+      "id": 294,
+      "category": "cosecha",
+      "questions": [
+        "Beneficio ecológico del café",
+        "Qué es el beneficio húmedo ecológico",
+        "Ventajas ambientales del beneficio ecológico",
+        "Reducción de contaminación en beneficio café"
+      ],
+      "answer": "El beneficio ecológico por vía húmeda busca transformar cereza a pergamino usando menos agua y menor impacto ambiental, manteniendo calidad y aprovechando subproductos.",
+      "keywords": [
+        "cafe",
+        "beneficio",
+        "ecologico",
+        "agua",
+        "subproductos",
+        "calidad"
+      ]
+    },
+    {
+      "id": 295,
+      "category": "cosecha",
+      "questions": [
+        "Calidad del agua para lavar café",
+        "pH del agua en beneficio del café",
+        "Agua potable para lavado de café",
+        "Requisitos del agua en beneficio"
+      ],
+      "answer": "Para lavado y fermentación controlada del café se recomienda agua limpia; en estándares avanzados se busca agua potable con pH cercano a 6-8 y libre de contaminantes biológicos y metales pesados.",
+      "keywords": [
+        "cafe",
+        "agua",
+        "lavado",
+        "ph",
+        "beneficio",
+        "potable"
+      ]
+    },
+    {
+      "id": 296,
+      "category": "cosecha",
+      "questions": [
+        "Fermentación controlada de café",
+        "Tiempo de fermentación café",
+        "pH y brix en fermentación de café",
+        "Fermentación sólida vs sumergida café"
+      ],
+      "answer": "En fermentación controlada, el tiempo y la temperatura definen perfil sensorial. Referencias técnicas reportan rangos aproximados de 12-18 h (sólida) y 18-30 h (sumergida) a 18-23°C, con seguimiento de pH y °Brix.",
+      "keywords": [
+        "cafe",
+        "fermentacion",
+        "tiempo",
+        "ph",
+        "brix",
+        "calidad"
+      ]
+    },
+    {
+      "id": 297,
+      "category": "cosecha",
+      "questions": [
+        "Secado por lotes de café",
+        "¿Por qué no mezclar lotes de café?",
+        "Separar lotes en secado y almacenamiento",
+        "Trazabilidad del café en finca"
+      ],
+      "answer": "Secar y almacenar por lotes mejora trazabilidad, permite corregir fallas por parcela y evita que un lote defectuoso deteriore toda la producción.",
+      "keywords": [
+        "cafe",
+        "lotes",
+        "trazabilidad",
+        "secado",
+        "almacenamiento"
+      ]
+    },
+    {
+      "id": 298,
+      "category": "cultivo",
+      "questions": [
+        "Manejo de arvenses en café",
+        "Coberturas nobles en cafetal",
+        "¿Conviene desnudar el suelo en café?",
+        "Control de malezas conservacionista café"
+      ],
+      "answer": "En café de ladera conviene manejo de arvenses con enfoque conservacionista: coberturas nobles, mínima labranza y control dirigido. Desnudar totalmente el suelo aumenta erosión y costos.",
+      "keywords": [
+        "cafe",
+        "arvenses",
+        "coberturas",
+        "erosion",
+        "suelo",
+        "manejo"
+      ]
+    },
+    {
+      "id": 299,
+      "category": "cultivo",
+      "questions": [
+        "Sombra y erosión en cafetales de ladera",
+        "Cómo proteger suelo en cafetal inclinado",
+        "Café en pendientes fuertes manejo",
+        "Conservación de suelos en café"
+      ],
+      "answer": "En pendientes fuertes, el sombrío bien diseñado y coberturas ayudan a reducir impacto de lluvia, escorrentía y pérdida de suelo. Esto protege productividad de largo plazo.",
+      "keywords": [
+        "cafe",
+        "ladera",
+        "sombra",
+        "erosion",
+        "escorrentia",
+        "suelo"
+      ]
+    },
+    {
+      "id": 300,
+      "category": "cultivo",
+      "questions": [
+        "¿Qué árboles usar como sombra en café?",
+        "Especies de sombrío recomendadas",
+        "Guamo matarratón nogales en cafetal",
+        "Selección de árboles de sombra café"
+      ],
+      "answer": "Selecciona especies de sombra compatibles que no compitan demasiado por agua/nutrientes y permitan manejo de altura/luz. En Colombia son comunes guamos y otras especies adaptadas por región.",
+      "keywords": [
+        "cafe",
+        "sombra",
+        "especies",
+        "guamo",
+        "matarraton",
+        "compatibles"
+      ]
+    },
+    {
+      "id": 301,
+      "category": "cultivo",
+      "questions": [
+        "Poda del sombrío en café",
+        "Descope del guamo en cafetal",
+        "Manejo de altura de árboles de sombra",
+        "Cómo mantener 30% de sombra café"
+      ],
+      "answer": "La poda del sombrío (incluido descope en especies altas) mantiene entrada de luz, reduce humedad excesiva y facilita labores. El objetivo es un equilibrio de sombra útil sin cerrar el lote.",
+      "keywords": [
+        "cafe",
+        "poda",
+        "sombrio",
+        "descope",
+        "luz",
+        "humedad"
+      ]
+    },
+    {
+      "id": 302,
+      "category": "general",
+      "questions": [
+        "Checklist rápido de manejo de café",
+        "Revisión semanal del cafetal",
+        "Qué revisar cada semana en café",
+        "Lista de control cafetal"
+      ],
+      "answer": "Checklist práctico semanal: 1) estado de broca y roya por lote, 2) frutos maduros/remanentes, 3) drenajes y coberturas, 4) sombra y aireación, 5) avance de secado y humedad del grano, 6) orden e higiene del beneficio.",
+      "keywords": [
+        "cafe",
+        "checklist",
+        "broca",
+        "roya",
+        "secado",
+        "beneficio"
+      ]
+    },
+    {
+      "id": 303,
+      "category": "general",
+      "questions": [
+        "Checklist pre-cosecha en café",
+        "Preparación de cosecha cafetera",
+        "Qué alistar antes de cosechar café",
+        "Plan de cosecha café finca"
+      ],
+      "answer": "Antes de cosecha: calibra mano de obra para recolectar maduro, define repase, limpia equipos de beneficio, asegura área de secado suficiente y organiza registro por lotes para trazabilidad.",
+      "keywords": [
+        "cafe",
+        "pre-cosecha",
+        "recoleccion",
+        "beneficio",
+        "secado",
+        "lotes"
+      ]
+    },
+    {
+      "id": 304,
+      "category": "general",
+      "questions": [
+        "Cómo mejorar coherencia de respuestas de la app sobre café",
+        "Qué preguntas hacer al agricultor sobre café",
+        "Datos mínimos para recomendar en cafetal",
+        "Entradas clave para diagnóstico café"
+      ],
+      "answer": "Para recomendaciones más precisas, pide datos mínimos del lote: variedad, edad del cafetal, altitud, clima reciente, % de broca o roya observado, estado de cosecha y método de secado. Con eso se evita consejo genérico.",
+      "keywords": [
+        "cafe",
+        "diagnostico",
+        "variedad",
+        "altitud",
+        "broca",
+        "roya"
+      ]
     }
   ]
 }
