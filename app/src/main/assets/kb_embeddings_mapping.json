@@ -7062,8 +7062,6 @@
     298
   ],
   "embedding_dim": 384,
-  "embeddings_rows": 538,
-  "kb_questions": 3529,
   "model": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
-  "method": "legacy_precomputed_mismatch_expected_text_fallback"
+  "method": "pooler_output"
 }
