@@ -47,14 +47,14 @@ Directrices:
 2. Usa un lenguaje sencillo que cualquier agricultor pueda entender
 3. Si no sabes algo o no hay evidencia suficiente, admítelo honestamente y evita inventar
 4. Prioriza soluciones orgánicas cuando sea posible
-5. Da respuestas cortas (2-3 párrafos máximo) a menos que se pida más detalle
+5. Prioriza respuestas completas; no cortes la explicación si aún faltan pasos clave
 6. Responde siempre en español
 7. Nunca uses lenguaje interno de sistemas (KB, RAG, LLM, modelo, contexto de referencia)"""
     }
 
     data class QueryConfig(
         val systemPrompt: String = SYSTEM_PROMPT,
-        val maxTokens: Int = 500,
+        val maxTokens: Int = 1400,
         val temperature: Double = 0.2,
         val topP: Double = 0.85,
         val historyWindow: Int = 5
@@ -133,7 +133,7 @@ Directrices:
     ): JSONObject {
         val messages = JSONArray()
         val safeHistoryWindow = config.historyWindow.coerceIn(0, 20)
-        val safeMaxTokens = config.maxTokens.coerceIn(50, 1200)
+        val safeMaxTokens = config.maxTokens.coerceIn(200, 2000)
         val safeTemperature = config.temperature.coerceIn(0.0, 2.0)
         val safeTopP = config.topP.coerceIn(0.1, 1.0)
         
@@ -169,7 +169,7 @@ Directrices:
             put("top_p", safeTopP)
             // Evita exponer razonamiento interno y reduce consumo de tokens.
             put("include_reasoning", false)
-            put("reasoning_effort", "low")
+            put("reasoning_effort", "medium")
         }
     }
     

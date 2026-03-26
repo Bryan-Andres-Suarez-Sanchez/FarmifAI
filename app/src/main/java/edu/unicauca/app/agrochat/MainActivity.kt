@@ -69,7 +69,6 @@ import edu.unicauca.app.agrochat.llm.GroqService
 import edu.unicauca.app.agrochat.llm.LlamaService
 import edu.unicauca.app.agrochat.mindspore.SemanticSearchHelper
 import edu.unicauca.app.agrochat.models.ModelDownloadService
-import edu.unicauca.app.agrochat.routing.KbFallbackComposer
 import edu.unicauca.app.agrochat.routing.ResponseRoutingPolicy
 import edu.unicauca.app.agrochat.ui.theme.AgroChatTheme
 import edu.unicauca.app.agrochat.vision.CameraHelper
@@ -175,7 +174,7 @@ enum class DownloadItemStatus {
     PENDING, DOWNLOADING, COMPLETED, FAILED
 }
 
-private const val ONLINE_ONLY_VISIT_MODE = true
+private const val ONLINE_ONLY_VISIT_MODE = false
 
 // Características de la app para mostrar durante la descarga
 object AppFeatures {
@@ -198,14 +197,17 @@ class MainActivity : ComponentActivity() {
     companion object {
         private const val LANGUAGE_PREFS = "farmifai_prefs"
         private const val LANGUAGE_KEY = "language"
-        private const val VISIT_FIXED_GROQ_API_KEY = "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"
+        private const val VISIT_FIXED_GROQ_API_KEY = ""
         private val STRICT_TERMINAL_PARITY_MODE = false
         private const val PARITY_SIMILARITY_THRESHOLD = 0.45f
         private const val PARITY_KB_FAST_PATH_THRESHOLD = 0.70f
         private const val PARITY_CONTEXT_RELEVANCE_THRESHOLD = 0.50f
         private const val PARITY_CONTEXT_LENGTH = 1800
         private const val PARITY_CHAT_HISTORY_SIZE = 10
-        private const val PARITY_MIN_MAX_TOKENS = 450
+        private const val PARITY_MIN_MAX_TOKENS = 1200
+        private const val ADAPTIVE_MIN_MAX_TOKENS = 120
+        private const val ADAPTIVE_DEFAULT_MAX_TOKENS = 256
+        private const val ADAPTIVE_MAX_MAX_TOKENS = 1200
         private const val PARITY_SYSTEM_PROMPT =
             "Eres FarmifAI, un asistente agrícola experto. Si se proporciona informacion de referencia, usala como fuente principal y no inventes datos fuera de esa informacion. Si falta un dato, dilo de forma clara y natural."
         private const val SAFE_MIN_SIMILARITY_THRESHOLD = 0.25f
@@ -218,10 +220,6 @@ class MainActivity : ComponentActivity() {
         private const val MIN_LEXICAL_COVERAGE_FOR_GROUNDED = 0.34f
         private const val MAX_UNKNOWN_RATIO_FOR_GROUNDED = 0.45f
         private const val KB_RETRIEVAL_MIN_SCORE = 0.15f
-        private const val KB_RELATED_MIN_SCORE = 0.22f
-        private const val KB_RELATED_MIN_SUPPORT = 0.18f
-        private const val KB_RELATED_MIN_COVERAGE = 0.16f
-        private const val KB_RELATED_MAX_UNKNOWN_RATIO = 0.92f
         
         fun setAppLocale(context: Context, languageCode: String): Context {
             val locale = Locale(languageCode)
@@ -258,8 +256,8 @@ class MainActivity : ComponentActivity() {
     private var hasAudioPermission by mutableStateOf(false)
     private var isOnlineMode by mutableStateOf(false)
     private var showSettingsDialog by mutableStateOf(false)
-    private var isLlamaEnabled by mutableStateOf(false)  // En modo visita se mantiene desactivado
-    private var llamaModelStatusText by mutableStateOf("Desactivado en modo visita online")
+    private var isLlamaEnabled by mutableStateOf(false)
+    private var llamaModelStatusText by mutableStateOf("LLM local no inicializado")
     private var llamaModelPathText by mutableStateOf("")
     private var isLlamaDownloading by mutableStateOf(false)  // Evitar descargas duplicadas
     private var llamaDownloadFailed by mutableStateOf(false)  // Para mostrar botón de reintentar
@@ -283,7 +281,7 @@ class MainActivity : ComponentActivity() {
     
     // ===== CONFIGURACIÓN AVANZADA =====
     // Valores por defecto orientados a respuestas completas y grounding por KB
-    private var advancedMaxTokens by mutableStateOf(450) // Slider max 800
+    private var advancedMaxTokens by mutableStateOf(ADAPTIVE_DEFAULT_MAX_TOKENS) // Slider max 1200
     private var advancedSimilarityThreshold by mutableStateOf(0.45f)
     private var advancedKbFastPathThreshold by mutableStateOf(0.70f)
     private var advancedContextRelevanceThreshold by mutableStateOf(0.50f)
@@ -389,6 +387,7 @@ class MainActivity : ComponentActivity() {
         } else {
             // Descargar (si es necesario) modelos MindSpore y luego inicializar
             lifecycleScope.launch {
+                initializeLlama()
                 ensureMindSporeModelsAvailable()
                 initializeDiagnostic()
                 initializeSemanticSearch()
@@ -458,7 +457,7 @@ class MainActivity : ComponentActivity() {
                         advancedChatHistoryEnabled = advancedChatHistoryEnabled,
                         advancedChatHistorySize = advancedChatHistorySize,
                         onSaveAdvancedSettings = { maxTok, simThresh, kbThresh, ctxRelThresh, sysPrompt, llmAll, ctxLen, detectGreet, chatHistEnabled, chatHistSize ->
-                            advancedMaxTokens = maxTok.coerceIn(250, 900)
+                            advancedMaxTokens = maxTok.coerceIn(ADAPTIVE_MIN_MAX_TOKENS, ADAPTIVE_MAX_MAX_TOKENS)
                             advancedSimilarityThreshold = simThresh.coerceIn(SAFE_MIN_SIMILARITY_THRESHOLD, SAFE_MAX_SIMILARITY_THRESHOLD)
                             advancedKbFastPathThreshold = kbThresh.coerceIn(SAFE_MIN_KB_FAST_PATH_THRESHOLD, SAFE_MAX_KB_FAST_PATH_THRESHOLD)
                             advancedContextRelevanceThreshold = ctxRelThresh.coerceIn(SAFE_MIN_CONTEXT_RELEVANCE_THRESHOLD, SAFE_MAX_CONTEXT_RELEVANCE_THRESHOLD)
@@ -482,11 +481,13 @@ class MainActivity : ComponentActivity() {
      */
     private fun checkFirstLaunch() {
         val service = ModelDownloadService.getInstance()
+        val localLlmService = LlamaService.getInstance()
         
         // Es primera instalación si faltan modelos MindSpore
         val needsMindSpore = !service.areAllModelsAvailable(applicationContext)
+        val needsLocalLlm = !localLlmService.isModelAvailable(applicationContext)
         
-        isFirstLaunch = needsMindSpore
+        isFirstLaunch = needsMindSpore || needsLocalLlm
         showWelcomeScreen = isFirstLaunch
         
         if (isFirstLaunch) {
@@ -503,6 +504,7 @@ class MainActivity : ComponentActivity() {
         downloadItems.clear()
         
         val service = ModelDownloadService.getInstance()
+        val localLlmService = LlamaService.getInstance()
         
         // Modelos MindSpore agrupados
         if (!service.areAllModelsAvailable(applicationContext)) {
@@ -512,6 +514,16 @@ class MainActivity : ComponentActivity() {
                 description = "Modelo de búsqueda semántica y diagnóstico",
                 sizeMB = totalMB
             ))
+        }
+
+        if (!localLlmService.isModelAvailable(applicationContext)) {
+            downloadItems.add(
+                DownloadItem(
+                    name = "🦙 LLM Offline (Qwen)",
+                    description = "Modelo generativo local para respuestas sin internet",
+                    sizeMB = localLlmService.getExpectedDownloadSizeMB()
+                )
+            )
         }
         
         // Modelo Vosk (speech recognition) - incluido en MindSpore downloads
@@ -543,6 +555,7 @@ class MainActivity : ComponentActivity() {
             
             val success = when {
                 item.name.contains("Motor de IA") -> downloadMindSporeModels(index)
+                item.name.contains("LLM Offline") -> downloadLlamaModel(index)
                 else -> true
             }
             
@@ -567,6 +580,7 @@ class MainActivity : ComponentActivity() {
             showWelcomeScreen = false
             
             // Ahora inicializar todo
+            initializeLlama()
             initializeDiagnostic()
             initializeSemanticSearch()
             if (hasAudioPermission) {
@@ -888,7 +902,8 @@ class MainActivity : ComponentActivity() {
         }
         
         // Configuración avanzada (valores por defecto al máximo de la UI)
-        advancedMaxTokens = prefs.getInt("advanced_max_tokens", 450).coerceIn(250, 900)
+        advancedMaxTokens = prefs.getInt("advanced_max_tokens", ADAPTIVE_DEFAULT_MAX_TOKENS)
+            .coerceIn(ADAPTIVE_MIN_MAX_TOKENS, ADAPTIVE_MAX_MAX_TOKENS)
         advancedSimilarityThreshold = prefs.getFloat("advanced_similarity_threshold", 0.45f).coerceIn(SAFE_MIN_SIMILARITY_THRESHOLD, SAFE_MAX_SIMILARITY_THRESHOLD)
         advancedKbFastPathThreshold = prefs.getFloat("advanced_kb_fast_path_threshold", 0.70f).coerceIn(SAFE_MIN_KB_FAST_PATH_THRESHOLD, SAFE_MAX_KB_FAST_PATH_THRESHOLD)
         advancedContextRelevanceThreshold = prefs.getFloat("advanced_context_relevance_threshold", 0.50f).coerceIn(SAFE_MIN_CONTEXT_RELEVANCE_THRESHOLD, SAFE_MAX_CONTEXT_RELEVANCE_THRESHOLD)
@@ -990,7 +1005,7 @@ class MainActivity : ComponentActivity() {
             loadLlamaModel()
         } else {
             // Modelo no existe, descargar automáticamente
-            Log.i("MainActivity", "Modelo Llama no disponible - iniciando descarga automática...")
+            Log.i("MainActivity", "Modelo local no disponible - iniciando descarga automática...")
             downloadAndLoadLlama()
         }
     }
@@ -1062,12 +1077,12 @@ class MainActivity : ComponentActivity() {
                 result?.onSuccess {
                     isLlamaLoaded = true
                     llamaModelStatusText = "Cargado: ${llamaService?.getModelFilename(applicationContext)} (${llamaService?.getModelSizeMB(applicationContext)}MB)"
-                    Log.i("MainActivity", "Llama model loaded")
+                    Log.i("MainActivity", "Local model loaded")
                     
                     updateOnlineStatus()
                     if (!isOnlineMode && isLlamaEnabled) {
                         withContext(Dispatchers.Main) {
-                            uiStatus = "Llama listo"
+                            uiStatus = "LLM local listo"
                             Toast.makeText(applicationContext, "LLM Local listo", Toast.LENGTH_SHORT).show()
                         }
                     }
@@ -1196,6 +1211,11 @@ class MainActivity : ComponentActivity() {
         val kbUnknownRatio: Float,
         val enforcedKbAbstention: Boolean
     )
+
+    private data class TokenBudgetPlan(
+        val maxTokens: Int,
+        val reason: String
+    )
     
     /**
      * Evalúa la calidad de una respuesta antes de entregarla al usuario.
@@ -1287,7 +1307,7 @@ class MainActivity : ComponentActivity() {
             }
         }
         if (kbSupported && isGenericFailureWithKb) {
-            issues.add("Fallback genérico con KB disponible")
+            issues.add("Salida genérica con KB disponible")
             score -= 0.4f
         }
         if (kbSupported && kbCoverage < MIN_LEXICAL_COVERAGE_FOR_GROUNDED) {
@@ -1475,10 +1495,7 @@ class MainActivity : ComponentActivity() {
                 Regex("^\\s*con base en la\\s+(kb|informacion disponible)\\s+sobre\\s+", RegexOption.IGNORE_CASE),
                 ""
             )
-            .replace(
-                Regex("no hay evidencia suficiente en la\\s+(kb|informacion disponible)", RegexOption.IGNORE_CASE),
-                "todavia faltan datos concretos"
-            )
+
 
         normalized = normalized
             .replace(Regex("[ \\t]{2,}"), " ")
@@ -1488,6 +1505,64 @@ class MainActivity : ComponentActivity() {
             .trim()
 
         return normalized
+    }
+
+    private fun computeTokenBudgetPlan(
+        userQuery: String,
+        hasKbContext: Boolean,
+        kbSupportScore: Float,
+        kbCoverage: Float,
+        kbUnknownRatio: Float,
+        contextLength: Int,
+        forcedContext: Boolean,
+        continuationLike: Boolean = false
+    ): TokenBudgetPlan {
+        if (STRICT_TERMINAL_PARITY_MODE) {
+            val parityTokens = maxOf(advancedMaxTokens, PARITY_MIN_MAX_TOKENS)
+            return TokenBudgetPlan(parityTokens, "parity_mode")
+        }
+
+        val baseConfigured = advancedMaxTokens.coerceIn(ADAPTIVE_MIN_MAX_TOKENS, ADAPTIVE_MAX_MAX_TOKENS)
+        val normalized = normalizeForTokenBudget(userQuery)
+        val longFormHints = listOf(
+            "paso a paso", "detall", "detalle", "profund", "plan completo", "cronograma",
+            "calendario", "manual", "compar", "explica", "amplia", "continua", "continuar",
+            "y que mas", "guia completa", "tabla", "todo"
+        )
+        val asksLongForm = normalized.length > 140 || longFormHints.any { normalized.contains(it) }
+        val weakGrounding = hasKbContext && (
+            kbSupportScore < 0.45f ||
+                kbCoverage < 0.30f ||
+                kbUnknownRatio > 0.45f
+            )
+        val largeContext = contextLength >= 1500
+
+        val needsExtended = continuationLike || forcedContext || asksLongForm || (weakGrounding && largeContext)
+        if (needsExtended) {
+            return TokenBudgetPlan(ADAPTIVE_MAX_MAX_TOKENS, "extended_needed")
+        }
+
+        val fastTarget = when {
+            hasKbContext && kbSupportScore >= 0.60f && kbCoverage >= 0.45f -> 220
+            hasKbContext -> 280
+            normalized.length <= 45 -> 220
+            normalized.length <= 90 -> 260
+            else -> 320
+        }
+        val chosen = minOf(baseConfigured, fastTarget).coerceIn(ADAPTIVE_MIN_MAX_TOKENS, ADAPTIVE_MAX_MAX_TOKENS)
+        return TokenBudgetPlan(chosen, "fast_path")
+    }
+
+    private fun normalizeForTokenBudget(text: String): String {
+        return text.lowercase()
+            .replace("á", "a")
+            .replace("é", "e")
+            .replace("í", "i")
+            .replace("ó", "o")
+            .replace("ú", "u")
+            .replace("ñ", "n")
+            .replace(Regex("\\s+"), " ")
+            .trim()
     }
 
     private fun sendMessage(userMessage: String) {
@@ -1513,6 +1588,7 @@ class MainActivity : ComponentActivity() {
 
         lifecycleScope.launch {
             isProcessing = true
+            var streamingMessageId: String? = null
             
             // Actualizar estado de conexión ANTES de procesar
             updateOnlineStatus()
@@ -1527,10 +1603,38 @@ class MainActivity : ComponentActivity() {
                 val responseMeta = findResponseWithMeta(
                     userQuery = effectiveQuery,
                     skipKbDirect = isContinuationIntent,
-                    forcedContext = forcedContinuationContext
+                    forcedContext = forcedContinuationContext,
+                    onLocalLlmChunk = stream@{ partial ->
+                        val userFacingPartial = humanizeTechnicalTerms(sanitizeAssistantResponse(partial)).trim()
+                        if (userFacingPartial.length < 8) return@stream
+
+                        withContext(Dispatchers.Main) {
+                            val existingId = streamingMessageId
+                            if (existingId == null) {
+                                val streamingMessage = ChatMessage(
+                                    text = userFacingPartial,
+                                    isUser = false,
+                                    feedbackEligible = false
+                                )
+                                streamingMessageId = streamingMessage.id
+                                chatMessages.add(streamingMessage)
+                            } else {
+                                val idx = chatMessages.indexOfFirst { it.id == existingId }
+                                if (idx >= 0) {
+                                    chatMessages[idx] = chatMessages[idx].copy(text = userFacingPartial)
+                                }
+                            }
+                            lastResponse = userFacingPartial
+                        }
+                    }
                 )
                 val sanitizedResponse = sanitizeAssistantResponse(responseMeta.response)
                 val userFacingResponse = humanizeTechnicalTerms(sanitizedResponse)
+                val qualityHistory = if (streamingMessageId != null) {
+                    chatMessages.filterNot { it.id == streamingMessageId }
+                } else {
+                    chatMessages.toList()
+                }
                 
                 // ═══════════════════════════════════════════════════════════════
                 // SISTEMA DE AUTOCONSCIENCIA - Evaluar calidad antes de entregar
@@ -1538,7 +1642,7 @@ class MainActivity : ComponentActivity() {
                 val qualityReport = evaluateResponseQuality(
                     response = userFacingResponse,
                     userQuery = if (isContinuationIntent) effectiveQuery else userMessage,
-                    chatHistory = chatMessages.toList(),
+                    chatHistory = qualityHistory,
                     kbSupported = responseMeta.kbSupported,
                     kbCoverage = responseMeta.kbCoverage,
                     kbSupportScore = responseMeta.kbSupportScore,
@@ -1552,24 +1656,33 @@ class MainActivity : ComponentActivity() {
                 val canContinue = !ONLINE_ONLY_VISIT_MODE && responseMeta.usedLlm && isLlamaEnabled && isLlamaLoaded && responseMeta.kbSupported &&
                                   (!qualityReport.isComplete || qualityReport.qualityScore < 0.7f)
 
-                val responseWithFollowUp = appendMissingContextFollowUpIfNeeded(
-                    response = improvedResponse,
-                    userQuery = if (isContinuationIntent) effectiveQuery else userMessage,
-                    responseMeta = responseMeta
-                )
+                val responseWithFollowUp = improvedResponse
                 val responseGuidanceType = if (responseMeta.kbSupported) {
                     ResponseGuidanceType.CASE_BASED
                 } else {
                     ResponseGuidanceType.GENERAL_GUIDANCE
                 }
-                val assistantMessage = ChatMessage(
-                    text = responseWithFollowUp,
-                    isUser = false,
-                    canContinue = canContinue,
-                    feedbackEligible = true,
-                    responseGuidanceType = responseGuidanceType
-                )
-                chatMessages.add(assistantMessage)
+                val existingStreamIndex = streamingMessageId?.let { id ->
+                    chatMessages.indexOfFirst { it.id == id }
+                } ?: -1
+                val assistantMessage = if (existingStreamIndex >= 0) {
+                    val updated = chatMessages[existingStreamIndex].copy(
+                        text = responseWithFollowUp,
+                        canContinue = canContinue,
+                        feedbackEligible = true,
+                        responseGuidanceType = responseGuidanceType
+                    )
+                    chatMessages[existingStreamIndex] = updated
+                    updated
+                } else {
+                    ChatMessage(
+                        text = responseWithFollowUp,
+                        isUser = false,
+                        canContinue = canContinue,
+                        feedbackEligible = true,
+                        responseGuidanceType = responseGuidanceType
+                    ).also { chatMessages.add(it) }
+                }
                 lastResponse = responseWithFollowUp
 
                 registerAssistantResponseForFeedback(
@@ -1591,6 +1704,10 @@ class MainActivity : ComponentActivity() {
                 voiceHelper?.speak(responseWithFollowUp)
             } catch (e: Exception) {
                 Log.e("MainActivity", "Error en sendMessage", e)
+                streamingMessageId?.let { streamId ->
+                    val streamIdx = chatMessages.indexOfFirst { it.id == streamId }
+                    if (streamIdx >= 0) chatMessages.removeAt(streamIdx)
+                }
                 val err = "Hubo un error. Intenta de nuevo."
                 chatMessages.add(ChatMessage(text = err, isUser = false))
                 lastResponse = err
@@ -1692,68 +1809,11 @@ class MainActivity : ComponentActivity() {
         userQuery: String,
         responseMeta: ResponseMeta
     ): String {
-        if (!isLikelyAgriculturalQuery(userQuery)) return response
-        if (responseMeta.kbSupported) return response
-
-        val lacksContextEvidence = responseMeta.enforcedKbAbstention ||
-            responseMeta.kbSupportScore < 0.45f ||
-            responseMeta.kbCoverage < 0.30f
-        if (!lacksContextEvidence) return response
-
-        val followUpQuestion = buildContextFollowUpQuestion(userQuery) ?: return response
-        if (response.contains(followUpQuestion, ignoreCase = true)) return response
-        return "${response.trim()}\n\n$followUpQuestion"
+        return response
     }
 
     private fun buildContextFollowUpQuestion(userQuery: String): String? {
-        val normalized = userQuery.lowercase()
-            .replace("á", "a")
-            .replace("é", "e")
-            .replace("í", "i")
-            .replace("ó", "o")
-            .replace("ú", "u")
-            .replace("ñ", "n")
-
-        val cropWords = setOf(
-            "cultivo", "tomate", "maiz", "papa", "frijol", "cafe", "cebolla", "yuca",
-            "platano", "banano", "arroz", "aguacate", "lechuga", "zanahoria"
-        )
-        val stageWords = setOf(
-            "siembra", "germinacion", "trasplante", "crecimiento", "floracion",
-            "fructificacion", "cosecha", "etapa"
-        )
-        val symptomWords = setOf(
-            "sintoma", "mancha", "amarill", "marchitez", "seca", "pudricion",
-            "plaga", "hongo", "insecto", "gusano", "roya", "tizon"
-        )
-
-        val hasCrop = cropWords.any { normalized.contains(it) }
-        val hasStage = stageWords.any { normalized.contains(it) }
-        val hasSymptom = symptomWords.any { normalized.contains(it) }
-
-        val missing = mutableListOf<String>()
-        if (!hasCrop) missing.add("cultivo")
-        if (!hasStage) missing.add("etapa")
-        if (!hasSymptom) missing.add("sintoma")
-
-        val picked = missing.take(2)
-        if (picked.isEmpty()) return null
-
-        return when {
-            picked.contains("cultivo") && picked.contains("etapa") ->
-                "Para afinarla mejor: ¿que cultivo tienes y en que etapa va (siembra, crecimiento, floracion o cosecha)?"
-            picked.contains("cultivo") && picked.contains("sintoma") ->
-                "Para afinarla mejor: ¿que cultivo tienes y que sintoma principal observas?"
-            picked.contains("etapa") && picked.contains("sintoma") ->
-                "Para afinarla mejor: ¿en que etapa esta el cultivo y que sintoma principal ves?"
-            picked.contains("cultivo") ->
-                "Para afinarla mejor: ¿que cultivo estas trabajando?"
-            picked.contains("etapa") ->
-                "Para afinarla mejor: ¿en que etapa va el cultivo?"
-            picked.contains("sintoma") ->
-                "Para afinarla mejor: ¿que sintoma principal observas?"
-            else -> null
-        }
+        return null
     }
 
     private fun isContinuationMessage(text: String): Boolean {
@@ -1778,43 +1838,7 @@ class MainActivity : ComponentActivity() {
      * Manejo directo de small-talk para mantener una experiencia humana y fluida.
      */
     private fun buildSmallTalkResponse(userQuery: String): String? {
-        if (isLikelyAgriculturalQuery(userQuery)) return null
-
-        val normalized = userQuery.lowercase().trim()
-            .replace("á", "a")
-            .replace("é", "e")
-            .replace("í", "i")
-            .replace("ó", "o")
-            .replace("ú", "u")
-            .replace("¿", "")
-            .replace("?", "")
-            .replace("!", "")
-            .replace(".", "")
-            .replace(Regex("\\s+"), " ")
-
-        if (normalized.length > 60) return null
-
-        return when {
-            normalized in setOf("hola", "holi", "buenas", "buen dia", "buenos dias", "buenas tardes", "buenas noches", "hey", "hey hola") ->
-                "Hola. Que gusto conversar contigo. ¿En qué cultivo estás trabajando hoy?"
-            normalized.startsWith("gracias") ->
-                "Con gusto. Si quieres, seguimos con tu caso y te ayudo paso a paso."
-            normalized in setOf("ok", "vale", "listo", "perfecto") ->
-                "Perfecto. Cuando quieras, cuéntame el cultivo y lo que estás observando."
-            normalized.startsWith("como estas") || normalized.startsWith("como te va") ->
-                "Muy bien, gracias. Estoy listo para ayudarte con cualquier consulta agrícola."
-            normalized.startsWith("quien eres") || normalized.startsWith("que eres") || normalized.startsWith("como te llamas") ->
-                "Soy FarmifAI, tu asistente agrícola. Te puedo ayudar con cultivos, plagas, riego, fertilización y diagnóstico."
-            normalized.startsWith("me escuchas") || normalized.startsWith("estas ahi") || normalized.startsWith("escuchame") ->
-                "Si, te escucho. Cuéntame qué está pasando en tu cultivo y lo revisamos juntos."
-            normalized in setOf("ayudame", "necesito ayuda", "puedes ayudarme") ->
-                "Claro que sí. Cuéntame cultivo, etapa y síntomas, y te doy una recomendación concreta."
-            normalized in setOf("chao", "adios", "hasta luego", "nos vemos") ->
-                "Listo, quedo atento. Cuando quieras retomamos y revisamos tu cultivo."
-            normalized.split(" ").size <= 3 ->
-                "Te leo. Cuéntame qué cultivo estás revisando y qué síntoma te preocupa para ayudarte mejor."
-            else -> null
-        }
+        return null
     }
 
     private fun buildForcedContinuationContext(): String? {
@@ -1855,13 +1879,23 @@ class MainActivity : ComponentActivity() {
                 // Obtener la última respuesta del bot
                 val lastBotResponse = chatMessages.lastOrNull { !it.isUser }?.text ?: ""
                 
-                // Crear prompt para continuar - simple y corto
+                // Crear prompt para continuar con mas detalle
                 val continuePrompt = "Más sobre: $lastUserQuery"
+                val continuationMaxTokens = computeTokenBudgetPlan(
+                    userQuery = continuePrompt,
+                    hasKbContext = !lastContext.isNullOrBlank(),
+                    kbSupportScore = 0.55f,
+                    kbCoverage = 0.45f,
+                    kbUnknownRatio = 0.20f,
+                    contextLength = lastContext?.length ?: 0,
+                    forcedContext = !lastContext.isNullOrBlank(),
+                    continuationLike = true
+                ).maxTokens
                 
                 val result = llamaService?.generateAgriResponse(
                     userQuery = continuePrompt,
                     contextFromKB = lastContext,
-                    maxTokens = maxOf(advancedMaxTokens, 300),
+                    maxTokens = continuationMaxTokens,
                     maxContextLength = advancedContextLength,
                     systemPrompt = advancedSystemPrompt
                 )
@@ -1894,7 +1928,8 @@ class MainActivity : ComponentActivity() {
     private suspend fun findResponseWithMeta(
         userQuery: String,
         skipKbDirect: Boolean = false,
-        forcedContext: String? = null
+        forcedContext: String? = null,
+        onLocalLlmChunk: (suspend (String) -> Unit)? = null
     ): ResponseMeta = withContext(Dispatchers.IO) {
         Log.d("MainActivity", "findResponse: isOnlineMode=$isOnlineMode, isLlamaEnabled=$isLlamaEnabled, isLlamaLoaded=$isLlamaLoaded")
         val rawSimilarityThreshold = if (STRICT_TERMINAL_PARITY_MODE) PARITY_SIMILARITY_THRESHOLD else advancedSimilarityThreshold
@@ -1913,22 +1948,6 @@ class MainActivity : ComponentActivity() {
         val retrievalMinScore = KB_RETRIEVAL_MIN_SCORE
         val llmAvailable = (!STRICT_TERMINAL_PARITY_MODE && isOnlineMode && groqService?.isAvailable() == true) ||
             (!ONLINE_ONLY_VISIT_MODE && isLlamaEnabled && isLlamaLoaded && llamaService != null)
-
-        if (!skipKbDirect && forcedContext == null) {
-            val smallTalk = buildSmallTalkResponse(userQuery)
-            if (!smallTalk.isNullOrBlank()) {
-                AppLogger.log("MainActivity", "Decision: SMALL_TALK")
-                return@withContext ResponseMeta(
-                    response = smallTalk,
-                    usedLlm = false,
-                    kbSupported = false,
-                    kbSupportScore = 0f,
-                    kbCoverage = 0f,
-                    kbUnknownRatio = 1f,
-                    enforcedKbAbstention = false
-                )
-            }
-        }
 
         if (rawSimilarityThreshold != effectiveSimilarityThreshold ||
             rawContextRelevanceThreshold != effectiveContextRelevanceThreshold ||
@@ -1954,6 +1973,7 @@ class MainActivity : ComponentActivity() {
             topK = 3,
             minScore = retrievalMinScore
         )
+        val kbDirectResponse = buildKbDirectResponseFromRag(ragContext)
 
         val combinedKBContext = ragContext?.combinedContext
         val bestMatch = ragContext?.contexts?.firstOrNull()
@@ -1984,23 +2004,25 @@ class MainActivity : ComponentActivity() {
             kbCoverage >= MIN_LEXICAL_COVERAGE_FOR_GROUNDED &&
             kbUnknownRatio <= MAX_UNKNOWN_RATIO_FOR_GROUNDED &&
             bestMatch.similarityScore >= effectiveSimilarityThreshold
+        val semanticRelatedMinScore = maxOf(KB_RETRIEVAL_MIN_SCORE + 0.08f, 0.23f)
         val hasRelatedKbSignal = bestMatch != null &&
-            kbUnknownRatio <= KB_RELATED_MAX_UNKNOWN_RATIO &&
-            (
-                hasGroundedKbSupport ||
-                    (
-                        likelyAgriculturalQuery && (
-                            bestMatch.similarityScore >= KB_RELATED_MIN_SCORE ||
-                                kbSupportScore >= KB_RELATED_MIN_SUPPORT ||
-                                kbCoverage >= KB_RELATED_MIN_COVERAGE ||
-                                bestMatch.similarityScore >= effectiveKbFastPathThreshold.coerceAtMost(0.60f)
-                            )
-                        )
-                )
-        val hasKbContext = hasGroundedKbSupport || hasRelatedKbSignal
-        val allowGeneralLlmCandidate = !hasKbContext && llmAvailable && (
-            isSimpleGreeting || !likelyAgriculturalQuery || effectiveUseLlmForAll
+            bestMatch.similarityScore >= semanticRelatedMinScore &&
+            kbSupportScore >= 0.30f
+        val hasKbContext = hasRelatedKbSignal
+        val allowGeneralLlmCandidate = !hasKbContext && llmAvailable
+
+        fun buildAbstentionOrTemporaryResponse(reason: String): String {
+            val response = if (hasKbContext) {
+                buildKbInsufficientEvidenceResponse(userQuery, groundingAssessment)
+            } else {
+                buildLlmTemporaryFailureResponse()
+            }
+            AppLogger.log(
+                "MainActivity",
+                "LLM failure -> abstain_or_temporary ($reason): kb=$hasKbContext len=${response.length}"
             )
+            return response
+        }
 
         if (forcedContext == null) {
             lastContext = if (!combinedKBContext.isNullOrBlank()) combinedKBContext else bestMatch?.answer
@@ -2028,7 +2050,6 @@ class MainActivity : ComponentActivity() {
                 effectiveKbFastPathThreshold = effectiveKbFastPathThreshold
             )
         )
-        val allowGeneralLlmMode = routeResult.decision == ResponseRoutingPolicy.Decision.LLM_GENERAL
 
         AppLogger.log(
             "MainActivity",
@@ -2036,23 +2057,26 @@ class MainActivity : ComponentActivity() {
         )
 
         if (routeResult.decision == ResponseRoutingPolicy.Decision.KB_DIRECT && forcedContext == null && bestMatch != null) {
-            AppLogger.log("MainActivity", "Decision: KB_DIRECT high confidence id=${bestMatch.entryId}")
-            return@withContext ResponseMeta(
-                response = bestMatch.answer,
-                usedLlm = false,
-                kbSupported = true,
-                kbSupportScore = kbSupportScore,
-                kbCoverage = kbCoverage,
-                kbUnknownRatio = kbUnknownRatio,
-                enforcedKbAbstention = false
-            )
+            if (!llmAvailable) {
+                AppLogger.log("MainActivity", "Decision: KB_DIRECT (LLM no disponible) id=${bestMatch.entryId}")
+                return@withContext ResponseMeta(
+                    response = bestMatch.answer,
+                    usedLlm = false,
+                    kbSupported = true,
+                    kbSupportScore = kbSupportScore,
+                    kbCoverage = kbCoverage,
+                    kbUnknownRatio = kbUnknownRatio,
+                    enforcedKbAbstention = false
+                )
+            }
+            AppLogger.log("MainActivity", "Decision: KB_DIRECT -> LLM_WITH_KB para redaccion razonada")
         }
 
-        if (routeResult.decision == ResponseRoutingPolicy.Decision.ABSTAIN && !isSimpleGreeting && forcedContext == null) {
+        if (routeResult.decision == ResponseRoutingPolicy.Decision.ABSTAIN && !isSimpleGreeting && forcedContext == null && !llmAvailable) {
             val abstainResponse = buildKbInsufficientEvidenceResponse(userQuery, groundingAssessment)
             AppLogger.log(
                 "MainActivity",
-                "Decision: KB_ABSTAIN support=${String.format("%.2f", kbSupportScore)} coverage=${String.format("%.2f", kbCoverage)} unknown=${String.format("%.2f", kbUnknownRatio)} related=$hasRelatedKbSignal agri=$likelyAgriculturalQuery llmAvailable=$llmAvailable"
+                "Decision: KB_ABSTAIN support=${String.format("%.2f", kbSupportScore)} coverage=${String.format("%.2f", kbCoverage)} unknown=${String.format("%.2f", kbUnknownRatio)} related=$hasRelatedKbSignal llmAvailable=$llmAvailable"
             )
             return@withContext ResponseMeta(
                 response = abstainResponse,
@@ -2064,6 +2088,8 @@ class MainActivity : ComponentActivity() {
                 enforcedKbAbstention = true
             )
         }
+        val allowGeneralLlmMode = routeResult.decision == ResponseRoutingPolicy.Decision.LLM_GENERAL ||
+            (routeResult.decision == ResponseRoutingPolicy.Decision.ABSTAIN && llmAvailable)
         if (allowGeneralLlmMode) {
             AppLogger.log(
                 "MainActivity",
@@ -2115,6 +2141,22 @@ class MainActivity : ComponentActivity() {
             "Context budget: max=$effectiveContextLength kbLen=${kbContextForPrompt?.length ?: 0} histLen=${chatHistoryContext?.length ?: 0} forcedLen=${forcedContextForPrompt?.length ?: 0} finalLen=${contextToPass?.length ?: 0}"
         )
 
+        val tokenBudgetPlan = computeTokenBudgetPlan(
+            userQuery = userQuery,
+            hasKbContext = hasKbContext,
+            kbSupportScore = kbSupportScore,
+            kbCoverage = kbCoverage,
+            kbUnknownRatio = kbUnknownRatio,
+            contextLength = contextToPass?.length ?: 0,
+            forcedContext = forcedContext != null,
+            continuationLike = skipKbDirect
+        )
+        val effectiveMaxTokens = tokenBudgetPlan.maxTokens
+        AppLogger.log(
+            "MainActivity",
+            "Token budget: max=$effectiveMaxTokens reason=${tokenBudgetPlan.reason} base=${advancedMaxTokens.coerceIn(ADAPTIVE_MIN_MAX_TOKENS, ADAPTIVE_MAX_MAX_TOKENS)}"
+        )
+
         withContext(Dispatchers.Main) {
             uiStatus = "Generando respuesta..."
         }
@@ -2136,9 +2178,12 @@ class MainActivity : ComponentActivity() {
 
             val groqUserPrompt = if (hasKbContext && !kbContextForPrompt.isNullOrBlank()) {
                 """Responde como un asesor agricola conversando en campo.
-Empieza con una recomendacion directa y breve.
+Empieza con una recomendacion directa y completa.
 Despues agrega pasos practicos y accionables.
 Si faltan datos, pide maximo dos datos concretos en una sola pregunta al final.
+No cortes la respuesta antes de terminar todos los pasos clave.
+Reformula siempre con tus propias palabras: no copies frases textuales de DATOS DISPONIBLES.
+Explica brevemente el por que de cada recomendacion.
 No menciones terminos internos como KB, base de conocimiento, contexto, referencia, RAG, LLM, modelo o sistema.
 No inventes datos externos ni afirmaciones no verificables.
 
@@ -2163,17 +2208,16 @@ $userQuery
             }
 
             val groqSystemPrompt = when {
-                hasKbContext -> "$effectiveSystemPrompt\nEstilo obligatorio: tono conversacional, cercano y directo. Nunca menciones KB, base de conocimiento, contexto de referencia, RAG, LLM, modelo o sistema."
+                hasKbContext -> "$effectiveSystemPrompt\nEstilo obligatorio: tono conversacional, cercano y directo. Reformula con tus palabras y evita copiar frases literales del contexto. Nunca menciones KB, base de conocimiento, contexto de referencia, RAG, LLM, modelo o sistema."
                 allowGeneralLlmMode -> "$effectiveSystemPrompt\nEstilo obligatorio: tono humano y practico. Si la orientacion es general, dilo en una frase breve y luego enfocate en acciones utiles. Nunca menciones terminos internos."
                 else -> effectiveSystemPrompt
             }
-            val groqMaxTokens = maxOf(advancedMaxTokens, 200)
             val result = groqService!!.query(
                 userMessage = groqUserPrompt,
                 conversationHistory = history,
                 config = GroqService.QueryConfig(
                     systemPrompt = groqSystemPrompt,
-                    maxTokens = groqMaxTokens,
+                    maxTokens = effectiveMaxTokens,
                     historyWindow = historyWindow
                 )
             )
@@ -2181,12 +2225,32 @@ $userQuery
                 onSuccess = { response ->
                         val cleanResponse = response.trim()
                         if (cleanResponse.length > 10) {
-                            if (hasKbContext && !kbContextForPrompt.isNullOrBlank() && !isResponseAnchoredToContext(cleanResponse, userQuery, kbContextForPrompt)) {
-                                AppLogger.log("MainActivity", "Groq ungrounded guard -> trying local LLM fallback")
+                            val completedResponse = completeGroqResponseIfNeeded(
+                                initialResponse = cleanResponse,
+                                userQuery = userQuery,
+                                kbContextForPrompt = kbContextForPrompt,
+                                systemPrompt = groqSystemPrompt,
+                                maxTokens = effectiveMaxTokens
+                            )
+
+                            if (hasKbContext && !kbContextForPrompt.isNullOrBlank() && !isResponseAnchoredToContext(completedResponse, userQuery, kbContextForPrompt)) {
+                                AppLogger.log("MainActivity", "Groq ungrounded guard -> abstain")
+                                if (!kbDirectResponse.isNullOrBlank()) {
+                                    AppLogger.log("MainActivity", "Groq guard fallback -> KB_DIRECT len=${kbDirectResponse.length}")
+                                    return@withContext ResponseMeta(
+                                        response = kbDirectResponse,
+                                        usedLlm = false,
+                                        kbSupported = true,
+                                        kbSupportScore = kbSupportScore,
+                                        kbCoverage = kbCoverage,
+                                        kbUnknownRatio = kbUnknownRatio,
+                                        enforcedKbAbstention = false
+                                    )
+                                }
                             } else {
-                                AppLogger.log("MainActivity", "Groq grounded response: ${cleanResponse.length} chars")
+                                AppLogger.log("MainActivity", "Groq grounded response: ${completedResponse.length} chars")
                                 return@withContext ResponseMeta(
-                                    response = cleanResponse,
+                                    response = completedResponse,
                                     usedLlm = true,
                                     kbSupported = hasKbContext,
                                     kbSupportScore = kbSupportScore,
@@ -2195,9 +2259,9 @@ $userQuery
                                     enforcedKbAbstention = false
                                 )
                             }
-                            AppLogger.log("MainActivity", "Groq response rejected by guard, fallback")
+                            AppLogger.log("MainActivity", "Groq response rejected by guard, abstain")
                         } else {
-                            AppLogger.log("MainActivity", "Groq response too short (${cleanResponse.length}), fallback")
+                            AppLogger.log("MainActivity", "Groq response too short (${cleanResponse.length}), abstain")
                         }
                 },
                 onFailure = { error ->
@@ -2208,23 +2272,37 @@ $userQuery
 
         if (!ONLINE_ONLY_VISIT_MODE && isLlamaEnabled && isLlamaLoaded && llamaService != null) {
             val finalSystemPrompt = if (hasKbContext) {
-                "$effectiveSystemPrompt\nEstilo obligatorio: tono conversacional y cercano. Nunca menciones KB, base de conocimiento, contexto, referencia, RAG, LLM, modelo o sistema. Si faltan datos, pide maximo dos datos concretos en una sola pregunta."
+                "$effectiveSystemPrompt\nEstilo obligatorio: tono conversacional y cercano. Reformula siempre con tus propias palabras y evita copiar frases literales del contexto. Nunca menciones KB, base de conocimiento, contexto, referencia, RAG, LLM, modelo o sistema. Si faltan datos, pide maximo dos datos concretos en una sola pregunta."
             } else if (allowGeneralLlmMode) {
                 "$effectiveSystemPrompt\nEstilo obligatorio: tono humano y practico. Si la orientacion es general, aclaralo en una frase corta y luego da pasos accionables. No inventes cifras ni hechos no verificables."
             } else {
                 effectiveSystemPrompt
             }
-            val baseMaxTokens = if (STRICT_TERMINAL_PARITY_MODE) maxOf(advancedMaxTokens, PARITY_MIN_MAX_TOKENS) else maxOf(advancedMaxTokens, 250)
-            val effectiveMaxTokens = if (hasKbContext) maxOf(baseMaxTokens, PARITY_MIN_MAX_TOKENS) else baseMaxTokens
 
             try {
-                val result = llamaService!!.generateAgriResponse(
-                    userQuery = userQuery,
-                    contextFromKB = contextToPass,
-                    maxTokens = effectiveMaxTokens,
-                    maxContextLength = effectiveContextLength,
-                    systemPrompt = finalSystemPrompt
-                )
+                val result = if (onLocalLlmChunk != null) {
+                    llamaService!!.generateAgriResponseStreaming(
+                        userQuery = userQuery,
+                        contextFromKB = contextToPass,
+                        maxTokens = effectiveMaxTokens,
+                        maxContextLength = effectiveContextLength,
+                        systemPrompt = finalSystemPrompt,
+                        onPartialResponse = { partial ->
+                            val cleanedPartial = sanitizeAssistantResponse(partial).trim()
+                            if (cleanedPartial.length >= 5) {
+                                onLocalLlmChunk(cleanedPartial)
+                            }
+                        }
+                    )
+                } else {
+                    llamaService!!.generateAgriResponse(
+                        userQuery = userQuery,
+                        contextFromKB = contextToPass,
+                        maxTokens = effectiveMaxTokens,
+                        maxContextLength = effectiveContextLength,
+                        systemPrompt = finalSystemPrompt
+                    )
+                }
 
                 result.fold(
                     onSuccess = { response ->
@@ -2237,19 +2315,25 @@ $userQuery
                             val ungrounded = kbGuardActive && !kbContextForPrompt.isNullOrBlank() &&
                                 !isResponseAnchoredToContext(cleanResponse, userQuery, kbContextForPrompt)
 
-                            if (malformed || noInfoStyle || incomplete || ungrounded) {
+                            if (malformed || ungrounded) {
                                 AppLogger.log(
                                     "MainActivity",
                                     "LLM guard reject -> kb=$kbGuardActive malformed=$malformed noInfo=$noInfoStyle incomplete=$incomplete ungrounded=$ungrounded len=${cleanResponse.length} preview='${cleanResponse.take(120)}'"
                                 )
+                                if (kbGuardActive && !kbDirectResponse.isNullOrBlank()) {
+                                    AppLogger.log("MainActivity", "LLM guard fallback -> KB_DIRECT len=${kbDirectResponse.length}")
+                                    return@withContext ResponseMeta(
+                                        response = kbDirectResponse,
+                                        usedLlm = false,
+                                        kbSupported = true,
+                                        kbSupportScore = kbSupportScore,
+                                        kbCoverage = kbCoverage,
+                                        kbUnknownRatio = kbUnknownRatio,
+                                        enforcedKbAbstention = false
+                                    )
+                                }
                                 return@withContext ResponseMeta(
-                                    response = buildKbGroundedFallbackResponse(
-                                        userQuery = userQuery,
-                                        bestMatch = bestMatch,
-                                        combinedKBContext = combinedKBContext,
-                                        grounding = groundingAssessment,
-                                        failureReason = "llm_guard_reject"
-                                    ),
+                                    response = buildAbstentionOrTemporaryResponse("llm_guard_reject"),
                                     usedLlm = false,
                                     kbSupported = kbGuardActive,
                                     kbSupportScore = kbSupportScore,
@@ -2257,6 +2341,24 @@ $userQuery
                                     kbUnknownRatio = kbUnknownRatio,
                                     enforcedKbAbstention = false
                                 )
+                            }
+                            if (noInfoStyle || incomplete) {
+                                AppLogger.log(
+                                    "MainActivity",
+                                    "LLM guard warn -> kb=$kbGuardActive noInfo=$noInfoStyle incomplete=$incomplete len=${cleanResponse.length}"
+                                )
+                                if (kbGuardActive && !kbDirectResponse.isNullOrBlank()) {
+                                    AppLogger.log("MainActivity", "LLM guard warn fallback -> KB_DIRECT len=${kbDirectResponse.length}")
+                                    return@withContext ResponseMeta(
+                                        response = kbDirectResponse,
+                                        usedLlm = false,
+                                        kbSupported = true,
+                                        kbSupportScore = kbSupportScore,
+                                        kbCoverage = kbCoverage,
+                                        kbUnknownRatio = kbUnknownRatio,
+                                        enforcedKbAbstention = false
+                                    )
+                                }
                             }
                             AppLogger.log("MainActivity", "LLM response: ${cleanResponse.length} chars mode=$mode")
                             return@withContext ResponseMeta(
@@ -2269,11 +2371,11 @@ $userQuery
                                 enforcedKbAbstention = false
                             )
                         } else {
-                            AppLogger.log(
-                                "MainActivity",
-                                "LLM response too short (${cleanResponse.length}) mode=$mode kb=$hasKbContext ctxLen=${contextToPass?.length ?: 0}, fallback"
-                            )
-                        }
+                                AppLogger.log(
+                                    "MainActivity",
+                                    "LLM response too short (${cleanResponse.length}) mode=$mode kb=$hasKbContext ctxLen=${contextToPass?.length ?: 0}, abstain"
+                                )
+                            }
                     },
                     onFailure = { error ->
                         AppLogger.log("MainActivity", "LLM error: ${error.message}")
@@ -2291,17 +2393,7 @@ $userQuery
             }
 
             val kbSignal = hasKbContext || hasRelatedKbSignal
-            val unavailableResponse = when {
-                kbSignal -> buildKbGroundedFallbackResponse(
-                    userQuery = userQuery,
-                    bestMatch = bestMatch,
-                    combinedKBContext = combinedKBContext,
-                    grounding = groundingAssessment,
-                    failureReason = "llm_unavailable"
-                )
-                allowGeneralLlmMode -> buildLlmTemporaryFailureResponse()
-                else -> buildKbInsufficientEvidenceResponse(userQuery, groundingAssessment)
-            }
+            val unavailableResponse = buildAbstentionOrTemporaryResponse("llm_unavailable")
             return@withContext ResponseMeta(
                 response = unavailableResponse,
                 usedLlm = false,
@@ -2315,7 +2407,7 @@ $userQuery
 
         AppLogger.log(
             "MainActivity",
-            "Fallback: no reliable LLM response mode=$mode kb=$hasKbContext related=$hasRelatedKbSignal llmAvailable=$llmAvailable"
+            "No reliable LLM response -> abstain mode=$mode kb=$hasKbContext related=$hasRelatedKbSignal llmAvailable=$llmAvailable"
         )
 
         withContext(Dispatchers.Main) {
@@ -2323,20 +2415,10 @@ $userQuery
         }
 
         val kbSignal = hasKbContext || hasRelatedKbSignal
-        val fallbackResponse = when {
-            kbSignal -> buildKbGroundedFallbackResponse(
-                userQuery = userQuery,
-                bestMatch = bestMatch,
-                combinedKBContext = combinedKBContext,
-                grounding = groundingAssessment,
-                failureReason = "llm_no_reliable_response"
-            )
-            allowGeneralLlmMode -> buildLlmTemporaryFailureResponse()
-            else -> buildKbInsufficientEvidenceResponse(userQuery, groundingAssessment)
-        }
+        val abstainResponse = buildAbstentionOrTemporaryResponse("final_abstain")
 
         return@withContext ResponseMeta(
-            response = fallbackResponse,
+            response = abstainResponse,
             usedLlm = false,
             kbSupported = kbSignal,
             kbSupportScore = kbSupportScore,
@@ -2346,53 +2428,78 @@ $userQuery
         )
     }
 
-    private fun buildKbGroundedFallbackResponse(
+    private suspend fun completeGroqResponseIfNeeded(
+        initialResponse: String,
         userQuery: String,
-        bestMatch: SemanticSearchHelper.MatchResult?,
-        combinedKBContext: String?,
-        grounding: SemanticSearchHelper.GroundingAssessment?,
-        failureReason: String
+        kbContextForPrompt: String?,
+        systemPrompt: String,
+        maxTokens: Int
     ): String {
-        val composed = KbFallbackComposer.compose(
-            KbFallbackComposer.Input(
-                userQuery = userQuery,
-                topMatchQuestion = bestMatch?.matchedQuestion,
-                topMatchAnswer = bestMatch?.answer,
-                combinedContext = combinedKBContext,
-                unknownQueryTokens = grounding?.unknownQueryTokens ?: emptySet(),
-                maxPoints = 4
-            )
-        )
+        var combined = initialResponse.trim()
+        if (combined.isBlank()) return combined
+        if (isResponseComplete(combined)) return combined
 
-        if (composed != null) {
-            AppLogger.log(
-                "MainActivity",
-                "KB fallback generated reason=$failureReason source=${composed.source} keyPoints=${composed.keyPoints} topMatchId=${bestMatch?.entryId ?: -1} score=${String.format("%.2f", bestMatch?.similarityScore ?: 0f)}"
+        val service = groqService ?: return combined
+        repeat(2) {
+            if (isResponseComplete(combined)) return combined
+
+            val continuationPrompt = buildString {
+                append("Continua exactamente desde donde quedaste. ")
+                append("No repitas frases ya escritas y no cierres la respuesta hasta terminar los pasos clave.\n\n")
+                append("CONSULTA ORIGINAL:\n")
+                append(userQuery.trim())
+                append("\n\n")
+                if (!kbContextForPrompt.isNullOrBlank()) {
+                    append("DATOS DISPONIBLES:\n")
+                    append(kbContextForPrompt.trim())
+                    append("\n\n")
+                }
+                append("RESPUESTA YA ENTREGADA:\n")
+                append(combined)
+            }
+
+            val continuationResult = service.query(
+                userMessage = continuationPrompt,
+                conversationHistory = emptyList(),
+                config = GroqService.QueryConfig(
+                    systemPrompt = systemPrompt,
+                    maxTokens = maxTokens,
+                    historyWindow = 0
+                )
             )
-            return composed.response
+
+            val chunk = continuationResult.getOrNull()?.trim().orEmpty()
+            if (chunk.length < 5) return combined
+            if (combined.contains(chunk)) return@repeat
+
+            combined = buildString {
+                append(combined.trimEnd())
+                append("\n\n")
+                append(chunk)
+            }.trim()
         }
 
-        AppLogger.log(
-            "MainActivity",
-            "KB fallback unavailable reason=$failureReason -> abstain response"
-        )
-        return buildKbInsufficientEvidenceResponse(userQuery, grounding)
+        return combined
     }
 
     private fun buildLlmTemporaryFailureResponse(): String {
-        return "Tuvimos un problema temporal al generar la respuesta. Intentalo de nuevo en unos segundos."
+        return "No pude generar una respuesta confiable del modelo en este intento. Intenta de nuevo."
     }
 
     private fun buildKbInsufficientEvidenceResponse(
         userQuery: String,
         _grounding: SemanticSearchHelper.GroundingAssessment?
     ): String {
-        if (!isLikelyAgriculturalQuery(userQuery)) {
-            return "Te leo. Si quieres que lo revisemos en campo, cuentame que cultivo estas trabajando y que sintomas observas."
-        }
-        val baseResponse = "Para darte una recomendacion util me faltan algunos datos del caso."
-        val guidance = "Cuentame cultivo, etapa del cultivo, ubicacion y sintomas observados, y te propongo pasos concretos."
-        return "$baseResponse\n\n$guidance"
+        return "No pude generar una respuesta confiable del modelo en este intento. Intenta de nuevo."
+    }
+
+    private fun buildKbDirectResponseFromRag(
+        ragContext: SemanticSearchHelper.ContextResult?
+    ): String? {
+        val contexts = ragContext?.contexts.orEmpty()
+        val primary = contexts.firstOrNull()?.answer?.trim().orEmpty()
+        if (primary.isBlank()) return null
+        return primary
     }
 
     private fun isResponseAnchoredToContext(
@@ -2400,18 +2507,49 @@ $userQuery
         userQuery: String,
         kbContext: String
     ): Boolean {
-        val responseTokens = extractInformativeTokens(response)
-        if (responseTokens.isEmpty()) return true
-        val contextTokens = extractInformativeTokens(kbContext)
-        val queryTokens = extractInformativeTokens(userQuery)
-        val allowedTokens = contextTokens + queryTokens + setOf(
-            "recomendado", "recomendacion", "paso", "pasos", "opcion", "opciones",
-            "importante", "riesgo", "control", "prevencion", "tratamiento", "siembra",
-            "cultivo", "riego", "fertilizacion", "plaga", "enfermedad"
+        val helper = semanticSearchHelper
+        val semanticScore = helper?.scoreResponseGrounding(
+            responseText = response,
+            userQuery = userQuery,
+            contextText = kbContext
         )
-        val unsupportedTokens = responseTokens - allowedTokens
-        val unsupportedRatio = unsupportedTokens.size.toFloat() / responseTokens.size.toFloat()
-        return unsupportedRatio <= 0.55f
+
+        val contextTokens = extractInformativeTokens(kbContext)
+        val responseTokens = extractInformativeTokens(response)
+        val queryTokens = extractInformativeTokens(userQuery)
+            .filterNot {
+                it in setOf(
+                    "cafe", "cultivo", "siembra", "manejo", "control",
+                    "combatir", "tratar", "tratamiento", "hacer", "como", "que"
+                )
+            }
+            .toSet()
+
+        val contextualResponseCoverage = if (responseTokens.isNotEmpty()) {
+            responseTokens.count { it in contextTokens }.toFloat() / responseTokens.size.toFloat()
+        } else {
+            0f
+        }
+        val queryAnchorCoverage = if (queryTokens.isNotEmpty()) {
+            queryTokens.count { it in responseTokens }.toFloat() / queryTokens.size.toFloat()
+        } else {
+            1f
+        }
+
+        val semanticOk = (semanticScore ?: 0f) >= 0.34f
+        val lexicalOk = contextualResponseCoverage >= 0.26f && queryAnchorCoverage >= 0.34f
+        val anchored = if (semanticScore != null) {
+            semanticOk && lexicalOk
+        } else {
+            lexicalOk
+        }
+        AppLogger.log(
+            "MainActivity",
+            "Semantic grounding score=${String.format("%.2f", semanticScore ?: 0f)} " +
+                "ctxCov=${String.format("%.2f", contextualResponseCoverage)} " +
+                "queryCov=${String.format("%.2f", queryAnchorCoverage)} anchored=$anchored"
+        )
+        return anchored
     }
 
     private fun extractInformativeTokens(text: String): Set<String> {
@@ -2472,15 +2610,24 @@ $userQuery
 
     private fun isNoInfoStyleResponse(text: String): Boolean {
         val lower = text.lowercase()
-        return listOf(
-            "no tengo información",
-            "no tengo suficiente información",
-            "no dispongo de información",
-            "no tengo datos",
-            "no puedo responder",
-            "no se",
-            "no sé"
-        ).any { lower.contains(it) }
+            .replace("á", "a")
+            .replace("é", "e")
+            .replace("í", "i")
+            .replace("ó", "o")
+            .replace("ú", "u")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+        val explicitNoInfoPatterns = listOf(
+            Regex("^no\\s+tengo\\s+informacion\\b"),
+            Regex("^no\\s+tengo\\s+suficiente\\s+informacion\\b"),
+            Regex("^no\\s+dispongo\\s+de\\s+informacion\\b"),
+            Regex("^no\\s+cuento\\s+con\\s+informacion\\b"),
+            Regex("^no\\s+tengo\\s+datos\\b"),
+            Regex("^no\\s+tengo\\s+datos\\s+suficientes\\b"),
+            Regex("^no\\s+puedo\\s+responder\\b"),
+            Regex("^prefiero\\s+no\\s+inventar\\b")
+        )
+        return explicitNoInfoPatterns.any { it.containsMatchIn(lower) }
     }
 
     private fun isMalformedLlmResponse(text: String): Boolean {
@@ -3388,7 +3535,7 @@ fun SettingsDialog(
                 HorizontalDivider(color = AgroColors.SurfaceLight)
                 
                 if (!ONLINE_ONLY_VISIT_MODE) {
-                    // Sección LLM Local (Llama)
+                    // Sección LLM Local (GGUF)
                     Surface(
                         color = AgroColors.SurfaceLight,
                         shape = RoundedCornerShape(12.dp)
@@ -3411,7 +3558,7 @@ fun SettingsDialog(
                                         )
                                         Spacer(Modifier.width(8.dp))
                                         Text(
-                                            "LLM Local (Llama)",
+                                            "LLM Local (Qwen/GGUF)",
                                             style = MaterialTheme.typography.titleSmall,
                                             fontWeight = FontWeight.Bold,
                                             color = AgroColors.TextPrimary
@@ -3577,13 +3724,15 @@ fun SettingsDialog(
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 // Max Tokens
-                                Text("Longitud de respuestas", style = MaterialTheme.typography.labelMedium, color = AgroColors.TextSecondary)
+                                Text("Longitud de respuestas (prioriza completitud)", style = MaterialTheme.typography.labelMedium, color = AgroColors.TextSecondary)
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Slider(
                                         value = localMaxTokens.toFloat(),
-                                        onValueChange = { localMaxTokens = it.toInt().coerceIn(250, 900) },
-                                        valueRange = 250f..900f,
-                                        steps = 25,
+                                        onValueChange = {
+                                            localMaxTokens = it.toInt().coerceIn(120, 1200)
+                                        },
+                                        valueRange = 120f..1200f,
+                                        steps = 26,
                                         modifier = Modifier.weight(1f),
                                         colors = SliderDefaults.colors(
                                             thumbColor = AgroColors.Accent,

@@ -6,15 +6,12 @@ import edu.unicauca.app.agrochat.AppLogger
 import edu.unicauca.app.agrochat.MindSporeHelper
 import edu.unicauca.app.agrochat.UniversalNativeTokenizer
 import edu.unicauca.app.agrochat.models.ModelDownloadService
-import org.apache.commons.text.similarity.FuzzyScore
-import org.apache.commons.text.similarity.JaccardSimilarity
-import org.apache.commons.text.similarity.JaroWinklerSimilarity
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedInputStream
 import java.io.DataInputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.util.Locale
 import kotlin.math.sqrt
 
 /**
@@ -32,7 +29,9 @@ class SemanticSearchHelper(private val context: Context) {
         
         // Archivos de assets
         private const val EMBEDDINGS_FILE = "kb_embeddings.npy"
+        private const val EMBEDDINGS_MAPPING_FILE = "kb_embeddings_mapping.json"
         private const val KNOWLEDGE_BASE_FILE = "agrochat_knowledge_base.json"
+        private const val KNOWLEDGE_RECORDS_DIR = "kb_nueva/extract"
         private const val MODEL_FILE = "sentence_encoder.ms"
         private const val TOKENIZER_FILE = "sentence_tokenizer.json"
         
@@ -40,6 +39,11 @@ class SemanticSearchHelper(private val context: Context) {
         private const val EMBEDDING_DIM = 384  // MiniLM produce embeddings de 384 dims
         private const val MAX_SEQ_LENGTH = 128
         private const val NUM_THREADS = 2
+        private const val ANN_MIN_CLUSTERS = 12
+        private const val ANN_MAX_CLUSTERS = 64
+        private const val ANN_KMEANS_ITERS = 6
+        private const val ANN_PROBE_CLUSTERS = 5
+        private const val ANN_MAX_CANDIDATES = 900
     }
     
     // Datos cargados
@@ -48,16 +52,15 @@ class SemanticSearchHelper(private val context: Context) {
     private var kbEntryIds: List<Int>? = null
     private var kbEntries: Map<Int, KnowledgeEntry>? = null
     private var kbInformativeVocabulary: Set<String> = emptySet()
+    private var embeddingIndexAligned: Boolean = false
+    private var entrySemanticEmbeddings: Map<Int, FloatArray> = emptyMap()
+    private var annCentroids: Array<FloatArray> = emptyArray()
+    private var annPostingLists: List<IntArray> = emptyList()
     
     // Modelo y tokenizador para búsqueda semántica real
     private var modelHandle: Long = 0L
     private var tokenizer: UniversalNativeTokenizer? = null
-    private var useMindSporeEncoder = false  // Flag para usar MindSpore o fallback
-    
-    // Librería externa para similitud textual (fallback cuando embeddings no están disponibles)
-    private val jaccardSimilarity = JaccardSimilarity()
-    private val jaroWinklerSimilarity = JaroWinklerSimilarity()
-    private val fuzzyScore = FuzzyScore(Locale("es", "ES"))
+    private var useMindSporeEncoder = false
     private val discoursePrefixes = listOf(
         Regex("^y\\s+que\\s+me\\s+dices\\s+de\\s+"),
         Regex("^que\\s+me\\s+dices\\s+de\\s+"),
@@ -169,48 +172,11 @@ class SemanticSearchHelper(private val context: Context) {
         "inoculo" to "enfermedad",
         "umbral" to "plaga"
     )
-    private val intentKeywords = mapOf(
-        "fertilizacion" to setOf(
-            "fertilizacion", "npk", "urea", "nitrogeno", "fosforo", "potasio",
-            "calcio", "magnesio", "boro", "zinc", "hierro", "manganeso", "dolomita"
-        ),
-        "riego" to setOf("riego", "goteo", "agua", "irrigacion", "sequia", "humedad"),
-        "plaga" to setOf(
-            "plaga", "gusano", "mosca", "pulgon", "trips", "minador",
-            "broca", "cochinilla", "acaro", "nematodo", "arriera", "barrenador"
-        ),
-        "enfermedad" to setOf(
-            "enfermedad", "hongo", "virus", "bacteria", "tizon", "roya", "pudricion",
-            "mancha", "cercospora", "antracnosis", "llaga", "hemileia", "rosado"
-        ),
-        "siembra" to setOf("siembra", "cultivo", "semilla", "vivero", "colino", "densidad", "variedad"),
-        "cosecha" to setOf("cosecha", "maduro", "cereza", "recoleccion", "repase"),
-        "poda" to setOf("poda", "podar", "zoqueo", "zoca", "renovacion"),
-        "fisiologia" to setOf("fotosintesis", "transpiracion", "respiracion", "estoma", "estomas", "vigor"),
-        "clima" to setOf("clima", "evapotranspiracion", "vpd", "radiacion", "sequias", "lluvias", "humedad"),
-        "calidad" to setOf(
-            "calidad", "taza", "defecto", "pasilla", "quaker", "trazabilidad", "especialidad",
-            "catacion", "sensorial", "aroma", "sabor", "fragancia", "acidez", "cuerpo", "dulzor",
-            "retrogusto", "balance", "microlote", "prima"
-        ),
-        "gestion" to setOf("costos", "margen", "rentabilidad", "roi", "flujo", "auditoria", "bpa", "bpm"),
-        "poscosecha" to setOf(
-            "beneficio", "despulpado", "fermentacion", "secado", "pergamino", "humedad",
-            "honey", "natural", "lavado", "anaerobia", "bodega", "actividad", "agua", "inocuidad"
-        )
+    private val genericIntentTokens = setOf(
+        "como", "cuando", "donde", "porque", "cual", "cuales", "informacion",
+        "saber", "tema", "sobre", "acerca", "explicacion", "consulta", "ayuda",
+        "orientacion", "recomendacion", "recomendaciones", "metodo", "forma"
     )
-    private val genericIntentTokens: Set<String> = run {
-        val tokens = mutableSetOf<String>()
-        intentKeywords.values.forEach { tokens.addAll(it) }
-        tokens.addAll(
-            setOf(
-                "como", "cuando", "donde", "porque", "cual", "cuales", "informacion",
-                "saber", "tema", "sobre", "acerca", "explicacion"
-            )
-        )
-        tokens
-    }
-    
     // Estado
     private var isInitialized = false
     private var forceTextOnlyMode = false
@@ -219,7 +185,8 @@ class SemanticSearchHelper(private val context: Context) {
         val id: Int,
         val category: String,
         val questions: List<String>,
-        val answer: String
+        val answer: String,
+        val entityTokens: Set<String> = emptySet()
     )
     
     data class MatchResult(
@@ -245,6 +212,14 @@ class SemanticSearchHelper(private val context: Context) {
         val missingEntityTokens: Set<String>,
         val unknownQueryTokens: Set<String>,
         val hasStrongSupport: Boolean
+    )
+
+    private data class RankedSemanticCandidate(
+        val index: Int,
+        val score: Float,
+        val baseScore: Float,
+        val expandedScore: Float,
+        val entryScore: Float
     )
 
     fun setForceTextOnlyMode(enabled: Boolean) {
@@ -279,7 +254,7 @@ class SemanticSearchHelper(private val context: Context) {
             Log.i(TAG, "  - Entradas en KB: ${kbEntries?.size}")
             Log.i(TAG, "  - Preguntas indexadas: ${kbQuestions?.size}")
             Log.i(TAG, "  - Dimensión embeddings: $EMBEDDING_DIM")
-            Log.i(TAG, "  - MindSpore encoder: ${if (useMindSporeEncoder) "activo" else "fallback a texto"}")
+            Log.i(TAG, "  - MindSpore encoder: ${if (useMindSporeEncoder) "activo" else "desactivado"}")
 
             verifyTokenizerAndEmbeddingsAlignment()
             
@@ -325,6 +300,15 @@ class SemanticSearchHelper(private val context: Context) {
                 return
             }
             
+            if (!embeddingIndexAligned) {
+                useMindSporeEncoder = false
+                AppLogger.log(
+                    TAG,
+                    "MindSpore cargado (handle=$modelHandle) pero embeddings desalineados; se desactiva retrieval semantico."
+                )
+                return
+            }
+
             useMindSporeEncoder = true
             AppLogger.log(TAG, "MindSpore encoder loaded (handle=$modelHandle)")
             
@@ -335,35 +319,286 @@ class SemanticSearchHelper(private val context: Context) {
     }
     
     /**
-     * Carga la base de conocimiento desde JSON
+     * Carga la base de conocimiento.
+     *
+     * Prioridad:
+     * 1) Registros crudos en assets/kb_nueva/extract (archivos .jsonl)
+     * 2) Formato legacy agrochat_knowledge_base.json
      */
     private fun loadKnowledgeBase() {
         Log.d(TAG, "Cargando base de conocimiento...")
-        
-        val jsonString = context.assets.open(KNOWLEDGE_BASE_FILE).bufferedReader().use { it.readText() }
-        val json = JSONObject(jsonString)
-        val entries = json.getJSONArray("entries")
-        
-        val entriesMap = mutableMapOf<Int, KnowledgeEntry>()
-        
-        for (i in 0 until entries.length()) {
-            val entry = entries.getJSONObject(i)
-            val id = entry.getInt("id")
-            val category = entry.getString("category")
-            val answer = entry.getString("answer")
-            
-            val questionsArray = entry.getJSONArray("questions")
-            val questions = mutableListOf<String>()
-            for (j in 0 until questionsArray.length()) {
-                questions.add(questionsArray.getString(j))
+
+        val loadedFromRecords = loadKnowledgeBaseFromRecordsJsonl()
+        if (loadedFromRecords) return
+
+        val loadedLegacy = loadKnowledgeBaseFromLegacyJson()
+        if (loadedLegacy) return
+
+        throw IllegalStateException("No se pudo cargar KB desde records jsonl ni desde formato legacy")
+    }
+
+    private fun loadKnowledgeBaseFromLegacyJson(): Boolean {
+        return try {
+            val jsonString = context.assets.open(KNOWLEDGE_BASE_FILE).bufferedReader().use { it.readText() }
+            val json = JSONObject(jsonString)
+            val entries = json.getJSONArray("entries")
+
+            val entriesMap = mutableMapOf<Int, KnowledgeEntry>()
+
+            for (i in 0 until entries.length()) {
+                val entry = entries.getJSONObject(i)
+                val id = entry.getInt("id")
+                val category = entry.getString("category")
+                val answer = entry.getString("answer")
+
+                val questionsArray = entry.getJSONArray("questions")
+                val questions = mutableListOf<String>()
+                for (j in 0 until questionsArray.length()) {
+                    questions.add(questionsArray.getString(j))
+                }
+
+                entriesMap[id] = KnowledgeEntry(id, category, questions, answer)
             }
-            
-            entriesMap[id] = KnowledgeEntry(id, category, questions, answer)
+
+            kbEntries = entriesMap
+            kbInformativeVocabulary = buildKbVocabulary(entriesMap)
+            Log.d(TAG, "Base de conocimiento legacy cargada: ${entriesMap.size} entradas")
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "No se pudo cargar KB legacy: ${e.message}")
+            false
         }
-        
+    }
+
+    private fun loadKnowledgeBaseFromRecordsJsonl(): Boolean {
+        val fileNames = context.assets.list(KNOWLEDGE_RECORDS_DIR)
+            ?.filter { it.endsWith(".jsonl") }
+            ?.sorted()
+            ?: emptyList()
+
+        if (fileNames.isEmpty()) {
+            Log.i(TAG, "No se encontraron records jsonl en $KNOWLEDGE_RECORDS_DIR")
+            return false
+        }
+
+        val entriesMap = mutableMapOf<Int, KnowledgeEntry>()
+        var nextId = 1
+
+        for (fileName in fileNames) {
+            val path = "$KNOWLEDGE_RECORDS_DIR/$fileName"
+            context.assets.open(path).bufferedReader().useLines { lines ->
+                lines.forEach { rawLine ->
+                    val line = rawLine.trim()
+                    if (line.isBlank()) return@forEach
+
+                    try {
+                        val record = JSONObject(line)
+                        val questions = buildQuestionsFromRecord(record)
+                        if (questions.isEmpty()) return@forEach
+
+                        val category = buildRecordCategory(record)
+                        val answer = buildAnswerFromRecord(record)
+                        val entityTokens = extractEntityTokens(record)
+                        entriesMap[nextId] = KnowledgeEntry(
+                            id = nextId,
+                            category = category,
+                            questions = questions,
+                            answer = answer,
+                            entityTokens = entityTokens
+                        )
+                        nextId++
+                    } catch (parseError: Exception) {
+                        Log.w(TAG, "Linea invalida en $path: ${parseError.message}")
+                    }
+                }
+            }
+        }
+
+        if (entriesMap.isEmpty()) {
+            Log.w(TAG, "No se pudieron construir entradas desde records jsonl")
+            return false
+        }
+
         kbEntries = entriesMap
         kbInformativeVocabulary = buildKbVocabulary(entriesMap)
-        Log.d(TAG, "Base de conocimiento cargada: ${entriesMap.size} entradas")
+        Log.d(TAG, "KB records cargada: ${entriesMap.size} entradas desde ${fileNames.size} archivos")
+        return true
+    }
+
+    private fun buildRecordCategory(record: JSONObject): String {
+        val chapterId = record.optString("chapter_id", "").trim().ifBlank { "00" }
+        val topic = record.optString("topic", "").trim().ifBlank { "general" }
+        val chapterToken = chapterId.padStart(2, '0')
+        val topicToken = slugifyToken(topic).ifBlank { "general" }
+        return "cap${chapterToken}_$topicToken"
+    }
+
+    private fun extractEntityTokens(record: JSONObject): Set<String> {
+        val tokens = mutableSetOf<String>()
+        val entitiesArr = record.optJSONArray("entities")
+        if (entitiesArr != null) {
+            for (i in 0 until entitiesArr.length()) {
+                val entity = entitiesArr.optString(i, "").trim()
+                if (entity.isNotBlank()) {
+                    val normalized = normalizeText(entity)
+                    normalized.split(Regex("\\s+")).filter { it.length >= 3 && it !in stopWords }.forEach { word ->
+                        tokens.add(tokenCanonicalMap[word] ?: word)
+                    }
+                }
+            }
+        }
+        // Also include topic and subtopic as entity tokens
+        val topic = record.optString("topic", "").trim()
+        if (topic.isNotBlank()) {
+            val normalizedTopic = normalizeText(topic)
+            normalizedTopic.split(Regex("[\\s_]+")).filter { it.length >= 3 && it !in stopWords }.forEach { word ->
+                tokens.add(tokenCanonicalMap[word] ?: word)
+            }
+        }
+        return tokens
+    }
+
+    private fun slugifyToken(value: String): String {
+        return normalizeText(value)
+            .replace(Regex("\\s+"), "_")
+            .trim('_')
+            .take(48)
+    }
+
+    private fun buildQuestionsFromRecord(record: JSONObject): List<String> {
+        val raw = mutableListOf<String>()
+        raw.addAll(jsonArrayToStrings(record.optJSONArray("retrieval_hints")))
+        raw.addAll(jsonArrayToStrings(record.optJSONArray("aliases")))
+        val title = record.optString("title", "").trim()
+        if (title.isNotBlank()) raw.add(title)
+
+        val deduped = dedupeQuestions(raw)
+        if (deduped.isNotEmpty()) return deduped
+
+        val fallback = mutableListOf<String>()
+        if (title.isNotBlank()) fallback.add(title)
+        val statement = record.optString("statement", "").trim()
+        if (statement.isNotBlank()) fallback.add(statement.take(180))
+        return dedupeQuestions(fallback)
+    }
+
+    private fun jsonArrayToStrings(array: JSONArray?): List<String> {
+        if (array == null) return emptyList()
+        val values = mutableListOf<String>()
+        for (i in 0 until array.length()) {
+            val value = array.optString(i, "").trim()
+            if (value.isNotBlank()) values.add(value)
+        }
+        return values
+    }
+
+    private fun dedupeQuestions(raw: List<String>): List<String> {
+        val seen = mutableSetOf<String>()
+        val out = mutableListOf<String>()
+        raw.forEach { value ->
+            val cleaned = value.trim().replace(Regex("\\s+"), " ")
+            if (cleaned.isBlank()) return@forEach
+            val key = normalizeText(cleaned)
+            if (key.isBlank() || key in seen) return@forEach
+            seen.add(key)
+            out.add(cleaned)
+        }
+        return out
+    }
+
+    private fun buildAnswerFromRecord(record: JSONObject): String {
+        val lines = mutableListOf<String>()
+
+        val title = record.optString("title", "").trim()
+        val statement = record.optString("statement", "").trim()
+        if (title.isNotBlank()) lines.add(title)
+        if (statement.isNotBlank()) lines.add(statement)
+
+        val condition = record.optString("condition", "").trim()
+        if (condition.isNotBlank()) lines.add("Condicion: $condition")
+
+        val action = record.optString("action", "").trim()
+        if (action.isNotBlank()) lines.add("Accion: $action")
+
+        val expectedEffect = record.optString("expected_effect", "").trim()
+        if (expectedEffect.isNotBlank()) lines.add("Efecto esperado: $expectedEffect")
+
+        val riskIfIgnored = record.optString("risk_if_ignored", "").trim()
+        if (riskIfIgnored.isNotBlank()) lines.add("Riesgo si se ignora: $riskIfIgnored")
+
+        val applicability = record.optString("applicability", "").trim()
+        if (applicability.isNotBlank()) lines.add("Aplicabilidad: $applicability")
+
+        val quantData = record.optJSONArray("quant_data")
+        if (quantData != null && quantData.length() > 0) {
+            lines.add("Datos cuantitativos:")
+            for (i in 0 until quantData.length()) {
+                val item = quantData.optJSONObject(i) ?: continue
+                val metric = item.optString("metric", "").trim().ifBlank { "dato" }
+                val valueExact = item.opt("value_exact")
+                val valueMin = item.opt("value_min")
+                val valueMax = item.opt("value_max")
+                val unit = item.optString("unit", "").trim()
+                val qualifier = item.optString("qualifier", "").trim()
+                val valueText = when {
+                    valueExact != null && valueExact != JSONObject.NULL -> valueExact.toString()
+                    valueMin != null && valueMin != JSONObject.NULL && valueMax != null && valueMax != JSONObject.NULL ->
+                        "${valueMin}-${valueMax}"
+                    valueMin != null && valueMin != JSONObject.NULL -> ">= $valueMin"
+                    valueMax != null && valueMax != JSONObject.NULL -> "<= $valueMax"
+                    else -> "sin valor"
+                }
+                val unitPart = if (unit.isNotBlank()) " $unit" else ""
+                val qualifierPart = if (qualifier.isNotBlank()) " ($qualifier)" else ""
+                lines.add("- $metric: $valueText$unitPart$qualifierPart")
+            }
+        }
+
+        val classification = record.optJSONObject("classification")
+        if (classification != null) {
+            val criterion = classification.optString("criterion", "").trim()
+            val classes = jsonArrayToStrings(classification.optJSONArray("classes"))
+            if (classes.isNotEmpty()) {
+                if (criterion.isNotBlank()) {
+                    lines.add("Clasificacion ($criterion): ${classes.joinToString(", ")}")
+                } else {
+                    lines.add("Clasificacion: ${classes.joinToString(", ")}")
+                }
+            }
+        }
+
+        val sourceBits = mutableListOf<String>()
+        val sourceAttribution = record.optString("source_attribution", "").trim()
+        if (sourceAttribution.isNotBlank()) sourceBits.add(sourceAttribution)
+        val sourceRef = record.optJSONObject("source_ref")
+        if (sourceRef != null) {
+            val document = sourceRef.optString("document", "").trim()
+            val pages = jsonArrayToStrings(sourceRef.optJSONArray("pages"))
+            val pageText = if (pages.isNotEmpty()) "paginas ${pages.joinToString(", ")}" else ""
+            when {
+                document.isNotBlank() && pageText.isNotBlank() -> sourceBits.add("$document ($pageText)")
+                document.isNotBlank() -> sourceBits.add(document)
+                pageText.isNotBlank() -> sourceBits.add(pageText)
+            }
+        }
+        if (sourceBits.isNotEmpty()) lines.add("Fuente: ${sourceBits.joinToString(" | ")}")
+
+        val recordType = record.optString("record_type", "").trim()
+        val priority = record.optString("priority", "").trim()
+        val evidence = record.optString("evidence_strength", "").trim()
+        val meta = listOf(
+            "tipo=$recordType".takeIf { recordType.isNotBlank() },
+            "prioridad=$priority".takeIf { priority.isNotBlank() },
+            "evidencia=$evidence".takeIf { evidence.isNotBlank() }
+        ).filterNotNull()
+        if (meta.isNotEmpty()) lines.add("Metadatos: ${meta.joinToString(", ")}")
+
+        if (record.optBoolean("uncertain_text", false)) {
+            val note = record.optString("uncertainty_note", "").trim()
+            lines.add("Nota de incertidumbre: ${if (note.isNotBlank()) note else "la fuente marca este registro como incierto"}")
+        }
+
+        return lines.joinToString("\n").trim()
     }
     
     /**
@@ -454,21 +689,26 @@ class SemanticSearchHelper(private val context: Context) {
         
         Log.d(TAG, "Embeddings cargados y normalizados: ${embeddings.size} vectores de $embeddingDim dims")
         
-        // Generar mapeo de preguntas desde la KB
-        val questions = mutableListOf<String>()
-        val entryIds = mutableListOf<Int>()
-        
-        kbEntries?.entries?.sortedBy { it.key }?.forEach { (id, entry) ->
-            entry.questions.forEach { q ->
-                questions.add(q)
-                entryIds.add(id)
+        val mappingFromFile = loadEmbeddingMapping(embeddings.size)
+        val (questions, entryIds) = if (mappingFromFile != null) {
+            mappingFromFile
+        } else {
+            val q = mutableListOf<String>()
+            val ids = mutableListOf<Int>()
+            kbEntries?.entries?.sortedBy { it.key }?.forEach { (id, entry) ->
+                entry.questions.forEach { question ->
+                    q.add(question)
+                    ids.add(id)
+                }
             }
+            q to ids
         }
 
-        if (questions.size != embeddings.size) {
+        embeddingIndexAligned = questions.size == embeddings.size && entryIds.size == embeddings.size
+        if (!embeddingIndexAligned) {
             Log.w(
                 TAG,
-                "Desalineacion KB/embeddings: preguntas=${questions.size}, embeddings=${embeddings.size}. Se activa fallback textual para cobertura completa."
+                "Desalineacion KB/embeddings: preguntas=${questions.size}, embeddings=${embeddings.size}. Se desactiva retrieval semantico."
             )
             AppLogger.log(
                 TAG,
@@ -480,6 +720,46 @@ class SemanticSearchHelper(private val context: Context) {
         kbEmbeddings = embeddings
         kbQuestions = questions
         kbEntryIds = entryIds
+        buildEntrySemanticEmbeddings(embeddings, entryIds)
+        buildSemanticAnnIndex(embeddings)
+    }
+
+    private fun loadEmbeddingMapping(expectedRows: Int): Pair<MutableList<String>, MutableList<Int>>? {
+        return try {
+            val jsonString = context.assets.open(EMBEDDINGS_MAPPING_FILE).bufferedReader().use { it.readText() }
+            val json = JSONObject(jsonString)
+            val questionsJson = json.optJSONArray("questions") ?: return null
+            val entryIdsJson = json.optJSONArray("entry_ids") ?: return null
+
+            if (questionsJson.length() != entryIdsJson.length()) {
+                Log.w(TAG, "Mapping invalido: questions y entry_ids tienen distinta longitud")
+                return null
+            }
+            if (questionsJson.length() != expectedRows) {
+                Log.w(TAG, "Mapping invalido: filas mapping=${questionsJson.length()} filas embeddings=$expectedRows")
+                return null
+            }
+
+            val entries = kbEntries ?: return null
+            val questions = mutableListOf<String>()
+            val entryIds = mutableListOf<Int>()
+
+            for (i in 0 until questionsJson.length()) {
+                val question = questionsJson.optString(i, "").trim()
+                val entryId = entryIdsJson.optInt(i, -1)
+                if (question.isBlank() || entryId < 0 || !entries.containsKey(entryId)) {
+                    Log.w(TAG, "Mapping invalido en posicion $i (q='$question', entryId=$entryId)")
+                    return null
+                }
+                questions.add(question)
+                entryIds.add(entryId)
+            }
+            Log.d(TAG, "Mapping de embeddings cargado: ${questions.size} preguntas")
+            questions to entryIds
+        } catch (e: Exception) {
+            Log.i(TAG, "No se pudo cargar mapping de embeddings: ${e.message}")
+            null
+        }
     }
     
     /**
@@ -504,62 +784,265 @@ class SemanticSearchHelper(private val context: Context) {
         val entries = kbEntries ?: return null
         
         val startTime = System.currentTimeMillis()
-        val shouldUseEncoder = useMindSporeEncoder && !forceTextOnlyMode
+        val shouldUseEncoder = useMindSporeEncoder && embeddingIndexAligned && !forceTextOnlyMode
         AppLogger.log(TAG, "findBestMatch: '$userQuery' useMindSpore=$shouldUseEncoder")
         
-        // Calcular embedding de la query o usar fallback
-        val queryEmbedding = if (shouldUseEncoder) {
-            computeEmbedding(userQuery)
-        } else {
-            null
-        }
-        
-        var bestScore = -1f
-        var bestIdx = -1
-        val queryLower = normalizeQueryForSearch(userQuery)
-        
-        if (queryEmbedding != null) {
-            AppLogger.log(TAG, "Buscando con scoring híbrido (embedding + texto)")
-            for (i in embeddings.indices) {
-                val semanticScore = cosineSimilarity(queryEmbedding, embeddings[i])
-                val textScore = calculateTextSimilarity(queryLower, questions[i].lowercase())
-                val score = combineScores(semanticScore, textScore)
-                if (score > bestScore) {
-                    bestScore = score
-                    bestIdx = i
-                }
-            }
-        } else {
-            AppLogger.log(TAG, "Fallback: búsqueda por texto")
-            for (i in questions.indices) {
-                val questionLower = questions[i].lowercase()
-                val score = calculateTextSimilarity(queryLower, questionLower)
-                
-                if (score > bestScore) {
-                    bestScore = score
-                    bestIdx = i
-                }
-            }
-        }
-        
-        val elapsedTime = System.currentTimeMillis() - startTime
-        AppLogger.log(TAG, "findBestMatch: bestScore=$bestScore bestIdx=$bestIdx (${elapsedTime}ms)")
-        
-        if (bestIdx < 0) {
+        if (!shouldUseEncoder) {
+            AppLogger.log(TAG, "findBestMatch: semantic encoder unavailable, no lexical fallback")
             return null
         }
-        
-        val matchedQuestion = questions[bestIdx]
-        val entryId = entryIds[bestIdx]
+        val normalizedQuery = normalizeQueryForSearch(userQuery)
+        val queryEmbedding = computeEmbedding(normalizedQuery) ?: run {
+            AppLogger.log(TAG, "findBestMatch: no se pudo calcular embedding de query")
+            return null
+        }
+
+        val ranked = rankSemanticCandidates(
+            queryEmbedding = queryEmbedding,
+            embeddings = embeddings,
+            minScore = -1f
+        )
+        val best = ranked.firstOrNull() ?: return null
+
+        val elapsedTime = System.currentTimeMillis() - startTime
+        AppLogger.log(
+            TAG,
+            "findBestMatch: bestScore=${best.score} bestIdx=${best.index} base=${String.format("%.2f", best.baseScore)} expanded=${String.format("%.2f", best.expandedScore)} entry=${String.format("%.2f", best.entryScore)} (${elapsedTime}ms)"
+        )
+
+        val matchedQuestion = questions[best.index]
+        val entryId = entryIds[best.index]
         val entry = entries[entryId]!!
-        
+
         return MatchResult(
             answer = entry.answer,
             matchedQuestion = matchedQuestion,
-            similarityScore = bestScore,
+            similarityScore = best.score,
             category = entry.category,
             entryId = entryId
         )
+    }
+
+    private fun buildEntrySemanticEmbeddings(
+        embeddings: Array<FloatArray>,
+        entryIds: List<Int>
+    ) {
+        if (embeddings.isEmpty() || entryIds.size != embeddings.size) {
+            entrySemanticEmbeddings = emptyMap()
+            return
+        }
+
+        val sums = mutableMapOf<Int, FloatArray>()
+        val counts = mutableMapOf<Int, Int>()
+
+        for (idx in embeddings.indices) {
+            val entryId = entryIds[idx]
+            val source = embeddings[idx]
+            val sum = sums.getOrPut(entryId) { FloatArray(source.size) }
+            for (dim in source.indices) {
+                sum[dim] += source[dim]
+            }
+            counts[entryId] = (counts[entryId] ?: 0) + 1
+        }
+
+        val averaged = mutableMapOf<Int, FloatArray>()
+        sums.forEach { (entryId, sum) ->
+            val count = (counts[entryId] ?: 1).toFloat()
+            for (dim in sum.indices) {
+                sum[dim] /= count
+            }
+            normalizeInPlace(sum)
+            averaged[entryId] = sum
+        }
+
+        entrySemanticEmbeddings = averaged
+    }
+
+    private fun buildSemanticAnnIndex(embeddings: Array<FloatArray>) {
+        if (embeddings.isEmpty()) {
+            annCentroids = emptyArray()
+            annPostingLists = emptyList()
+            return
+        }
+
+        val clusterCount = sqrt(embeddings.size.toDouble()).toInt()
+            .coerceIn(ANN_MIN_CLUSTERS, ANN_MAX_CLUSTERS)
+            .coerceAtMost(embeddings.size)
+
+        if (clusterCount <= 1) {
+            annCentroids = arrayOf(embeddings.first().copyOf())
+            annPostingLists = listOf(IntArray(embeddings.size) { it })
+            AppLogger.log(TAG, "ANN index trivial: clusters=1 docs=${embeddings.size}")
+            return
+        }
+
+        val dimension = embeddings[0].size
+        val centroids = Array(clusterCount) { clusterIdx ->
+            val seedIdx = ((clusterIdx.toLong() * embeddings.size) / clusterCount).toInt()
+                .coerceIn(0, embeddings.lastIndex)
+            embeddings[seedIdx].copyOf()
+        }
+
+        repeat(ANN_KMEANS_ITERS) { iter ->
+            val sums = Array(clusterCount) { FloatArray(dimension) }
+            val counts = IntArray(clusterCount)
+
+            for (vector in embeddings) {
+                val nearest = nearestCentroidIndex(vector, centroids)
+                counts[nearest] += 1
+                val target = sums[nearest]
+                for (dim in 0 until dimension) {
+                    target[dim] += vector[dim]
+                }
+            }
+
+            for (clusterIdx in 0 until clusterCount) {
+                if (counts[clusterIdx] <= 0) {
+                    val reassignIdx = ((clusterIdx + iter + 1).toLong() * embeddings.size / clusterCount).toInt()
+                        .coerceIn(0, embeddings.lastIndex)
+                    centroids[clusterIdx] = embeddings[reassignIdx].copyOf()
+                } else {
+                    val centroid = sums[clusterIdx]
+                    val countInv = 1f / counts[clusterIdx].toFloat()
+                    for (dim in centroid.indices) {
+                        centroid[dim] *= countInv
+                    }
+                    normalizeInPlace(centroid)
+                    centroids[clusterIdx] = centroid
+                }
+            }
+        }
+
+        val postings = MutableList(clusterCount) { mutableListOf<Int>() }
+        for (idx in embeddings.indices) {
+            val nearest = nearestCentroidIndex(embeddings[idx], centroids)
+            postings[nearest].add(idx)
+        }
+
+        annCentroids = centroids
+        annPostingLists = postings.map { bucket -> bucket.toIntArray() }
+        AppLogger.log(
+            TAG,
+            "ANN index listo: clusters=${annCentroids.size}, docs=${embeddings.size}, probe=$ANN_PROBE_CLUSTERS"
+        )
+    }
+
+    private fun nearestCentroidIndex(vector: FloatArray, centroids: Array<FloatArray>): Int {
+        var bestIdx = 0
+        var bestScore = Float.NEGATIVE_INFINITY
+        for (idx in centroids.indices) {
+            val score = cosineSimilarity(vector, centroids[idx])
+            if (score > bestScore) {
+                bestScore = score
+                bestIdx = idx
+            }
+        }
+        return bestIdx
+    }
+
+    private fun rankSemanticCandidates(
+        queryEmbedding: FloatArray,
+        embeddings: Array<FloatArray>,
+        minScore: Float,
+        queryTokens: Set<String> = emptySet()
+    ): List<RankedSemanticCandidate> {
+        if (embeddings.isEmpty()) return emptyList()
+
+        val candidateIndices = findAnnCandidateIndices(queryEmbedding, embeddings.size)
+        if (candidateIndices.isEmpty()) return emptyList()
+
+        val entryIds = kbEntryIds ?: return emptyList()
+        val entries = kbEntries ?: return emptyList()
+
+        val ranked = ArrayList<RankedSemanticCandidate>(candidateIndices.size)
+        for (idx in candidateIndices) {
+            val baseScore = cosineSimilarity(queryEmbedding, embeddings[idx])
+            if (baseScore < minScore) continue
+
+            // Hybrid scoring: combine embedding similarity with entity overlap.
+            // Problem: embedding model weights common words ("café") too heavily,
+            // so "roya en café" matches "raíz del café" (0.84) better than
+            // "reducir pérdidas por roya" (0.52). Fix: when query tokens
+            // match entry entities, guarantee a competitive score floor.
+            val entryId = entryIds[idx]
+            val entry = entries[entryId]
+            val finalScore = if (queryTokens.isNotEmpty() && entry != null && entry.entityTokens.isNotEmpty()) {
+                val genericTokens = setOf("cafe", "cafeto", "cafetal")
+                val specificQueryTokens = queryTokens.filterNot { it in genericTokens }
+                val specificEntityTokens = entry.entityTokens.filterNot { it in genericTokens }
+                if (specificQueryTokens.isNotEmpty() && specificEntityTokens.isNotEmpty()) {
+                    val overlap = specificQueryTokens.count { it in specificEntityTokens }
+                    if (overlap > 0) {
+                        // Any entity match = topic-relevant. Guarantee minimum 0.85.
+                        // Additional matches push higher.
+                        val entityFloor = (0.85f + (overlap - 1) * 0.05f).coerceAtMost(0.95f)
+                        maxOf(baseScore, entityFloor)
+                    } else {
+                        // Query has specific terms but none match this entry's entities.
+                        // Slight penalty: this entry is probably off-topic.
+                        baseScore * 0.88f
+                    }
+                } else baseScore
+            } else baseScore
+
+            if (finalScore < minScore) continue
+            val boostedScore = finalScore.coerceIn(0f, 1f)
+            ranked.add(
+                RankedSemanticCandidate(
+                    index = idx,
+                    score = boostedScore,
+                    baseScore = baseScore.coerceIn(0f, 1f),
+                    expandedScore = boostedScore,
+                    entryScore = baseScore.coerceIn(0f, 1f)
+                )
+            )
+        }
+
+        return ranked.sortedByDescending { it.score }
+    }
+
+    private fun findAnnCandidateIndices(queryEmbedding: FloatArray, totalEmbeddings: Int): IntArray {
+        if (totalEmbeddings <= 0) return IntArray(0)
+
+        // En KB pequeñas/medianas priorizar recall: full-scan semántico.
+        // 5k x 384 sigue siendo manejable en móvil y evita perder el match correcto.
+        if (totalEmbeddings <= 5000) {
+            return IntArray(totalEmbeddings) { it }
+        }
+        if (annCentroids.isEmpty() || annPostingLists.isEmpty()) {
+            return IntArray(totalEmbeddings) { it }
+        }
+
+        val centroidScores = annCentroids.indices
+            .map { idx -> idx to cosineSimilarity(queryEmbedding, annCentroids[idx]) }
+            .sortedByDescending { it.second }
+            .take(minOf(ANN_PROBE_CLUSTERS, annCentroids.size))
+
+        val candidates = LinkedHashSet<Int>(ANN_MAX_CANDIDATES)
+        for ((centroidIdx, _) in centroidScores) {
+            val posting = annPostingLists.getOrNull(centroidIdx) ?: IntArray(0)
+            for (docIdx in posting) {
+                candidates.add(docIdx)
+                if (candidates.size >= ANN_MAX_CANDIDATES) break
+            }
+            if (candidates.size >= ANN_MAX_CANDIDATES) break
+        }
+
+        return if (candidates.isNotEmpty()) {
+            candidates.toIntArray()
+        } else {
+            IntArray(totalEmbeddings) { it }
+        }
+    }
+
+    private fun normalizeInPlace(vector: FloatArray) {
+        var norm = 0f
+        for (v in vector) norm += v * v
+        norm = sqrt(norm)
+        if (norm <= 0f) return
+        for (i in vector.indices) {
+            vector[i] /= norm
+        }
     }
     
     /**
@@ -673,7 +1156,7 @@ class SemanticSearchHelper(private val context: Context) {
      * caerá notablemente.
      */
     private fun verifyTokenizerAndEmbeddingsAlignment() {
-        if (!useMindSporeEncoder) return
+        if (!useMindSporeEncoder || !embeddingIndexAligned) return
         val embeddings = kbEmbeddings ?: return
         val questions = kbQuestions ?: return
         if (embeddings.isEmpty() || questions.isEmpty()) return
@@ -691,92 +1174,12 @@ class SemanticSearchHelper(private val context: Context) {
         if (sim < 0.90f) {
             Log.w(TAG, "⚠ Posible tokenizer incorrecto o KB desalineada (sim < 0.90).")
         }
-        if (sim < 0.70f) {
+        if (sim < 0.50f) {
             useMindSporeEncoder = false
-            AppLogger.log(TAG, "Tokenizer/KB desalineados (sim=$sim). Se desactiva encoder y se usa fallback textual.")
+            AppLogger.log(TAG, "Tokenizer/KB desalineados criticamente (sim=$sim). Se desactiva retrieval semantico.")
+        } else if (sim < 0.70f) {
+            AppLogger.log(TAG, "Tokenizer/KB con desalineacion moderada (sim=$sim). Se mantiene retrieval semantico.")
         }
-    }
-    
-    /**
-     * Calcula similitud de texto mejorada usando múltiples métricas
-     */
-    private fun calculateTextSimilarity(text1: String, text2: String): Float {
-        // Normalizar textos
-        val norm1 = normalizeText(text1)
-        val norm2 = normalizeText(text2)
-        
-        if (norm1.isBlank() || norm2.isBlank()) return 0f
-        
-        val words1 = norm1.split(Regex("\\s+")).filter { it.isNotEmpty() }.toSet()
-        val words2 = norm2.split(Regex("\\s+")).filter { it.isNotEmpty() }.toSet()
-        
-        if (words1.isEmpty() || words2.isEmpty()) return 0f
-
-        val informative1 = extractInformativeTokens(words1)
-        val informative2 = extractInformativeTokens(words2)
-        val queryEntities = informative1.filterNot { it in genericIntentTokens }.toSet()
-        val candidateEntities = informative2.filterNot { it in genericIntentTokens }.toSet()
-        
-        // 1. Similitud Jaccard usando librería Apache Commons Text
-        val jaccard = (jaccardSimilarity.apply(norm1, norm2)).toFloat().coerceIn(0f, 1f)
-        
-        // 2. Bonus por palabras clave coincidentes
-        val keywordScore = calculateKeywordBonus(words1, words2)
-        
-        // 3. Bonus por sinónimos
-        val synonymScore = calculateSynonymBonus(words1, words2)
-        
-        // 4. Similitud de forma de cadena usando librería (Jaro-Winkler + FuzzyScore)
-        val jaroScore = (jaroWinklerSimilarity.apply(norm1, norm2)).toFloat().coerceIn(0f, 1f)
-        val fuzzyRaw = fuzzyScore.fuzzyScore(norm1, norm2).toFloat()
-        val maxLen = maxOf(norm1.length, norm2.length).coerceAtLeast(1)
-        val fuzzyNormalized = (fuzzyRaw / maxLen).coerceIn(0f, 1f)
-        
-        // Mantener un bonus explícito cuando una frase contiene a la otra
-        val substringBonus = if (norm1.contains(norm2) || norm2.contains(norm1)) 0.20f else 0f
-        
-        // 5. Bonus por bigramas compartidos
-        val bigram1 = generateBigrams(norm1)
-        val bigram2 = generateBigrams(norm2)
-        val bigramScore = if (bigram1.isNotEmpty() && bigram2.isNotEmpty()) {
-            bigram1.intersect(bigram2).size.toFloat() / bigram1.union(bigram2).size.toFloat()
-        } else 0f
-        
-        val tokenCoverage = if (informative1.isNotEmpty()) {
-            informative1.intersect(informative2).size.toFloat() / informative1.size.toFloat()
-        } else 0f
-        val entityCoverage = if (queryEntities.isNotEmpty()) {
-            queryEntities.intersect(candidateEntities).size.toFloat() / queryEntities.size.toFloat()
-        } else 1f
-        val queryIntents = detectIntents(informative1)
-        val candidateIntents = detectIntents(informative2)
-        val missesIntent = queryIntents.isNotEmpty() && queryIntents.intersect(candidateIntents).isEmpty()
-        val sharesIntent = queryIntents.isNotEmpty() && queryIntents.intersect(candidateIntents).isNotEmpty()
-        
-        // Combinar métricas con pesos
-        var finalScore = (jaccard * 0.20f + 
-                         keywordScore * 0.25f + 
-                         synonymScore * 0.20f + 
-                         bigramScore * 0.10f +
-                         jaroScore * 0.15f +
-                         fuzzyNormalized * 0.10f +
-                         substringBonus +
-                         tokenCoverage * 0.20f).coerceIn(0f, 1f)
-
-        if (sharesIntent) {
-            finalScore = (finalScore + 0.08f).coerceIn(0f, 1f)
-        }
-        if (missesIntent) {
-            finalScore *= 0.70f
-        }
-        if (queryEntities.isNotEmpty()) {
-            finalScore *= if (entityCoverage == 0f) 0.45f else (0.70f + entityCoverage * 0.30f)
-        }
-        if (informative1.size >= 3 && tokenCoverage < 0.34f) {
-            finalScore *= 0.72f
-        }
-        
-        return finalScore.coerceIn(0f, 1f)
     }
     
     /**
@@ -818,15 +1221,6 @@ class SemanticSearchHelper(private val context: Context) {
         return vocab
     }
     
-    /**
-     * Genera bigramas de un texto
-     */
-    private fun generateBigrams(text: String): Set<String> {
-        val words = text.split(Regex("\\s+")).filter { it.isNotEmpty() }
-        if (words.size < 2) return emptySet()
-        return words.zipWithNext { a, b -> "$a $b" }.toSet()
-    }
-
     private fun extractInformativeTokens(words: Set<String>): Set<String> {
         return words
             .asSequence()
@@ -842,119 +1236,6 @@ class SemanticSearchHelper(private val context: Context) {
             .toSet()
     }
 
-    private fun detectIntents(tokens: Set<String>): Set<String> {
-        return intentKeywords
-            .filter { (_, keywords) -> tokens.any { it in keywords } }
-            .keys
-    }
-    
-    /**
-     * Calcula bonus por palabras clave importantes
-     */
-    private fun calculateKeywordBonus(words1: Set<String>, words2: Set<String>): Float {
-        val keywords = setOf(
-            // Acciones
-            "cultivar", "sembrar", "plantar", "regar", "fertilizar", "abonar", "cosechar",
-            "podar", "fumigar", "controlar", "prevenir", "tratar", "diagnosticar",
-            // Cultivos
-            "tomate", "maiz", "papa", "frijol", "cafe", "cebolla", "lechuga", "zanahoria",
-            "pepino", "pimenton", "aji", "yuca", "platano", "aguacate", "mango", "naranja",
-            "cafeto", "cafetal", "caficultura", "variedad", "castillo", "caturra", "bourbon",
-            "geisha", "tabi", "colombia", "catimor", "cenicafe", "typica", "pacamara",
-            // Problemas
-            "plaga", "enfermedad", "hongo", "virus", "bacteria", "gusano", "mosca", "arana",
-            "pulgon", "trips", "minador", "marchitez", "pudricion", "mancha", "amarillo",
-            "amarillamiento", "secas", "marchitas", "caidas", "manchadas", "broca", "cochinilla",
-            "acaro", "nematodo", "roya", "cercospora", "antracnosis", "llaga", "gallo",
-            "tizon", "norteno",
-            // Recursos
-            "fertilizante", "abono", "npk", "organico", "riego", "goteo", "agua", "suelo",
-            "tierra", "sustrato", "semilla", "nutriente", "nitrogeno", "fosforo", "potasio",
-            "calcio", "magnesio", "boro", "zinc", "hierro", "manganeso", "dolomita",
-            // Partes de planta
-            "hoja", "hojas", "raiz", "tallo", "flor", "fruto", "frutos",
-            // Cafe: manejo, cosecha y calidad
-            "poda", "podas", "renovacion", "zoqueo", "zoca", "beneficio", "despulpado",
-            "fermentacion", "secado", "pergamino", "humedad", "cereza", "maduro",
-            "trazabilidad", "pasilla", "quaker", "taza", "especialidad",
-            "catacion", "sensorial", "fragancia", "aroma", "acidez", "cuerpo", "dulzor",
-            "honey", "natural", "lavado", "anaerobia", "bodega", "mucilago", "actividad",
-            "agua", "broca", "roya", "cercospora", "antracnosis", "llaga", "castillo",
-            "caturra", "geisha", "catimor", "bourbon", "tabi", "fotosintesis",
-            "transpiracion", "respiracion", "estoma", "estomas", "evapotranspiracion",
-            "vpd", "inocuidad", "bpa", "bpm", "auditoria", "costos", "margen",
-            "rentabilidad", "flujo", "roi",
-            // Otros
-            "mejor", "cuando", "como", "porque", "cantidad", "frecuencia"
-        )
-        
-        val important1 = words1.filter { it in keywords }.toSet()
-        val important2 = words2.filter { it in keywords }.toSet()
-        
-        if (important1.isEmpty() && important2.isEmpty()) return 0.5f
-        if (important1.isEmpty() || important2.isEmpty()) return 0f
-        
-        return important1.intersect(important2).size.toFloat() / 
-               important1.union(important2).size.toFloat()
-    }
-    
-    /**
-     * Calcula bonus por sinónimos agrícolas
-     */
-    private fun calculateSynonymBonus(words1: Set<String>, words2: Set<String>): Float {
-        // Diccionario de sinónimos agrícolas
-        val synonymGroups = listOf(
-            setOf("amarillo", "amarillamiento", "amarillas", "clorosis"),
-            setOf("marchito", "marchitas", "marchitez", "secas", "mustias"),
-            setOf("plaga", "plagas", "insecto", "insectos", "bicho", "bichos"),
-            setOf("enfermedad", "enfermedades", "padecimiento", "mal"),
-            setOf("fertilizante", "abono", "fertilizacion", "abonar", "nutriente"),
-            setOf("riego", "regar", "agua", "irrigacion", "mojado"),
-            setOf("sembrar", "siembra", "plantar", "plantacion", "cultivar"),
-            setOf("cosecha", "cosechar", "recolectar", "recoleccion"),
-            setOf("hoja", "hojas", "follaje", "foliar"),
-            setOf("raiz", "raices", "radicular"),
-            setOf("fruto", "frutos", "frutas", "produccion"),
-            setOf("hongo", "hongos", "fungico", "fungica"),
-            setOf("tizon", "blight", "norteno", "northern"),
-            setOf("control", "controlar", "combatir", "eliminar", "tratamiento", "tratar"),
-            setOf("tomate", "tomates", "jitomate"),
-            setOf("maiz", "elote", "choclo"),
-            setOf("papa", "patata", "papas", "patatas"),
-            setOf("cafe", "cafeto", "cafetal"),
-            setOf("broca", "hypothenemus", "hampei"),
-            setOf("roya", "hemileia"),
-            setOf("cercospora", "mancha", "hierro"),
-            setOf("antracnosis", "colletotrichum"),
-            setOf("poda", "podar", "zoqueo", "zoca", "renovacion"),
-            setOf("beneficio", "despulpado", "fermentacion", "lavado"),
-            setOf("secado", "secar", "pergamino", "humedad"),
-            setOf("calidad", "taza", "sensorial", "especialidad"),
-            setOf("colino", "almacigo", "vivero", "chapola"),
-            setOf("cochinilla", "escama", "chupador"),
-            setOf("nematodo", "agalla", "radicular"),
-            setOf("arvenses", "maleza", "cobertura"),
-            setOf("maduro", "maduracion", "cereza"),
-            setOf("grano", "pasilla", "quaker"),
-            setOf("fotosintesis", "transpiracion", "respiracion", "estoma"),
-            setOf("evapotranspiracion", "vpd", "clima"),
-            setOf("inocuidad", "higiene", "limpieza"),
-            setOf("costos", "margen", "rentabilidad", "roi"),
-            setOf("mejor", "optimo", "recomendado", "ideal"),
-            setOf("cuando", "epoca", "momento", "tiempo"),
-            setOf("como", "manera", "forma", "metodo")
-        )
-        
-        var matchCount = 0
-        for (group in synonymGroups) {
-            val has1 = words1.any { it in group }
-            val has2 = words2.any { it in group }
-            if (has1 && has2) matchCount++
-        }
-        
-        return if (matchCount > 0) (matchCount.toFloat() / 5f).coerceIn(0f, 1f) else 0f
-    }
-    
     /**
      * Calcula similitud coseno entre dos vectores
      */
@@ -975,14 +1256,6 @@ class SemanticSearchHelper(private val context: Context) {
         return if (denominator > 0) dotProduct / denominator else 0f
     }
 
-    /**
-     * Mezcla score semántico y textual para estabilizar retrieval cuando embeddings
-     * no están perfectamente alineados.
-     */
-    private fun combineScores(semanticScore: Float, textScore: Float): Float {
-        return (semanticScore * 0.65f + textScore * 0.35f).coerceIn(0f, 1f)
-    }
-    
     /**
      * Busca los K mejores contextos para RAG (Retrieval Augmented Generation)
      * Esto permite que el LLM tenga múltiples fuentes de información
@@ -1005,107 +1278,73 @@ class SemanticSearchHelper(private val context: Context) {
         
         val startTime = System.currentTimeMillis()
         
-        // Calcular embedding de la query o usar fallback
-        val shouldUseEncoder = useMindSporeEncoder && !forceTextOnlyMode
-        val queryEmbedding = if (shouldUseEncoder) {
-            computeEmbedding(userQuery)
-        } else {
-            null
+        // Recuperacion semantica pura: sin fallback lexical.
+        val shouldUseEncoder = useMindSporeEncoder && embeddingIndexAligned && !forceTextOnlyMode
+        if (!shouldUseEncoder) {
+            AppLogger.log(TAG, "findTopKContexts: semantic encoder unavailable, returning empty context")
+            return ContextResult(emptyList(), "", null)
         }
-        
-        // Lista de (índice, score) para ordenar
-        val scores = mutableListOf<Pair<Int, Float>>()
-        
-        // Variable para tracking del mejor score semántico
-        var bestSemanticScore = -1f
-        var bestSemanticIdx = -1
-        val queryLower = normalizeQueryForSearch(userQuery)
-        
-        if (queryEmbedding != null) {
-            // Búsqueda semántica + textual (híbrida)
-            for (i in embeddings.indices) {
-                val semanticScore = cosineSimilarity(queryEmbedding, embeddings[i])
-                val textScore = calculateTextSimilarity(queryLower, questions[i].lowercase())
-                val score = combineScores(semanticScore, textScore)
-                if (semanticScore > bestSemanticScore) {
-                    bestSemanticScore = semanticScore
-                    bestSemanticIdx = i
-                }
-                if (score >= minScore) {
-                    scores.add(i to score)
-                }
-            }
-            Log.d(TAG, "Búsqueda semántica: mejor score=$bestSemanticScore, pregunta='${if (bestSemanticIdx >= 0) questions[bestSemanticIdx] else "N/A"}'")
-            
-            // Si no hay matches por umbral, fallback textual con umbral suave
-            if (scores.isEmpty()) {
-                Log.d(TAG, "Sin matches híbridos (minScore=$minScore), usando fallback de texto")
-                var bestTextScore = 0f
-                var bestTextQuestion = ""
-                for (i in questions.indices) {
-                    val questionLower = questions[i].lowercase()
-                    val textScore = calculateTextSimilarity(queryLower, questionLower)
-                    if (textScore > bestTextScore) {
-                        bestTextScore = textScore
-                        bestTextQuestion = questions[i]
-                    }
-                    if (textScore >= 0.2f) {
-                        scores.add(i to textScore)
-                    }
-                }
-                Log.d(TAG, "Fallback texto: mejor score=$bestTextScore, pregunta='$bestTextQuestion', total matches=${scores.size}")
-            }
-        } else {
-            // Fallback: similitud de texto
-            for (i in questions.indices) {
-                val questionLower = questions[i].lowercase()
-                val score = calculateTextSimilarity(queryLower, questionLower)
-                if (score >= minScore) {
-                    scores.add(i to score)
-                }
-            }
+        val normalizedQuery = normalizeQueryForSearch(userQuery)
+        val queryEmbedding = computeEmbedding(normalizedQuery) ?: run {
+            AppLogger.log(TAG, "findTopKContexts: no se pudo calcular embedding de query")
+            return ContextResult(emptyList(), "", null)
         }
 
-        // Garantizar al menos top-k por similitud textual cuando no hay ninguno por umbral.
-        if (scores.isEmpty()) {
-            Log.d(TAG, "Sin resultados >= umbral, recuperando top-$topK textual forzado")
-            val fallbackAll = questions.indices
-                .map { idx -> idx to calculateTextSimilarity(queryLower, questions[idx].lowercase()) }
-                .sortedByDescending { it.second }
-                .take(topK.coerceAtLeast(1))
-            scores.addAll(fallbackAll)
+        val queryTokens = informativeTokensFromText(normalizedQuery)
+        val ranked = rankSemanticCandidates(
+            queryEmbedding = queryEmbedding,
+            embeddings = embeddings,
+            minScore = minScore,
+            queryTokens = queryTokens
+        )
+
+        if (ranked.isEmpty()) {
+            Log.d(TAG, "Sin resultados semanticos >= umbral (minScore=$minScore)")
+            return ContextResult(
+                contexts = emptyList(),
+                combinedContext = "",
+                groundingAssessment = buildGroundingAssessment(userQuery, null, queryEmbedding)
+            )
         }
-        
-        // Ordenar por score descendente y tomar top K
-        val topResults = scores.sortedByDescending { it.second }.take(topK)
-        
-        // Evitar duplicados de la misma entrada (diferentes preguntas pueden apuntar a la misma respuesta)
+
+        val bestCandidate = ranked.first()
+        Log.d(
+            TAG,
+            "Busqueda semantica: best=${String.format("%.2f", bestCandidate.score)} base=${String.format("%.2f", bestCandidate.baseScore)} expanded=${String.format("%.2f", bestCandidate.expandedScore)} entry=${String.format("%.2f", bestCandidate.entryScore)} q='${questions[bestCandidate.index]}'"
+        )
+
+        // Evitar duplicados de la misma entrada (múltiples preguntas pueden mapear a la misma respuesta)
         val seenEntryIds = mutableSetOf<Int>()
         val uniqueResults = mutableListOf<MatchResult>()
-        
-        for ((idx, score) in topResults) {
-            val entryId = entryIds[idx]
+
+        for (candidate in ranked) {
+            val entryId = entryIds[candidate.index]
             if (entryId !in seenEntryIds) {
                 seenEntryIds.add(entryId)
                 val entry = entries[entryId]!!
                 uniqueResults.add(
                     MatchResult(
                         answer = entry.answer,
-                        matchedQuestion = questions[idx],
-                        similarityScore = score,
+                        matchedQuestion = questions[candidate.index],
+                        similarityScore = candidate.score,
                         category = entry.category,
                         entryId = entryId
                     )
                 )
+                if (uniqueResults.size >= topK) break
             }
         }
-        
+
         val elapsedTime = System.currentTimeMillis() - startTime
         Log.d(TAG, "findTopKContexts: ${uniqueResults.size} contextos en ${elapsedTime}ms")
-        
+
         // Construir contexto combinado para el LLM
         val combinedContext = buildCombinedContext(uniqueResults)
-        val groundingAssessment = buildGroundingAssessment(userQuery, uniqueResults.firstOrNull())
+        val groundingAssessment = buildGroundingAssessment(
+            userQuery = userQuery,
+            topMatch = uniqueResults.firstOrNull(),
+            queryEmbedding = queryEmbedding
+        )
 
         if (groundingAssessment != null) {
             AppLogger.log(
@@ -1141,7 +1380,8 @@ class SemanticSearchHelper(private val context: Context) {
 
     private fun buildGroundingAssessment(
         userQuery: String,
-        topMatch: MatchResult?
+        topMatch: MatchResult?,
+        queryEmbedding: FloatArray? = null
     ): GroundingAssessment? {
         val queryTokens = informativeTokensFromText(normalizeQueryForSearch(userQuery))
         if (queryTokens.isEmpty()) return null
@@ -1159,52 +1399,89 @@ class SemanticSearchHelper(private val context: Context) {
             )
         }
 
-        val evidenceTokens = informativeTokensFromText("${topMatch.matchedQuestion} ${topMatch.answer}")
-        val overlap = queryTokens.intersect(evidenceTokens)
-        val lexicalCoverage = overlap.size.toFloat() / queryTokens.size.toFloat()
-        val queryEntities = queryTokens.filterNot { it in genericIntentTokens }.toSet()
-        val evidenceEntities = evidenceTokens.filterNot { it in genericIntentTokens }.toSet()
-        val matchedEntities = queryEntities.intersect(evidenceEntities)
-        val entityCoverage = if (queryEntities.isNotEmpty()) {
-            matchedEntities.size.toFloat() / queryEntities.size.toFloat()
+        val effectiveQueryEmbedding = queryEmbedding ?: computeEmbedding(normalizeQueryForSearch(userQuery))
+        val entryScore = if (effectiveQueryEmbedding != null) {
+            entrySemanticEmbeddings[topMatch.entryId]?.let { cosineSimilarity(effectiveQueryEmbedding, it) }
         } else {
-            lexicalCoverage
-        }
-
-        val unknownQueryTokens = if (kbInformativeVocabulary.isNotEmpty()) {
-            queryTokens.filter { it !in kbInformativeVocabulary }.toSet()
-        } else {
-            emptySet()
-        }
-        val unknownTokenRatio = if (queryTokens.isNotEmpty()) {
-            unknownQueryTokens.size.toFloat() / queryTokens.size.toFloat()
-        } else {
-            0f
-        }
+            null
+        } ?: topMatch.similarityScore
 
         val supportScore = (
-            topMatch.similarityScore * 0.55f +
-                lexicalCoverage * 0.30f +
-                entityCoverage * 0.20f -
-                unknownTokenRatio * 0.35f
+            topMatch.similarityScore * 0.66f +
+                entryScore * 0.34f
             ).coerceIn(0f, 1f)
-
+        val semanticCoverage = ((topMatch.similarityScore + entryScore) * 0.5f).coerceIn(0f, 1f)
+        val entityCoverage = maxOf(topMatch.similarityScore, entryScore).coerceIn(0f, 1f)
+        val unknownTokenRatio = (1f - supportScore).coerceIn(0f, 1f)
         val hasStrongSupport =
-            supportScore >= 0.55f &&
-                lexicalCoverage >= 0.34f &&
-                (queryEntities.isEmpty() || entityCoverage >= 0.45f) &&
-                unknownTokenRatio <= 0.45f
+            supportScore >= 0.50f &&
+                semanticCoverage >= 0.42f &&
+                unknownTokenRatio <= 0.58f
 
         return GroundingAssessment(
             supportScore = supportScore,
-            lexicalCoverage = lexicalCoverage,
+            lexicalCoverage = semanticCoverage,
             entityCoverage = entityCoverage,
             unknownTokenRatio = unknownTokenRatio,
             queryTokens = queryTokens,
-            missingEntityTokens = queryEntities - matchedEntities,
-            unknownQueryTokens = unknownQueryTokens,
+            missingEntityTokens = emptySet(),
+            unknownQueryTokens = emptySet(),
             hasStrongSupport = hasStrongSupport
         )
+    }
+
+    fun scoreResponseGrounding(
+        responseText: String,
+        userQuery: String,
+        contextText: String
+    ): Float? {
+        val shouldUseEncoder = useMindSporeEncoder && embeddingIndexAligned && !forceTextOnlyMode
+        if (!shouldUseEncoder) return null
+
+        val responseEmbedding = computeEmbedding(responseText.take(900)) ?: return null
+        val queryEmbedding = computeEmbedding(normalizeQueryForSearch(userQuery)) ?: return null
+        val contextChunks = splitContextIntoSemanticChunks(contextText)
+        if (contextChunks.isEmpty()) return null
+
+        var bestContextScore = Float.NEGATIVE_INFINITY
+        var contextScoreSum = 0f
+        var count = 0
+
+        for (chunk in contextChunks) {
+            val chunkEmbedding = computeEmbedding(chunk) ?: continue
+            val similarity = cosineSimilarity(responseEmbedding, chunkEmbedding).coerceIn(0f, 1f)
+            if (similarity > bestContextScore) bestContextScore = similarity
+            contextScoreSum += similarity
+            count += 1
+        }
+
+        if (count <= 0) return null
+
+        val avgContextScore = contextScoreSum / count.toFloat()
+        val queryScore = cosineSimilarity(responseEmbedding, queryEmbedding).coerceIn(0f, 1f)
+        return (
+            bestContextScore.coerceIn(0f, 1f) * 0.55f +
+                avgContextScore * 0.20f +
+                queryScore * 0.25f
+            ).coerceIn(0f, 1f)
+    }
+
+    private fun splitContextIntoSemanticChunks(contextText: String): List<String> {
+        val clean = contextText.replace("\r", "").trim()
+        if (clean.isBlank()) return emptyList()
+
+        val bySeparator = clean
+            .split("\n---\n")
+            .map { it.trim() }
+            .filter { it.length >= 30 }
+            .take(4)
+        if (bySeparator.isNotEmpty()) return bySeparator
+
+        return clean
+            .chunked(700)
+            .map { it.trim() }
+            .filter { it.length >= 30 }
+            .take(4)
     }
     
     /**
@@ -1223,6 +1500,10 @@ class SemanticSearchHelper(private val context: Context) {
         kbEntryIds = null
         kbEntries = null
         kbInformativeVocabulary = emptySet()
+        entrySemanticEmbeddings = emptyMap()
+        annCentroids = emptyArray()
+        annPostingLists = emptyList()
+        embeddingIndexAligned = false
         isInitialized = false
         useMindSporeEncoder = false
         

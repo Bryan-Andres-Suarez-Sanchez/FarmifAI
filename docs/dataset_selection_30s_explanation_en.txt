@@ -1,0 +1,5 @@
+This slide explains how we selected datasets for two AI components. 
+For the SLM, we use structured agronomic parameters and Q&A examples. 
+Numerical values are discretized into categories, 
+so the model can reason with consistent features and generate reliable recommendations and answers.
+ For the vision model, we use multi-crop disease image datasets. The model analyzes leaf photos, detects likely diseases, reports confidence, and provides practical treatment guidance tailored to farmers.

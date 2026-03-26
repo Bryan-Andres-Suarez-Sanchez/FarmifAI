@@ -5,6 +5,7 @@ import android.util.Log
 import android.llama.cpp.LLamaAndroid
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
@@ -19,13 +20,19 @@ class LlamaService private constructor() {
     
     companion object {
         private const val TAG = "LlamaService"
-        // Nombre del modelo a descargar
-        private const val DEFAULT_MODEL_FILENAME = "Llama-3.2-1B-Instruct-Q4_K_M.gguf"
-        private const val MAX_TOKENS = 450  // Más tokens para evitar respuestas truncadas
-        
-        // URL de descarga automática desde Hugging Face
-        private const val MODEL_DOWNLOAD_URL = "https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q4_K_M.gguf"
-        private const val MODEL_SIZE_BYTES = 780_000_000L  // ~750MB
+        // Modelo gratuito offline recomendado por defecto (Qwen)
+        private const val DEFAULT_MODEL_FILENAME = "Qwen2.5-1.5B-Instruct-Q4_K_M.gguf"
+        private const val MAX_TOKENS = 1200  // Salidas más completas por defecto
+
+        // URL de descarga automática desde Hugging Face (Qwen2.5 1.5B Q4_K_M)
+        private const val MODEL_DOWNLOAD_URL = "https://huggingface.co/bartowski/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/Qwen2.5-1.5B-Instruct-Q4_K_M.gguf"
+        private const val MODEL_SIZE_BYTES = 1_050_000_000L  // ~1000MB
+        private const val MIN_VALID_GGUF_BYTES = 100_000_000L
+        private val MODEL_FILENAME_PREFERENCE = listOf(
+            DEFAULT_MODEL_FILENAME,
+            "Qwen2.5-0.5B-Instruct-Q4_K_M.gguf",
+            "Llama-3.2-1B-Instruct-Q4_K_M.gguf"
+        )
         
         @Volatile
         private var instance: LlamaService? = null
@@ -38,6 +45,13 @@ class LlamaService private constructor() {
     }
     
     private val llama: LLamaAndroid = LLamaAndroid.instance()
+    private var loadedModelName: String? = null
+
+    private enum class ModelFamily {
+        LLAMA3,
+        QWEN,
+        GENERIC
+    }
     
     // Callback para progreso de descarga
     var onDownloadProgress: ((progress: Int, downloadedMB: Int, totalMB: Int) -> Unit)? = null
@@ -55,11 +69,13 @@ class LlamaService private constructor() {
     private fun getModelFile(context: Context): File? {
         val dir = context.getExternalFilesDir(null) ?: return null
 
-        val preferred = File(dir, DEFAULT_MODEL_FILENAME)
-        if (preferred.exists() && preferred.length() > 100_000_000) return preferred
+        for (name in MODEL_FILENAME_PREFERENCE) {
+            val preferred = File(dir, name)
+            if (preferred.exists() && preferred.length() > MIN_VALID_GGUF_BYTES) return preferred
+        }
 
         val candidates = dir.listFiles { f -> 
-            f.isFile && f.name.endsWith(".gguf", ignoreCase = true) && f.length() > 100_000_000 
+            f.isFile && f.name.endsWith(".gguf", ignoreCase = true) && f.length() > MIN_VALID_GGUF_BYTES
         } ?: emptyArray()
         return candidates.maxByOrNull { it.length() }
     }
@@ -82,6 +98,8 @@ class LlamaService private constructor() {
         val modelFile = getModelFile(context) ?: return 0L
         return modelFile.length() / (1024 * 1024)
     }
+
+    fun getExpectedDownloadSizeMB(): Int = (MODEL_SIZE_BYTES / (1024 * 1024)).toInt()
     
     /**
      * Verifica si el modelo está cargado
@@ -99,7 +117,7 @@ class LlamaService private constructor() {
             val modelFile = File(dir, DEFAULT_MODEL_FILENAME)
             val tempFile = File(dir, "${DEFAULT_MODEL_FILENAME}.tmp")
             
-            if (modelFile.exists() && modelFile.length() > 100_000_000) {
+            if (modelFile.exists() && modelFile.length() > MIN_VALID_GGUF_BYTES) {
                 Log.i(TAG, "Modelo ya existe: ${modelFile.absolutePath}")
                 return@withContext Result.success(modelFile)
             }
@@ -138,7 +156,7 @@ class LlamaService private constructor() {
                 }
             }
             
-            if (tempFile.exists() && tempFile.length() > 100_000_000) {
+            if (tempFile.exists() && tempFile.length() > MIN_VALID_GGUF_BYTES) {
                 modelFile.delete()
                 tempFile.renameTo(modelFile)
                 Log.i(TAG, "✅ Modelo descargado: ${modelFile.absolutePath}")
@@ -169,6 +187,7 @@ class LlamaService private constructor() {
             Log.i(TAG, "Cargando modelo: ${modelFile.name} (${modelFile.length() / (1024 * 1024)}MB) desde: ${modelFile.absolutePath}")
 
             llama.load(modelFile.absolutePath)
+            loadedModelName = modelFile.name
             Log.i(TAG, "Modelo cargado exitosamente")
             Result.success(Unit)
             
@@ -212,41 +231,57 @@ class LlamaService private constructor() {
         maxContextLength: Int = 1200,
         systemPrompt: String = "Eres FarmifAI, un asistente agricola experto. Responde en espanol de forma clara, cercana y practica para agricultor. Nunca menciones terminos internos como KB, RAG, LLM, contexto de referencia, modelo o sistema."
     ): Result<String> {
+        val prompt = buildAgriPrompt(userQuery, contextFromKB, maxContextLength, systemPrompt)
         
-        // User message: pregunta + contexto opcional
-        val userMessage: String = if (!contextFromKB.isNullOrBlank()) {
-            // Truncar contexto según configuración
-            val shortContext = truncateContextPreservingKb(contextFromKB, maxContextLength)
-            """Usa solo estos datos para responder con precision.
-Empieza con una recomendacion clara y directa.
-Si faltan datos, pide maximo dos datos concretos en una sola pregunta al final.
-No inventes informacion externa ni menciones terminos internos.
-
-DATOS DISPONIBLES:
-$shortContext
-
-CONSULTA:
-$userQuery
-"""
-        } else {
-            userQuery
-        }
-        
-        // Formato Llama 3.2 Chat
-        val prompt = """<|begin_of_text|><|start_header_id|>system<|end_header_id|>
-
-$systemPrompt<|eot_id|><|start_header_id|>user<|end_header_id|>
-
-$userMessage<|eot_id|><|start_header_id|>assistant<|end_header_id|>
-
-"""
-        
-        Log.d(TAG, "Prompt Llama3: ${prompt.length} chars, maxTokens: $maxTokens")
+        Log.d(TAG, "Prompt local (${detectModelFamily()}): ${prompt.length} chars, maxTokens: $maxTokens")
         
         // formatChat = false porque ya formateamos manualmente
         val result = generateCompleteRaw(prompt, maxTokens)
         
         return result.map { response -> cleanResponse(response) }
+    }
+
+    /**
+     * Genera respuesta agrícola en streaming. Va entregando texto parcial para mejorar
+     * el tiempo percibido por el usuario.
+     */
+    suspend fun generateAgriResponseStreaming(
+        userQuery: String,
+        contextFromKB: String? = null,
+        maxTokens: Int = MAX_TOKENS,
+        maxContextLength: Int = 1200,
+        systemPrompt: String = "Eres FarmifAI, un asistente agricola experto. Responde en espanol de forma clara, cercana y practica para agricultor. Nunca menciones terminos internos como KB, RAG, LLM, contexto de referencia, modelo o sistema.",
+        onPartialResponse: suspend (String) -> Unit
+    ): Result<String> {
+        return try {
+            val prompt = buildAgriPrompt(userQuery, contextFromKB, maxContextLength, systemPrompt)
+            Log.d(TAG, "Prompt streaming (${detectModelFamily()}): ${prompt.length} chars, maxTokens: $maxTokens")
+
+            val raw = StringBuilder()
+            var emittedChunks = 0
+            llama.send(prompt, formatChat = false, maxTokens = maxTokens).collect { chunk ->
+                if (chunk.isBlank()) return@collect
+                raw.append(chunk)
+                emittedChunks++
+
+                // Evita saturar Compose actualizando en cada token.
+                if (emittedChunks <= 6 || emittedChunks % 5 == 0 || chunk.contains('\n')) {
+                    val partial = cleanResponse(raw.toString())
+                    if (partial.length >= 5) {
+                        onPartialResponse(partial)
+                    }
+                }
+            }
+
+            val finalResponse = cleanResponse(raw.toString())
+            if (finalResponse.length >= 5) {
+                onPartialResponse(finalResponse)
+            }
+            Result.success(finalResponse)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error generando respuesta streaming", e)
+            Result.failure(e)
+        }
     }
     
     /**
@@ -268,11 +303,12 @@ $userMessage<|eot_id|><|start_header_id|>assistant<|end_header_id|>
     private fun cleanResponse(response: String): String {
         var cleaned = response
         
-        // Tokens especiales de Llama 3
+        // Tokens especiales comunes (Llama / Qwen)
         val specialTokens = listOf(
             "<|begin_of_text|>", "<|end_of_text|>",
             "<|start_header_id|>", "<|end_header_id|>",
-            "<|eot_id|>", "<|eom_id|>"
+            "<|eot_id|>", "<|eom_id|>",
+            "<|im_start|>", "<|im_end|>"
         )
         
         // Eliminar tokens al inicio
@@ -304,12 +340,82 @@ $userMessage<|eot_id|><|start_header_id|>assistant<|end_header_id|>
         // Limpiar artefactos de conversación inventada (Usuario:/Asistente:)
         cleaned = removeRoleDialogueArtifacts(cleaned).trim()
         
-        // Si quedó muy corta o vacía, devolver mensaje genérico
+        // Si quedó muy corta, dejar que capas superiores decidan fallback.
         if (cleaned.length < 5) {
-            return "Puedo ayudarte con información sobre cultivos, plagas, riego y más. ¿Qué te gustaría saber?"
+            return cleaned
         }
         
         return cleaned
+    }
+
+    private fun detectModelFamily(): ModelFamily {
+        val name = loadedModelName?.lowercase().orEmpty()
+        return when {
+            "qwen" in name -> ModelFamily.QWEN
+            "llama" in name -> ModelFamily.LLAMA3
+            else -> ModelFamily.GENERIC
+        }
+    }
+
+    private fun buildPromptForCurrentModel(systemPrompt: String, userMessage: String): String {
+        return when (detectModelFamily()) {
+            ModelFamily.QWEN -> {
+                """<|im_start|>system
+$systemPrompt
+<|im_end|>
+<|im_start|>user
+$userMessage
+<|im_end|>
+<|im_start|>assistant
+"""
+            }
+            ModelFamily.LLAMA3 -> {
+                """<|begin_of_text|><|start_header_id|>system<|end_header_id|>
+
+$systemPrompt<|eot_id|><|start_header_id|>user<|end_header_id|>
+
+$userMessage<|eot_id|><|start_header_id|>assistant<|end_header_id|>
+
+"""
+            }
+            ModelFamily.GENERIC -> {
+                """Sistema:
+$systemPrompt
+
+Usuario:
+$userMessage
+
+Asistente:
+"""
+            }
+        }
+    }
+
+    private fun buildAgriPrompt(
+        userQuery: String,
+        contextFromKB: String?,
+        maxContextLength: Int,
+        systemPrompt: String
+    ): String {
+        val userMessage: String = if (!contextFromKB.isNullOrBlank()) {
+            val shortContext = truncateContextPreservingKb(contextFromKB, maxContextLength)
+            """Usa solo estos datos para responder con precision.
+Empieza con una recomendacion clara y directa.
+Reformula con tus propias palabras y evita copiar frases textuales de DATOS DISPONIBLES.
+Explica brevemente por que recomiendas cada paso.
+Si faltan datos, pide maximo dos datos concretos en una sola pregunta al final.
+No inventes informacion externa ni menciones terminos internos.
+
+DATOS DISPONIBLES:
+$shortContext
+
+CONSULTA:
+$userQuery
+"""
+        } else {
+            userQuery
+        }
+        return buildPromptForCurrentModel(systemPrompt, userMessage)
     }
 
     /**
@@ -397,6 +503,7 @@ $userMessage<|eot_id|><|start_header_id|>assistant<|end_header_id|>
     suspend fun unload() {
         try {
             llama.unload()
+            loadedModelName = null
         } catch (e: Exception) {
             Log.e(TAG, "Error liberando recursos", e)
         }
