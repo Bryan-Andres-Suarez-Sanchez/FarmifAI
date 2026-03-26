@@ -20,18 +20,20 @@ class LlamaService private constructor() {
     
     companion object {
         private const val TAG = "LlamaService"
-        // Modelo gratuito offline recomendado por defecto (Qwen)
-        private const val DEFAULT_MODEL_FILENAME = "Qwen2.5-1.5B-Instruct-Q4_K_M.gguf"
+        // Modelo offline por defecto optimizado para dispositivos modestos (Qwen 0.5B)
+        private const val DEFAULT_MODEL_FILENAME = "Qwen2.5-0.5B-Instruct-Q4_K_M.gguf"
         private const val MAX_TOKENS = 1200  // Salidas más completas por defecto
 
-        // URL de descarga automática desde Hugging Face (Qwen2.5 1.5B Q4_K_M)
-        private const val MODEL_DOWNLOAD_URL = "https://huggingface.co/bartowski/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/Qwen2.5-1.5B-Instruct-Q4_K_M.gguf"
-        private const val MODEL_SIZE_BYTES = 1_050_000_000L  // ~1000MB
+        // URL de descarga automática desde Hugging Face (Qwen2.5 0.5B Q4_K_M)
+        private const val MODEL_DOWNLOAD_URL = "https://huggingface.co/bartowski/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/Qwen2.5-0.5B-Instruct-Q4_K_M.gguf"
+        private const val MODEL_SIZE_BYTES = 397_808_192L  // ~379MB
         private const val MIN_VALID_GGUF_BYTES = 100_000_000L
         private val MODEL_FILENAME_PREFERENCE = listOf(
             DEFAULT_MODEL_FILENAME,
-            "Qwen2.5-0.5B-Instruct-Q4_K_M.gguf",
-            "Llama-3.2-1B-Instruct-Q4_K_M.gguf"
+            "Qwen2.5-0.5B-Instruct-Q5_K_M.gguf",
+            "Qwen2.5-0.5B-Instruct-Q4_0.gguf",
+            "Qwen2.5-0.5B-Instruct-Q3_K_M.gguf",
+            "Qwen2.5-0.5B-Instruct-IQ3_M.gguf"
         )
         
         @Volatile
@@ -74,10 +76,11 @@ class LlamaService private constructor() {
             if (preferred.exists() && preferred.length() > MIN_VALID_GGUF_BYTES) return preferred
         }
 
-        val candidates = dir.listFiles { f -> 
+        val candidates = dir.listFiles { f ->
             f.isFile && f.name.endsWith(".gguf", ignoreCase = true) && f.length() > MIN_VALID_GGUF_BYTES
         } ?: emptyArray()
-        return candidates.maxByOrNull { it.length() }
+        // En rama fastmodel priorizamos menor huella para mejorar carga/latencia.
+        return candidates.minByOrNull { it.length() }
     }
     
     /**
