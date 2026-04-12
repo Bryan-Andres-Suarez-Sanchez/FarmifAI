@@ -567,32 +567,6 @@ class SemanticSearchHelper(private val context: Context) {
             }
         }
 
-        val sourceBits = mutableListOf<String>()
-        val sourceAttribution = record.optString("source_attribution", "").trim()
-        if (sourceAttribution.isNotBlank()) sourceBits.add(sourceAttribution)
-        val sourceRef = record.optJSONObject("source_ref")
-        if (sourceRef != null) {
-            val document = sourceRef.optString("document", "").trim()
-            val pages = jsonArrayToStrings(sourceRef.optJSONArray("pages"))
-            val pageText = if (pages.isNotEmpty()) "paginas ${pages.joinToString(", ")}" else ""
-            when {
-                document.isNotBlank() && pageText.isNotBlank() -> sourceBits.add("$document ($pageText)")
-                document.isNotBlank() -> sourceBits.add(document)
-                pageText.isNotBlank() -> sourceBits.add(pageText)
-            }
-        }
-        if (sourceBits.isNotEmpty()) lines.add("Fuente: ${sourceBits.joinToString(" | ")}")
-
-        val recordType = record.optString("record_type", "").trim()
-        val priority = record.optString("priority", "").trim()
-        val evidence = record.optString("evidence_strength", "").trim()
-        val meta = listOf(
-            "tipo=$recordType".takeIf { recordType.isNotBlank() },
-            "prioridad=$priority".takeIf { priority.isNotBlank() },
-            "evidencia=$evidence".takeIf { evidence.isNotBlank() }
-        ).filterNotNull()
-        if (meta.isNotEmpty()) lines.add("Metadatos: ${meta.joinToString(", ")}")
-
         if (record.optBoolean("uncertain_text", false)) {
             val note = record.optString("uncertainty_note", "").trim()
             lines.add("Nota de incertidumbre: ${if (note.isNotBlank()) note else "la fuente marca este registro como incierto"}")

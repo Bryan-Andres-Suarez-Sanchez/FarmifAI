@@ -232,11 +232,12 @@ class LlamaService private constructor() {
         contextFromKB: String? = null,
         maxTokens: Int = MAX_TOKENS,
         maxContextLength: Int = 1200,
-        systemPrompt: String = "Eres FarmifAI, un asistente agricola experto. Responde en espanol de forma clara, cercana y practica para agricultor. Nunca menciones terminos internos como KB, RAG, LLM, contexto de referencia, modelo o sistema."
+        systemPrompt: String = "Eres FarmifAI, un asistente agricola experto. Responde en espanol de forma clara, cercana y practica para agricultor. Nunca menciones terminos internos como KB, RAG, LLM, contexto de referencia, modelo o sistema.",
+        conversationHistory: List<Pair<String, String>> = emptyList()
     ): Result<String> {
-        val prompt = buildAgriPrompt(userQuery, contextFromKB, maxContextLength, systemPrompt)
+        val prompt = buildAgriPrompt(userQuery, contextFromKB, maxContextLength, systemPrompt, conversationHistory)
         
-        Log.d(TAG, "Prompt local (${detectModelFamily()}): ${prompt.length} chars, maxTokens: $maxTokens")
+        Log.d(TAG, "Prompt local (${detectModelFamily()}): ${prompt.length} chars, maxTokens: $maxTokens, history: ${conversationHistory.size} turns")
         
         // formatChat = false porque ya formateamos manualmente
         val result = generateCompleteRaw(prompt, maxTokens)
@@ -254,10 +255,11 @@ class LlamaService private constructor() {
         maxTokens: Int = MAX_TOKENS,
         maxContextLength: Int = 1200,
         systemPrompt: String = "Eres FarmifAI, un asistente agricola experto. Responde en espanol de forma clara, cercana y practica para agricultor. Nunca menciones terminos internos como KB, RAG, LLM, contexto de referencia, modelo o sistema.",
+        conversationHistory: List<Pair<String, String>> = emptyList(),
         onPartialResponse: suspend (String) -> Unit
     ): Result<String> {
         return try {
-            val prompt = buildAgriPrompt(userQuery, contextFromKB, maxContextLength, systemPrompt)
+            val prompt = buildAgriPrompt(userQuery, contextFromKB, maxContextLength, systemPrompt, conversationHistory)
             Log.d(TAG, "Prompt streaming (${detectModelFamily()}): ${prompt.length} chars, maxTokens: $maxTokens")
 
             val raw = StringBuilder()
@@ -360,36 +362,65 @@ class LlamaService private constructor() {
         }
     }
 
-    private fun buildPromptForCurrentModel(systemPrompt: String, userMessage: String): String {
+    private fun buildPromptForCurrentModel(
+        systemPrompt: String,
+        userMessage: String,
+        conversationHistory: List<Pair<String, String>> = emptyList()
+    ): String {
         return when (detectModelFamily()) {
             ModelFamily.QWEN -> {
-                """<|im_start|>system
-$systemPrompt
-<|im_end|>
-<|im_start|>user
-$userMessage
-<|im_end|>
-<|im_start|>assistant
-"""
+                buildString {
+                    append("<|im_start|>system\n")
+                    append(systemPrompt)
+                    append("\n<|im_end|>\n")
+                    for ((userMsg, assistantMsg) in conversationHistory) {
+                        append("<|im_start|>user\n")
+                        append(userMsg)
+                        append("\n<|im_end|>\n")
+                        append("<|im_start|>assistant\n")
+                        append(assistantMsg)
+                        append("\n<|im_end|>\n")
+                    }
+                    append("<|im_start|>user\n")
+                    append(userMessage)
+                    append("\n<|im_end|>\n")
+                    append("<|im_start|>assistant\n")
+                }
             }
             ModelFamily.LLAMA3 -> {
-                """<|begin_of_text|><|start_header_id|>system<|end_header_id|>
-
-$systemPrompt<|eot_id|><|start_header_id|>user<|end_header_id|>
-
-$userMessage<|eot_id|><|start_header_id|>assistant<|end_header_id|>
-
-"""
+                buildString {
+                    append("<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n")
+                    append(systemPrompt)
+                    append("<|eot_id|>")
+                    for ((userMsg, assistantMsg) in conversationHistory) {
+                        append("<|start_header_id|>user<|end_header_id|>\n\n")
+                        append(userMsg)
+                        append("<|eot_id|>")
+                        append("<|start_header_id|>assistant<|end_header_id|>\n\n")
+                        append(assistantMsg)
+                        append("<|eot_id|>")
+                    }
+                    append("<|start_header_id|>user<|end_header_id|>\n\n")
+                    append(userMessage)
+                    append("<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n")
+                }
             }
             ModelFamily.GENERIC -> {
-                """Sistema:
-$systemPrompt
-
-Usuario:
-$userMessage
-
-Asistente:
-"""
+                buildString {
+                    append("Sistema:\n")
+                    append(systemPrompt)
+                    append("\n\n")
+                    for ((userMsg, assistantMsg) in conversationHistory) {
+                        append("Usuario:\n")
+                        append(userMsg)
+                        append("\n\nAsistente:\n")
+                        append(assistantMsg)
+                        append("\n\n")
+                    }
+                    append("Usuario:\n")
+                    append(userMessage)
+                    append("\n\nAsistente:\n")
+                }
             }
         }
     }
@@ -398,27 +429,18 @@ Asistente:
         userQuery: String,
         contextFromKB: String?,
         maxContextLength: Int,
-        systemPrompt: String
+        systemPrompt: String,
+        conversationHistory: List<Pair<String, String>> = emptyList()
     ): String {
         val userMessage: String = if (!contextFromKB.isNullOrBlank()) {
             val shortContext = truncateContextPreservingKb(contextFromKB, maxContextLength)
-            """Usa solo estos datos para responder con precision.
-Empieza con una recomendacion clara y directa.
-Reformula con tus propias palabras y evita copiar frases textuales de DATOS DISPONIBLES.
-Explica brevemente por que recomiendas cada paso.
-Si faltan datos, pide maximo dos datos concretos en una sola pregunta al final.
-No inventes informacion externa ni menciones terminos internos.
-
-DATOS DISPONIBLES:
-$shortContext
-
-CONSULTA:
-$userQuery
-"""
+            "DATOS DISPONIBLES:\n$shortContext\n\nCONSULTA DEL AGRICULTOR:\n$userQuery"
         } else {
             userQuery
         }
-        return buildPromptForCurrentModel(systemPrompt, userMessage)
+        // Limitar historial a 3 turnos para no exceder contexto del modelo local
+        val limitedHistory = conversationHistory.takeLast(3)
+        return buildPromptForCurrentModel(systemPrompt, userMessage, limitedHistory)
     }
 
     /**
@@ -455,51 +477,12 @@ $userQuery
     }
 
     /**
-     * Trunca contexto priorizando la sección de KB sobre historial para evitar perder
-     * información clave al cortar por longitud.
+     * Trunca contexto de KB para que no exceda el limite de longitud.
      */
     private fun truncateContextPreservingKb(context: String, maxLen: Int): String {
-        if (context.length <= maxLen) return context
-
-        val kbMarker = "=== KB ==="
-        val historyMarker = "=== HISTORIAL ==="
-        val kbIndex = context.indexOf(kbMarker)
-        val historyIndex = context.indexOf(historyMarker)
-
-        if (kbIndex < 0) {
-            return context.take(maxLen)
-        }
-
-        val kbSection = if (historyIndex >= 0 && kbIndex < historyIndex) {
-            context.substring(kbIndex, historyIndex).trim()
-        } else {
-            context.substring(kbIndex).trim()
-        }
-
-        val historySection = if (historyIndex >= 0) {
-            if (historyIndex < kbIndex) {
-                context.substring(historyIndex, kbIndex).trim()
-            } else {
-                context.substring(historyIndex).trim()
-            }
-        } else {
-            ""
-        }
-
-        val kbBudget = (maxLen * 0.8f).toInt().coerceAtLeast(300)
-        val historyBudget = (maxLen - kbBudget).coerceAtLeast(0)
-
-        val kbTruncated = kbSection.take(kbBudget)
-        val historyContent = historySection.removePrefix(historyMarker).trim()
-        val historyTruncated = if (historyBudget > 0 && historyContent.isNotBlank()) {
-            "\n\n$historyMarker\n${historyContent.take(historyBudget)}"
-        } else {
-            ""
-        }
-
-        return (kbTruncated + historyTruncated).take(maxLen)
+        return context.take(maxLen)
     }
-    
+
     /**
      * Descarga el modelo y libera recursos
      */

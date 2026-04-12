@@ -43,20 +43,20 @@ Tu rol es ayudar a agricultores con información práctica sobre:
 - Cosecha y postcosecha
 
 Directrices:
-1. Responde de forma clara, concisa y práctica
+1. Responde de forma clara, concisa y practica
 2. Usa un lenguaje sencillo que cualquier agricultor pueda entender
-3. Si no sabes algo o no hay evidencia suficiente, admítelo honestamente y evita inventar
-4. Prioriza soluciones orgánicas cuando sea posible
-5. Prioriza respuestas completas; no cortes la explicación si aún faltan pasos clave
-6. Responde siempre en español
+3. Si no tienes datos suficientes, dilo honestamente en una frase corta. No inventes.
+4. Prioriza soluciones organicas cuando sea posible
+5. Se breve y directo. No repitas ideas ni alargues la respuesta innecesariamente
+6. Responde siempre en espanol
 7. Nunca uses lenguaje interno de sistemas (KB, RAG, LLM, modelo, contexto de referencia)"""
     }
 
     data class QueryConfig(
         val systemPrompt: String = SYSTEM_PROMPT,
         val maxTokens: Int = 1400,
-        val temperature: Double = 0.2,
-        val topP: Double = 0.85,
+        val temperature: Double = 0.25,
+        val topP: Double = 0.7,
         val historyWindow: Int = 5
     )
     
@@ -167,6 +167,7 @@ Directrices:
             put("temperature", safeTemperature)
             put("max_completion_tokens", safeMaxTokens)
             put("top_p", safeTopP)
+            put("frequency_penalty", 0.4)
             // Evita exponer razonamiento interno y reduce consumo de tokens.
             put("include_reasoning", false)
             put("reasoning_effort", "medium")
