@@ -20,20 +20,20 @@ class LlamaService private constructor() {
     
     companion object {
         private const val TAG = "LlamaService"
-        // Modelo offline por defecto optimizado para dispositivos modestos (Qwen 0.5B)
-        private const val DEFAULT_MODEL_FILENAME = "Qwen2.5-0.5B-Instruct-Q4_K_M.gguf"
+        // Modelo offline por defecto optimizado para dispositivos modestos (Qwen 3.5 0.8B)
+        private const val DEFAULT_MODEL_FILENAME = "Qwen3.5-0.8B-Q4_K_M.gguf"
         private const val MAX_TOKENS = 1200  // Salidas más completas por defecto
 
-        // URL de descarga automática desde Hugging Face (Qwen2.5 0.5B Q4_K_M)
-        private const val MODEL_DOWNLOAD_URL = "https://huggingface.co/bartowski/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/Qwen2.5-0.5B-Instruct-Q4_K_M.gguf"
-        private const val MODEL_SIZE_BYTES = 397_808_192L  // ~379MB
+        // URL de descarga automática desde Hugging Face (Qwen3.5 0.8B Q4_K_M)
+        private const val MODEL_DOWNLOAD_URL = "https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-Q4_K_M.gguf"
+        private const val MODEL_SIZE_BYTES = 558_891_008L  // ~533MB
         private const val MIN_VALID_GGUF_BYTES = 100_000_000L
         private val MODEL_FILENAME_PREFERENCE = listOf(
             DEFAULT_MODEL_FILENAME,
-            "Qwen2.5-0.5B-Instruct-Q5_K_M.gguf",
-            "Qwen2.5-0.5B-Instruct-Q4_0.gguf",
-            "Qwen2.5-0.5B-Instruct-Q3_K_M.gguf",
-            "Qwen2.5-0.5B-Instruct-IQ3_M.gguf"
+            "Qwen3.5-0.8B-Q5_K_M.gguf",
+            "Qwen3.5-0.8B-Q4_0.gguf",
+            "Qwen3.5-0.8B-Q3_K_M.gguf",
+            "Qwen2.5-0.5B-Instruct-Q4_K_M.gguf"
         )
         
         @Volatile
