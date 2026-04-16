@@ -32,6 +32,7 @@ class SemanticSearchHelper(private val context: Context) {
         private const val EMBEDDINGS_MAPPING_FILE = "kb_embeddings_mapping.json"
         private const val KNOWLEDGE_BASE_FILE = "agrochat_knowledge_base.json"
         private const val KNOWLEDGE_RECORDS_DIR = "kb_nueva/extract"
+        private const val SUPPLEMENTAL_CONVERSATIONS_FILE = "kb_nueva/FarmifAI_dataset.json"
         private const val MODEL_FILE = "sentence_encoder.ms"
         private const val TOKENIZER_FILE = "sentence_tokenizer.json"
         
@@ -222,6 +223,12 @@ class SemanticSearchHelper(private val context: Context) {
         val entryScore: Float
     )
 
+    private data class LexicalEntryCandidate(
+        val entryId: Int,
+        val matchedQuestion: String,
+        val score: Float
+    )
+
     fun setForceTextOnlyMode(enabled: Boolean) {
         forceTextOnlyMode = enabled
         AppLogger.log(TAG, "forceTextOnlyMode=$forceTextOnlyMode")
@@ -329,10 +336,16 @@ class SemanticSearchHelper(private val context: Context) {
         Log.d(TAG, "Cargando base de conocimiento...")
 
         val loadedFromRecords = loadKnowledgeBaseFromRecordsJsonl()
-        if (loadedFromRecords) return
+        if (loadedFromRecords) {
+            mergeSupplementalConversationDataset()
+            return
+        }
 
         val loadedLegacy = loadKnowledgeBaseFromLegacyJson()
-        if (loadedLegacy) return
+        if (loadedLegacy) {
+            mergeSupplementalConversationDataset()
+            return
+        }
 
         throw IllegalStateException("No se pudo cargar KB desde records jsonl ni desde formato legacy")
     }
@@ -423,6 +436,82 @@ class SemanticSearchHelper(private val context: Context) {
         kbInformativeVocabulary = buildKbVocabulary(entriesMap)
         Log.d(TAG, "KB records cargada: ${entriesMap.size} entradas desde ${fileNames.size} archivos")
         return true
+    }
+
+    private fun mergeSupplementalConversationDataset() {
+        val baseEntries = kbEntries?.toMutableMap() ?: return
+
+        val hasSupplementalFile = context.assets.list("kb_nueva")
+            ?.any { it == "FarmifAI_dataset.json" }
+            ?: false
+        if (!hasSupplementalFile) {
+            Log.i(TAG, "No se encontro dataset conversacional suplementario")
+            return
+        }
+
+        try {
+            val rawJson = context.assets.open(SUPPLEMENTAL_CONVERSATIONS_FILE)
+                .bufferedReader()
+                .use { it.readText() }
+            val records = JSONArray(rawJson)
+            var nextId = (baseEntries.keys.maxOrNull() ?: 0) + 1
+            var imported = 0
+
+            for (idx in 0 until records.length()) {
+                val record = records.optJSONObject(idx) ?: continue
+                val entry = buildSupplementalEntryFromConversation(record, nextId) ?: continue
+                baseEntries[nextId] = entry
+                nextId++
+                imported++
+            }
+
+            if (imported > 0) {
+                kbEntries = baseEntries
+                kbInformativeVocabulary = buildKbVocabulary(baseEntries)
+                Log.d(TAG, "Dataset conversacional agregado: +$imported entradas")
+            } else {
+                Log.i(TAG, "Dataset conversacional presente pero sin entradas validas")
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "No se pudo cargar dataset conversacional: ${e.message}")
+        }
+    }
+
+    private fun buildSupplementalEntryFromConversation(
+        record: JSONObject,
+        entryId: Int
+    ): KnowledgeEntry? {
+        val turns = record.optJSONArray("conversations") ?: return null
+        if (turns.length() == 0) return null
+
+        val questionsRaw = mutableListOf<String>()
+        val answersRaw = mutableListOf<String>()
+
+        for (i in 0 until turns.length()) {
+            val turn = turns.optJSONObject(i) ?: continue
+            val from = turn.optString("from", "").trim().lowercase()
+            val value = turn.optString("value", "").trim().replace(Regex("\\s+"), " ")
+            if (value.isBlank()) continue
+
+            when (from) {
+                "human", "user", "usuario" -> questionsRaw.add(value)
+                "gpt", "assistant", "asistente", "model", "bot" -> answersRaw.add(value)
+            }
+        }
+
+        val questions = dedupeQuestions(questionsRaw)
+        if (questions.isEmpty() || answersRaw.isEmpty()) return null
+
+        val answer = answersRaw.joinToString("\n")
+        val entityTokens = informativeTokensFromText("${questions.joinToString(" ")} $answer")
+
+        return KnowledgeEntry(
+            id = entryId,
+            category = "dataset_dialogos_farmifai",
+            questions = questions,
+            answer = answer,
+            entityTokens = entityTokens
+        )
     }
 
     private fun buildRecordCategory(record: JSONObject): String {
@@ -1254,18 +1343,19 @@ class SemanticSearchHelper(private val context: Context) {
         
         val normalizedQuery = normalizeQueryForSearch(userQuery)
         val queryTokens = informativeTokensFromText(normalizedQuery)
+        val mappedEntryIds = entryIds.toSet()
+        val supplementalEntryIds = entries.keys.filter { it !in mappedEntryIds }.toSet()
 
         val shouldUseEncoder = embeddings != null && useMindSporeEncoder && embeddingIndexAligned && !forceTextOnlyMode
         if (!shouldUseEncoder) {
-            val ranked = rankLexicalCandidates(
-                questions = questions,
-                entryIds = entryIds,
-                entries = entries,
+            val lexicalMatches = findLexicalMatchesFromEntries(
                 queryTokens = queryTokens,
-                minScore = minScore
+                entries = entries,
+                topK = topK,
+                minScore = minScore.coerceAtLeast(0.16f)
             )
 
-            if (ranked.isEmpty()) {
+            if (lexicalMatches.isEmpty()) {
                 AppLogger.log(TAG, "findTopKContexts: sin resultados locales por fallback lexical")
                 return ContextResult(
                     contexts = emptyList(),
@@ -1276,14 +1366,10 @@ class SemanticSearchHelper(private val context: Context) {
 
             AppLogger.log(
                 TAG,
-                "findTopKContexts: fallback lexical activo best=${String.format("%.2f", ranked.first().score)}"
+                "findTopKContexts: fallback lexical activo best=${String.format("%.2f", lexicalMatches.first().similarityScore)}"
             )
-            return buildContextFromRankedCandidates(
-                ranked = ranked,
-                questions = questions,
-                entryIds = entryIds,
-                entries = entries,
-                topK = topK,
+            return buildContextResultFromMatches(
+                matches = lexicalMatches,
                 userQuery = userQuery,
                 queryEmbedding = null,
                 startTime = startTime,
@@ -1303,12 +1389,44 @@ class SemanticSearchHelper(private val context: Context) {
         )
 
         if (ranked.isEmpty()) {
+            val lexicalFallback = findLexicalMatchesFromEntries(
+                queryTokens = queryTokens,
+                entries = entries,
+                topK = topK,
+                minScore = (minScore * 0.75f).coerceAtLeast(0.16f)
+            )
+            if (lexicalFallback.isNotEmpty()) {
+                AppLogger.log(
+                    TAG,
+                    "findTopKContexts: semantic sin match, se usa fallback lexical best=${String.format("%.2f", lexicalFallback.first().similarityScore)}"
+                )
+                return buildContextResultFromMatches(
+                    matches = lexicalFallback,
+                    userQuery = userQuery,
+                    queryEmbedding = queryEmbedding,
+                    startTime = startTime,
+                    modeLabel = "semantic_fallback_lexical"
+                )
+            }
+
             Log.d(TAG, "Sin resultados semanticos >= umbral (minScore=$minScore)")
             return ContextResult(
                 contexts = emptyList(),
                 combinedContext = "",
                 groundingAssessment = buildGroundingAssessment(userQuery, null, queryEmbedding)
             )
+        }
+
+        val supplementalMatches = if (supplementalEntryIds.isNotEmpty()) {
+            findLexicalMatchesFromEntries(
+                queryTokens = queryTokens,
+                entries = entries,
+                topK = topK,
+                minScore = (minScore * 0.70f).coerceAtLeast(0.16f),
+                allowedEntryIds = supplementalEntryIds
+            )
+        } else {
+            emptyList()
         }
 
         val bestCandidate = ranked.first()
@@ -1326,7 +1444,8 @@ class SemanticSearchHelper(private val context: Context) {
             userQuery = userQuery,
             queryEmbedding = queryEmbedding,
             startTime = startTime,
-            modeLabel = "semantic"
+            modeLabel = "semantic",
+            supplementalMatches = supplementalMatches
         )
     }
 
@@ -1339,17 +1458,18 @@ class SemanticSearchHelper(private val context: Context) {
         userQuery: String,
         queryEmbedding: FloatArray?,
         startTime: Long,
-        modeLabel: String
+        modeLabel: String,
+        supplementalMatches: List<MatchResult> = emptyList()
     ): ContextResult {
         val seenEntryIds = mutableSetOf<Int>()
-        val uniqueResults = mutableListOf<MatchResult>()
+        val mergedResults = mutableListOf<MatchResult>()
 
         for (candidate in ranked) {
             val entryId = entryIds[candidate.index]
             if (entryId !in seenEntryIds) {
                 seenEntryIds.add(entryId)
                 val entry = entries[entryId]!!
-                uniqueResults.add(
+                mergedResults.add(
                     MatchResult(
                         answer = entry.answer,
                         matchedQuestion = questions[candidate.index],
@@ -1358,18 +1478,47 @@ class SemanticSearchHelper(private val context: Context) {
                         entryId = entryId
                     )
                 )
-                if (uniqueResults.size >= topK) break
+                if (mergedResults.size >= topK) break
             }
         }
 
+        for (supplemental in supplementalMatches) {
+            if (supplemental.entryId !in seenEntryIds) {
+                seenEntryIds.add(supplemental.entryId)
+                mergedResults.add(supplemental)
+            }
+        }
+
+        val finalResults = mergedResults
+            .sortedByDescending { it.similarityScore }
+            .take(topK)
+
+        return buildContextResultFromMatches(
+            matches = finalResults,
+            userQuery = userQuery,
+            queryEmbedding = queryEmbedding,
+            startTime = startTime,
+            modeLabel = modeLabel
+        )
+    }
+
+    private fun buildContextResultFromMatches(
+        matches: List<MatchResult>,
+        userQuery: String,
+        queryEmbedding: FloatArray?,
+        startTime: Long,
+        modeLabel: String
+    ): ContextResult {
+        val finalResults = matches.takeIf { it.isNotEmpty() } ?: emptyList()
+
         val elapsedTime = System.currentTimeMillis() - startTime
-        Log.d(TAG, "findTopKContexts: ${uniqueResults.size} contextos en ${elapsedTime}ms ($modeLabel)")
+        Log.d(TAG, "findTopKContexts: ${finalResults.size} contextos en ${elapsedTime}ms ($modeLabel)")
 
         // Construir contexto combinado para el LLM
-        val combinedContext = buildCombinedContext(uniqueResults)
+        val combinedContext = buildCombinedContext(finalResults)
         val groundingAssessment = buildGroundingAssessment(
             userQuery = userQuery,
-            topMatch = uniqueResults.firstOrNull(),
+            topMatch = finalResults.firstOrNull(),
             queryEmbedding = queryEmbedding
         )
 
@@ -1383,7 +1532,80 @@ class SemanticSearchHelper(private val context: Context) {
             )
         }
         
-        return ContextResult(uniqueResults, combinedContext, groundingAssessment)
+        return ContextResult(finalResults, combinedContext, groundingAssessment)
+    }
+
+    private fun findLexicalMatchesFromEntries(
+        queryTokens: Set<String>,
+        entries: Map<Int, KnowledgeEntry>,
+        topK: Int,
+        minScore: Float,
+        allowedEntryIds: Set<Int>? = null
+    ): List<MatchResult> {
+        if (queryTokens.isEmpty()) return emptyList()
+
+        val ranked = mutableListOf<LexicalEntryCandidate>()
+        val safeTopK = topK.coerceAtLeast(1)
+
+        val sortedEntries = entries.values.sortedBy { it.id }
+        for (entry in sortedEntries) {
+            if (allowedEntryIds != null && entry.id !in allowedEntryIds) continue
+            if (entry.questions.isEmpty()) continue
+
+            val answerTokens = informativeTokensFromText(entry.answer)
+            var bestQuestion = entry.questions.first()
+            var bestScore = 0f
+
+            for (question in entry.questions) {
+                val questionTokens = informativeTokensFromText(question)
+                val entryTokens = questionTokens + answerTokens + entry.entityTokens
+                if (entryTokens.isEmpty()) continue
+
+                val questionOverlap = queryTokens.count { it in questionTokens }.toFloat() / queryTokens.size.toFloat()
+                val entryOverlap = queryTokens.count { it in entryTokens }.toFloat() / queryTokens.size.toFloat()
+                val entityOverlap = queryTokens.count { it in entry.entityTokens }
+                val entityScore = if (entityOverlap > 0) {
+                    (0.58f + entityOverlap * 0.12f).coerceAtMost(0.95f)
+                } else {
+                    0f
+                }
+
+                val score = maxOf(
+                    questionOverlap * 0.85f + entryOverlap * 0.15f,
+                    entryOverlap * 0.75f,
+                    entityScore
+                ).coerceIn(0f, 1f)
+
+                if (score > bestScore) {
+                    bestScore = score
+                    bestQuestion = question
+                }
+            }
+
+            if (bestScore >= minScore) {
+                ranked.add(
+                    LexicalEntryCandidate(
+                        entryId = entry.id,
+                        matchedQuestion = bestQuestion,
+                        score = bestScore
+                    )
+                )
+            }
+        }
+
+        return ranked
+            .sortedByDescending { it.score }
+            .take(safeTopK)
+            .mapNotNull { candidate ->
+                val entry = entries[candidate.entryId] ?: return@mapNotNull null
+                MatchResult(
+                    answer = entry.answer,
+                    matchedQuestion = candidate.matchedQuestion,
+                    similarityScore = candidate.score,
+                    category = entry.category,
+                    entryId = entry.id
+                )
+            }
     }
 
     private fun rankLexicalCandidates(

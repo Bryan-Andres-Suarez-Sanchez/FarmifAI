@@ -283,7 +283,7 @@ class MainActivity : ComponentActivity() {
     private var advancedKbFastPathThreshold by mutableStateOf(0.70f)
     private var advancedContextRelevanceThreshold by mutableStateOf(0.50f)
     private var advancedSystemPrompt by mutableStateOf(
-        "Eres FarmifAI, un asistente agricola que habla de forma cercana y practica, como un asesor en campo. Basa tus respuestas en los datos que se te proporcionan. Si no tienes datos sobre algo, dilo brevemente. No inventes cifras ni recomendaciones."
+        "Eres FarmifAI, un asistente agricola que habla de forma cercana y practica, como un asesor en campo. Basa tus respuestas en los datos que se te proporcionan. Responde breve por defecto, pero si el usuario pide indicaciones o pasos puedes extenderte un poco con 3 a 6 pasos cortos y claros. Si no tienes datos sobre algo, dilo de forma clara. No inventes cifras ni recomendaciones."
     )
     private var advancedUseLlmForAll by mutableStateOf(false)  // Priorizar KB directa cuando haya match claro
     private var advancedContextLength by mutableStateOf(1800) // Slider max 3000
@@ -882,7 +882,7 @@ class MainActivity : ComponentActivity() {
         advancedSimilarityThreshold = prefs.getFloat("advanced_similarity_threshold", 0.45f).coerceIn(SAFE_MIN_SIMILARITY_THRESHOLD, SAFE_MAX_SIMILARITY_THRESHOLD)
         advancedKbFastPathThreshold = prefs.getFloat("advanced_kb_fast_path_threshold", 0.70f).coerceIn(SAFE_MIN_KB_FAST_PATH_THRESHOLD, SAFE_MAX_KB_FAST_PATH_THRESHOLD)
         advancedContextRelevanceThreshold = prefs.getFloat("advanced_context_relevance_threshold", 0.50f).coerceIn(SAFE_MIN_CONTEXT_RELEVANCE_THRESHOLD, SAFE_MAX_CONTEXT_RELEVANCE_THRESHOLD)
-        advancedSystemPrompt = "Eres FarmifAI, un asistente agricola que habla de forma cercana y practica, como un asesor en campo. Basa tus respuestas en los datos que se te proporcionan. Si no tienes datos sobre algo, dilo brevemente. No inventes cifras ni recomendaciones."
+        advancedSystemPrompt = "Eres FarmifAI, un asistente agricola que habla de forma cercana y practica, como un asesor en campo. Basa tus respuestas en los datos que se te proporcionan. Responde breve por defecto, pero si el usuario pide indicaciones o pasos puedes extenderte un poco con 3 a 6 pasos cortos y claros. Si no tienes datos sobre algo, dilo de forma clara. No inventes cifras ni recomendaciones."
         advancedUseLlmForAll = prefs.getBoolean("advanced_use_llm_for_all", false)
         advancedContextLength = prefs.getInt("advanced_context_length", 1800).coerceIn(300, 3000)
         advancedDetectGreetings = prefs.getBoolean("advanced_detect_greetings", true)
@@ -2262,9 +2262,9 @@ class MainActivity : ComponentActivity() {
             val finalSystemPrompt = if (isSimpleGreeting) {
                 "Eres FarmifAI. Responde SOLO con un saludo corto de maximo 10 palabras. Ejemplo: Hola! En que te puedo ayudar? NO agregues explicaciones, ofertas de ayuda detalladas ni listas."
             } else if (hasKbContext) {
-                "$effectiveSystemPrompt\nBasa tu respuesta EXCLUSIVAMENTE en los DATOS DISPONIBLES. Cita cifras exactas (edades, densidades, porcentajes, medidas) cuando aparezcan. Reformula con tus palabras pero sin omitir ni alterar valores numericos. Si los datos no cubren la consulta completamente, indica brevemente que informacion falta. NO inventes datos adicionales."
+                "$effectiveSystemPrompt\nBasa tu respuesta EXCLUSIVAMENTE en los DATOS DISPONIBLES. Cita cifras exactas (edades, densidades, porcentajes, medidas) cuando aparezcan. Reformula con tus palabras pero sin omitir ni alterar valores numericos. Si los datos no cubren la consulta completamente, indica con claridad que informacion falta. Si el usuario pide indicaciones o pasos, responde un poco mas largo en 3 a 6 pasos cortos y accionables. NO inventes datos adicionales."
             } else {
-                "$effectiveSystemPrompt\nNo tienes datos disponibles para esta consulta. Si puedes dar una orientacion muy breve y general basada en la pregunta, hazlo en maximo 2 oraciones. Si no, indica que no tienes informacion sobre ese tema."
+                "$effectiveSystemPrompt\nNo tienes datos disponibles para esta consulta. Si puedes dar una orientacion breve y general basada en la pregunta, hazlo en maximo 3 oraciones. Si el usuario pide indicaciones, puedes dar hasta 3 pasos generales y cortos. Si no, indica que no tienes informacion sobre ese tema."
             }
 
             val contextForLlm = if (isSimpleGreeting) null else contextToPass
