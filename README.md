@@ -19,6 +19,12 @@
 - Latest downloadable APK (debug): [FarmifAI-debug-v1.0-20260324_201415.apk](https://github.com/Bryan-Andres-Suarez-Sanchez/FarmifAI/releases/download/apk-kb-records-20260324/FarmifAI-debug-v1.0-20260324_201415.apk)
 - Releases page (all published APK assets): [https://github.com/Bryan-Andres-Suarez-Sanchez/FarmifAI/releases/latest](https://github.com/Bryan-Andres-Suarez-Sanchez/FarmifAI/releases/latest)
 - Note: paths under `app/build/outputs/apk/` are local build artifacts and are not tracked in git.
+- Versioned field-validation archive (scanned forms): [docs_backup/Encuestas_agricultores.pdf](docs_backup/Encuestas_agricultores.pdf)
+- Versioned app usage captures:
+  - [docs_backup/capturasapp/interfaz_conversacional.jpeg](docs_backup/capturasapp/interfaz_conversacional.jpeg)
+  - [docs_backup/capturasapp/diagnosticovisual.png](docs_backup/capturasapp/diagnosticovisual.png)
+  - [docs_backup/capturasapp/diagnosticovis.jpeg](docs_backup/capturasapp/diagnosticovis.jpeg)
+  - [docs_backup/capturasapp/recomendaciones.jpeg](docs_backup/capturasapp/recomendaciones.jpeg)
 - Technical report: [docs/FarmifAI_Informe_Avances.docx](docs/FarmifAI_Informe_Avances.docx)
 - Technical visuals:
   - [docs/images/fig_system_architecture.png](docs/images/fig_system_architecture.png)
@@ -121,6 +127,13 @@ FarmifAI is an Android app that combines local retrieval (RAG), local generation
 | Routing tests | Present | `app/src/test/java/edu/unicauca/app/agrochat/routing/ResponseRoutingPolicyTest.kt` |
 | Unit test files | 2 | `app/src/test` |
 
+### Historical Versioned Evaluation Evidence (docs_backup)
+
+- Vision model metrics documented in [docs_backup/FarmifAI_Paper_EN.tex](docs_backup/FarmifAI_Paper_EN.tex): Top-1 `92.3%`, Top-3 `98.1%`, inference `200-400ms` on mid-range Snapdragon 6xx.
+- Component latency/memory table documented in [docs_backup/FarmifAI_Paper_EN.tex](docs_backup/FarmifAI_Paper_EN.tex).
+- Cloud deployment workflow diagram documented in [docs_backup/fig_deployment_workflow.pdf](docs_backup/fig_deployment_workflow.pdf).
+- ModelArts/OBS usage references documented in [docs_backup/PRESENTATION_30S_SCRIPTS_EN_ES.txt](docs_backup/PRESENTATION_30S_SCRIPTS_EN_ES.txt).
+
 ## Offline-first Design
 
 - Core guidance path is designed around local KB + local inference components.
@@ -173,15 +186,16 @@ AgroChat_Project/
 
 ## Limitations
 
-- No tracked prebuilt APK or public demo video yet.
+- Public debug APK is available in GitHub Releases; a stable release APK asset and public demo video are still pending.
 - License and citation metadata are not yet standardized at repository root.
-- Device-level latency benchmark matrix is not yet published as a standalone dataset.
+- Device-level latency benchmark matrix by RAM tier (4/6/8 GB) is not yet published as a standalone dataset.
 
 ## Future Work
 
 - Publish a short public demo video and reproducible benchmark sheet.
-- Add packaged installation artifacts for reproducible evaluation.
+- Add a stable release APK asset and packaged installation artifacts for reproducible evaluation.
 - Add repository-level citation and security metadata files.
+- Publish an anonymized aggregate report from field survey forms.
 
 ## License
 
@@ -207,6 +221,12 @@ Citation metadata file (`CITATION.cff`) is pending.
 - Ultima APK descargable (debug): [FarmifAI-debug-v1.0-20260324_201415.apk](https://github.com/Bryan-Andres-Suarez-Sanchez/FarmifAI/releases/download/apk-kb-records-20260324/FarmifAI-debug-v1.0-20260324_201415.apk)
 - Pagina de releases (todos los APK publicados): [https://github.com/Bryan-Andres-Suarez-Sanchez/FarmifAI/releases/latest](https://github.com/Bryan-Andres-Suarez-Sanchez/FarmifAI/releases/latest)
 - Nota: las rutas bajo `app/build/outputs/apk/` son artefactos locales de compilacion y no se versionan en git.
+- Archivo versionado de validacion en campo (formularios escaneados): [docs_backup/Encuestas_agricultores.pdf](docs_backup/Encuestas_agricultores.pdf)
+- Capturas versionadas de uso de la app:
+  - [docs_backup/capturasapp/interfaz_conversacional.jpeg](docs_backup/capturasapp/interfaz_conversacional.jpeg)
+  - [docs_backup/capturasapp/diagnosticovisual.png](docs_backup/capturasapp/diagnosticovisual.png)
+  - [docs_backup/capturasapp/diagnosticovis.jpeg](docs_backup/capturasapp/diagnosticovis.jpeg)
+  - [docs_backup/capturasapp/recomendaciones.jpeg](docs_backup/capturasapp/recomendaciones.jpeg)
 - Informe tecnico: [docs/FarmifAI_Informe_Avances.docx](docs/FarmifAI_Informe_Avances.docx)
 - Recursos visuales:
   - [docs/images/fig_system_architecture.png](docs/images/fig_system_architecture.png)
@@ -309,6 +329,13 @@ FarmifAI es una app Android que integra recuperacion local (RAG), generacion loc
 | Pruebas de enrutamiento | Disponibles | `app/src/test/java/edu/unicauca/app/agrochat/routing/ResponseRoutingPolicyTest.kt` |
 | Archivos de pruebas unitarias | 2 | `app/src/test` |
 
+### Evidencia Historica Versionada De Evaluacion (docs_backup)
+
+- Metricas del modelo visual documentadas en [docs_backup/FarmifAI_Paper_ES.tex](docs_backup/FarmifAI_Paper_ES.tex): Top-1 `92.3%`, Top-3 `98.1%`, inferencia `200-400ms` en Snapdragon 6xx de gama media.
+- Tabla de latencia/memoria por componente documentada en [docs_backup/FarmifAI_Paper_ES.tex](docs_backup/FarmifAI_Paper_ES.tex).
+- Flujo de despliegue documentado en [docs_backup/fig_deployment_workflow.pdf](docs_backup/fig_deployment_workflow.pdf).
+- Referencias de uso de ModelArts/OBS documentadas en [docs_backup/PRESENTATION_30S_SCRIPTS_EN_ES.txt](docs_backup/PRESENTATION_30S_SCRIPTS_EN_ES.txt).
+
 ## Diseno Offline-first
 
 - El flujo principal de asistencia esta orientado a KB local + inferencia local.
@@ -361,15 +388,16 @@ AgroChat_Project/
 
 ## Limitaciones
 
-- Aun no hay APK precompilado versionado ni video demo publico.
+- Ya existe APK debug publico en GitHub Releases; siguen pendientes un asset APK release estable y un video demo publico.
 - Licencia y metadatos de citacion aun no estandarizados en la raiz del repo.
-- Falta publicar una matriz completa de benchmarks por dispositivo.
+- Falta publicar una matriz completa de benchmarks por perfil de RAM (4/6/8 GB).
 
 ## Trabajo Futuro
 
 - Publicar video demo corto y hoja de benchmarks reproducibles.
-- Publicar artefactos de instalacion para evaluacion reproducible.
+- Publicar un asset APK release estable y artefactos de instalacion para evaluacion reproducible.
 - Agregar archivos de metadatos de citacion y seguridad a nivel raiz.
+- Publicar un reporte agregado y anonimizado derivado de las encuestas de campo.
 
 ## Licencia
 
