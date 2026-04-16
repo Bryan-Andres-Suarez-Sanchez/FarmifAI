@@ -113,7 +113,7 @@ El informe tecnico consolidado del proyecto se mantiene en:
 ### Estado Del Proyecto
 
 - Rama principal: `master`.
-- Modo de ejecucion: local en dispositivo.
+- Modo de ejecucion: local en dispositivo y enfoque local-first en el flujo actual.
 - Modelo generativo objetivo: Qwen 3.5 en GGUF.
 - Runtime LLM: `llama.cpp` via JNI Android.
 - Recuperacion: KB local + embeddings de 384 dimensiones con fallback lexical.
@@ -126,8 +126,82 @@ El informe tecnico consolidado del proyecto se mantiene en:
 - RAG sobre `app/src/main/assets/kb_nueva/extract`.
 - Separacion de razonamiento `<think>` y respuesta final.
 - Politica de enrutamiento `KB_DIRECT`, `LLM_WITH_KB`, `LLM_GENERAL`, `ABSTAIN`.
-- Diagnostico visual con 21 clases.
+- Diagnostico visual con 21 clases para cafe, maiz, papa, pimiento y tomate.
 - Entrada por voz con Vosk y salida por TTS del sistema.
+
+### Resumen De Evidencia Verificada
+
+| Componente | Evidencia verificada |
+|---|---|
+| Base de conocimiento | 12 archivos JSONL, 293 registros agronomicos |
+| Embeddings | `kb_embeddings.npy`, forma `(2842, 384)`, `float32` |
+| Mapeo de recuperacion | `kb_embeddings_mapping.json` |
+| LLM local | `LlamaService.kt` prioriza `Qwen3.5-0.8B-Q4_K_M.gguf` |
+| Manejo de razonamiento | `MainActivity.kt` separa `<think>` y respuesta final |
+| Vision | `plant_disease_labels.json` declara 21 clases y `plant_disease_model_old.ms` se carga desde assets |
+| Pruebas de enrutamiento | `app/src/test/java/edu/unicauca/app/agrochat/routing/ResponseRoutingPolicyTest.kt` |
+
+### Calidad De Evidencia Del Informe Tecnico
+
+El informe tecnico incluye figuras incrustadas (dentro del DOCX) y mantiene una narrativa trazable entre codigo y evidencia. El conjunto actual de evidencias graficas incluye:
+
+- Arquitectura del sistema
+- Pipeline RAG local
+- Pipeline de inferencia visual
+- Arquitectura de entrenamiento
+- Flujo de entrenamiento en dos fases
+
+### Requisitos
+
+- Android Studio (estable reciente).
+- JDK 11.
+- Android SDK y NDK configurados.
+- Dispositivo Android o emulador API 24+.
+- Modelo GGUF local compatible con Qwen 3.5.
+
+### Compilacion
+
+Compilar APK debug:
+
+```bash
+./gradlew :app:assembleDebug
+```
+
+Ejecutar pruebas unitarias:
+
+```bash
+./gradlew :app:testDebugUnitTest
+```
+
+Script auxiliar:
+
+```bash
+./scripts/build_apk.sh debug
+```
+
+### Provisionamiento Local De Modelos
+
+- Copiar un modelo GGUF preferido a la carpeta externa privada de la app. Nombre recomendado: `Qwen3.5-0.8B-Q4_K_M.gguf`.
+- Para aceleracion opcional del encoder semantico, provisionar `sentence_encoder.ms` y `sentence_tokenizer.json` en `files/models`.
+- Si el encoder no esta disponible, el fallback lexical sigue activo.
+- Para STT offline con Vosk, provisionar `model-es-small` de forma local.
+
+### Estructura Del Repositorio
+
+```text
+AgroChat_Project/
+  app/           # App Android, assets locales y codigo de inferencia
+  docs/          # Informe tecnico consolidado del proyecto
+  nlp_dev/       # Herramientas de procesamiento y experimentacion NLP
+  tools/         # Herramientas de entrenamiento/exportacion de vision
+  scripts/       # Scripts de build, instalacion y despliegue local
+  pc_rag_clone/  # Clon de experimentacion y vendor llama.cpp
+  README.md
+```
+
+### Alcance Y Limitaciones
+
+FarmifAI esta orientado a asistencia agricola preliminar y educativa. No reemplaza el criterio de un agronomo certificado en decisiones de alto riesgo. La cobertura de respuestas depende del contenido de la KB local y de los modelos provisionados en el dispositivo.
 
 ### Referencia Tecnica
 
