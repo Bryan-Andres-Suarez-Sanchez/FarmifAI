@@ -16,7 +16,8 @@
 ## Demo
 
 - Video demo: pending public upload.
-- APK for judges: not stored as a tracked binary in this repository.
+- Latest APK (debug, generated): [app/build/outputs/apk/debug/FarmifAI-debug-v1.0-20260416_130249.apk](app/build/outputs/apk/debug/FarmifAI-debug-v1.0-20260416_130249.apk)
+- Latest APK (release, generated): [app/build/outputs/apk/release/FarmifAI-release-v1.0-20260416_004157.apk](app/build/outputs/apk/release/FarmifAI-release-v1.0-20260416_004157.apk)
 - Technical report: [docs/FarmifAI_Informe_Avances.docx](docs/FarmifAI_Informe_Avances.docx)
 - Technical visuals:
   - [docs/images/fig_system_architecture.png](docs/images/fig_system_architecture.png)
@@ -202,7 +203,8 @@ Citation metadata file (`CITATION.cff`) is pending.
 ## Demo
 
 - Video demo: pendiente de publicacion.
-- APK para jurados: no se almacena como binario versionado en este repositorio.
+- Ultima APK (debug, generada): [app/build/outputs/apk/debug/FarmifAI-debug-v1.0-20260416_130249.apk](app/build/outputs/apk/debug/FarmifAI-debug-v1.0-20260416_130249.apk)
+- Ultima APK (release, generada): [app/build/outputs/apk/release/FarmifAI-release-v1.0-20260416_004157.apk](app/build/outputs/apk/release/FarmifAI-release-v1.0-20260416_004157.apk)
 - Informe tecnico: [docs/FarmifAI_Informe_Avances.docx](docs/FarmifAI_Informe_Avances.docx)
 - Recursos visuales:
   - [docs/images/fig_system_architecture.png](docs/images/fig_system_architecture.png)
