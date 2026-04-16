@@ -1,112 +1,136 @@
 # FarmifAI
 
-FarmifAI es una aplicacion Android para asistencia agricola en campo. El proyecto integra consulta conversacional, recuperacion aumentada por conocimiento local, razonamiento con un modelo generativo GGUF y diagnostico visual de enfermedades vegetales con inferencia en dispositivo.
+## English
 
-La documentacion tecnica consolidada del proyecto se mantiene en un unico informe:
+FarmifAI is an Android field assistant for agriculture. It combines conversational support, local knowledge retrieval, local GGUF generation, and on-device plant disease diagnosis.
+
+The consolidated technical report is maintained in:
 
 [docs/FarmifAI_Informe_Avances.docx](docs/FarmifAI_Informe_Avances.docx)
 
-## Estado Del Proyecto
+### Project Status
 
-- Rama principal: `master`.
-- Modo de ejecucion: local en dispositivo, sin servicios remotos en el flujo de aplicacion.
-- Modelo generativo objetivo: Qwen 3.5 en formato GGUF cuantizado.
-- Runtime LLM: `llama.cpp` mediante JNI Android.
-- Recuperacion de conocimiento: KB local con embeddings de 384 dimensiones y fallback lexical local.
-- Vision: clasificador MindSpore Lite para enfermedades de plantas.
-- Feedback: registro local JSONL en el almacenamiento privado de la app.
+- Main branch: `master`.
+- Runtime mode: on-device and local-first in the current app flow.
+- Target generative model family: Qwen 3.5 GGUF.
+- LLM runtime: `llama.cpp` through Android JNI.
+- Retrieval: local KB + 384-d embeddings, with lexical local fallback.
+- Vision: MindSpore Lite classifier for plant diseases.
+- Feedback: local JSONL persistence in app private storage.
 
-## Capacidades Principales
+### Core Capabilities
 
-- Chat agricola en espanol con contexto local.
-- RAG sobre una base de conocimiento empaquetada en `app/src/main/assets/kb_nueva/extract`.
-- Separacion de razonamiento y respuesta final para modelos que emiten trazas tipo `<think>`.
-- Enrutamiento de respuesta con politica explicita: `KB_DIRECT`, `LLM_WITH_KB`, `LLM_GENERAL` y `ABSTAIN`.
-- Diagnostico visual con 21 clases distribuidas en cafe, maiz, papa, pimiento y tomate.
-- Entrada por voz con Vosk cuando el modelo de voz esta provisionado localmente.
-- Sintesis de voz mediante el motor TTS del sistema.
+- Agricultural chat with local context in Spanish.
+- RAG over local files in `app/src/main/assets/kb_nueva/extract`.
+- Explicit reasoning separation for `<think>...</think>` traces.
+- Routing policy with `KB_DIRECT`, `LLM_WITH_KB`, `LLM_GENERAL`, and `ABSTAIN`.
+- Plant disease diagnosis with 21 classes across coffee, corn, potato, pepper, and tomato.
+- Voice input using Vosk when local voice model is provisioned.
+- TTS output via Android system engine.
 
-## Evidencia Local Versionada
+### Verified Evidence Snapshot
 
-El informe de avances resume y contextualiza la evidencia real del repositorio. Como referencia rapida:
-
-| Componente | Evidencia |
+| Component | Verified evidence |
 |---|---|
-| Base de conocimiento | 12 archivos JSONL, 293 registros agronomicos |
-| Embeddings | `kb_embeddings.npy`, matriz `(2842, 384)` en `float32` |
-| Mapeo RAG | `kb_embeddings_mapping.json` |
-| LLM local | `LlamaService.kt` usa `Qwen3.5-0.8B-Q4_K_M.gguf` como modelo preferido |
-| Razonamiento | `MainActivity.kt` separa contenido `<think>` y respuesta visible |
-| Vision | `plant_disease_labels.json` declara 21 clases y `plant_disease_model_old.ms` se carga desde assets |
-| Feedback | `FeedbackEventStore.kt` persiste eventos localmente en JSONL |
+| Knowledge base | 12 JSONL files, 293 agronomic records |
+| Embeddings | `kb_embeddings.npy`, shape `(2842, 384)`, `float32` |
+| Retrieval mapping | `kb_embeddings_mapping.json` |
+| Local LLM | `LlamaService.kt` prefers `Qwen3.5-0.8B-Q4_K_M.gguf` |
+| Reasoning handling | `MainActivity.kt` separates `<think>` and final answer |
+| Vision | `plant_disease_labels.json` declares 21 classes and `plant_disease_model_old.ms` is loaded from assets |
+| Routing tests | `app/src/test/java/edu/unicauca/app/agrochat/routing/ResponseRoutingPolicyTest.kt` |
 
-## Arquitectura
+### Technical Report Evidence Quality
 
-FarmifAI se organiza en cuatro capas funcionales:
+The technical report includes embedded figures (inside the DOCX) and keeps a code-to-evidence narrative. Current embedded evidence set:
 
-1. Interfaz Android: Jetpack Compose para chat, voz, configuracion y diagnostico visual.
-2. Orquestacion: `MainActivity.kt` coordina estado, enrutamiento, streaming local, diagnostico y feedback.
-3. Inteligencia local: `SemanticSearchHelper.kt`, `LlamaService.kt`, `PlantDiseaseClassifier.kt` y puentes JNI.
-4. Datos locales: registros JSONL, embeddings, mapeos, etiquetas de vision y modelos provisionados.
+- System architecture
+- Local RAG pipeline
+- Visual inference pipeline
+- Training architecture
+- Two-phase training flow
 
-La rama `master` no declara permisos de red, no incluye clientes HTTP para LLM remoto y no sincroniza feedback hacia endpoints externos.
+### Requirements
 
-## Requisitos
-
-- Android Studio reciente.
+- Android Studio (recent stable).
 - JDK 11.
-- Android SDK y NDK configurados.
-- Dispositivo o emulador Android API 24+.
-- Modelo GGUF local compatible con Qwen 3.5 para habilitar generacion en dispositivo.
+- Android SDK and NDK configured.
+- Android device or emulator API 24+.
+- Local GGUF model compatible with Qwen 3.5.
 
-## Compilacion
+### Build
 
-Compilar APK debug:
+Build debug APK:
 
 ```bash
 ./gradlew :app:assembleDebug
 ```
 
-Ejecutar pruebas unitarias:
+Run unit tests:
 
 ```bash
 ./gradlew :app:testDebugUnitTest
 ```
 
-Tambien se conserva el script auxiliar de construccion:
+Helper script:
 
 ```bash
 ./scripts/build_apk.sh debug
 ```
 
-## Provisionamiento Local De Modelos
+### Local Model Provisioning
 
-El repositorio mantiene los datos y modelos livianos necesarios para documentar y validar la arquitectura. Los modelos pesados se tratan como artefactos locales.
+- Copy a preferred GGUF model to the app external private folder. Recommended filename: `Qwen3.5-0.8B-Q4_K_M.gguf`.
+- For optional semantic encoder acceleration, provision `sentence_encoder.ms` and `sentence_tokenizer.json` under `files/models`.
+- If encoder is not available, lexical fallback retrieval remains active.
+- For offline STT with Vosk, provision `model-es-small` locally.
 
-- Copiar el GGUF preferido a la carpeta externa privada de la aplicacion. El nombre recomendado es `Qwen3.5-0.8B-Q4_K_M.gguf`.
-- Para el encoder semantico opcional, provisionar `sentence_encoder.ms` y `sentence_tokenizer.json` en `files/models`.
-- Si el encoder no esta disponible, la app conserva recuperacion local mediante fallback lexical.
-- Para voz STT con Vosk, provisionar el directorio `model-es-small` localmente o incluirlo como asset.
-
-## Estructura Del Repositorio
+### Repository Structure
 
 ```text
 AgroChat_Project/
-  app/           # Aplicacion Android, assets locales y codigo de inferencia
-  docs/          # Informe unico de avances del proyecto
-  nlp_dev/       # Herramientas de procesamiento y experimentacion NLP
-  tools/         # Entrenamiento/exportacion de vision
-  scripts/       # Scripts de build, instalacion y despliegue local
-  pc_rag_clone/  # Replica de experimentacion y vendor llama.cpp
+  app/           # Android app, local assets, inference code
+  docs/          # Consolidated project technical report
+  nlp_dev/       # NLP processing and experimentation tools
+  tools/         # Vision training/export tools
+  scripts/       # Build, install, and deployment scripts
+  pc_rag_clone/  # Experimental clone and llama.cpp vendor
   README.md
 ```
 
-## Alcance Y Limitaciones
+### Scope And Limitations
 
-FarmifAI esta orientado a asistencia tecnica preliminar y educativa. No sustituye el criterio de un agronomo certificado en decisiones de alto riesgo. La cobertura de respuestas depende de la KB local y de los modelos provisionados en el dispositivo. El informe de avances documenta las evidencias verificables y evita declarar metricas no respaldadas por archivos versionados.
+FarmifAI is intended for preliminary and educational agricultural guidance. It does not replace certified agronomist judgment for high-risk decisions. Response coverage depends on local KB content and provisioned on-device models.
 
-## Referencia Tecnica
+## Espanol
 
-Para detalles de arquitectura, evidencia, decisiones de diseno y estado de avance, consultar exclusivamente:
+FarmifAI es una aplicacion Android de asistencia agricola para trabajo en campo. Integra consulta conversacional, recuperacion aumentada por conocimiento local, generacion GGUF y diagnostico visual en dispositivo.
+
+El informe tecnico consolidado del proyecto se mantiene en:
+
+[docs/FarmifAI_Informe_Avances.docx](docs/FarmifAI_Informe_Avances.docx)
+
+### Estado Del Proyecto
+
+- Rama principal: `master`.
+- Modo de ejecucion: local en dispositivo.
+- Modelo generativo objetivo: Qwen 3.5 en GGUF.
+- Runtime LLM: `llama.cpp` via JNI Android.
+- Recuperacion: KB local + embeddings de 384 dimensiones con fallback lexical.
+- Vision: clasificador MindSpore Lite para enfermedades.
+- Feedback: persistencia local en JSONL.
+
+### Capacidades Principales
+
+- Chat agricola con contexto local.
+- RAG sobre `app/src/main/assets/kb_nueva/extract`.
+- Separacion de razonamiento `<think>` y respuesta final.
+- Politica de enrutamiento `KB_DIRECT`, `LLM_WITH_KB`, `LLM_GENERAL`, `ABSTAIN`.
+- Diagnostico visual con 21 clases.
+- Entrada por voz con Vosk y salida por TTS del sistema.
+
+### Referencia Tecnica
+
+Para detalles completos de arquitectura, evidencia y estado de avance:
 
 [docs/FarmifAI_Informe_Avances.docx](docs/FarmifAI_Informe_Avances.docx)
