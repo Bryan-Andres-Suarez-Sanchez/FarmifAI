@@ -36,7 +36,7 @@
     <string name="language_label">Idioma / Language</string>
     <string name="spanish">Español</string>
     <string name="english">English</string>
-    <string name="local_llm">LLM Local (Qwen/GGUF)</string>
+    <string name="local_llm">LLM Local (qwen3.5_FarmifAI2.0/GGUF)</string>
     <string name="llm_offline_help">Respuestas inteligentes offline con IA generativa</string>
     <string name="llm_copy_help">Copia un modelo .gguf a la carpeta de la app para habilitar</string>
     <string name="language_change_hint">La app se reiniciará al cambiar idioma</string>
@@ -50,7 +50,7 @@
     
     <!-- Status -->
     <string name="local">Local</string>
-    <string name="llama_ready">Qwen listo</string>
+    <string name="llama_ready">qwen3.5_FarmifAI2.0 listo</string>
     <string name="loading_ai">Cargando IA...</string>
     <string name="model_not_available">Modelo no disponible</string>
     

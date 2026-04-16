@@ -30,7 +30,7 @@
    ```bash
    adb install -r app/build/outputs/apk/debug/*.apk
    ```
-3. Confirm that a local GGUF model exists (recommended: `Qwen3.5-0.8B-Q4_K_M.gguf`).
+3. Confirm that a local GGUF model exists (recommended: `Qwen3.5-0.8B.Q4_K_M.gguf`).
 4. Turn on airplane mode and open the app.
 5. Test these queries:
    - `what is a weed`
@@ -79,7 +79,7 @@ FarmifAI is an Android app that integrates local retrieval (RAG), local generati
 
 ### Base Model
 
-- Preferred local model name: `Qwen3.5-0.8B-Q4_K_M.gguf`.
+- Preferred local model name: `Qwen3.5-0.8B.Q4_K_M.gguf`.
 - Additional preferences: Q5/Q4_0/Q3 variants and a fallback Qwen2.5 name.
 
 ### Quantization / Format
@@ -228,7 +228,7 @@ The citation metadata file (`CITATION.cff`) is still pending.
    ```bash
    adb install -r app/build/outputs/apk/debug/*.apk
    ```
-3. Confirmar que existe un modelo GGUF local (recomendado: `Qwen3.5-0.8B-Q4_K_M.gguf`).
+3. Confirmar que existe un modelo GGUF local (recomendado: `Qwen3.5-0.8B.Q4_K_M.gguf`).
 4. Activar modo avion y abrir la app.
 5. Probar estas consultas:
    - `que es una arvense`
@@ -277,7 +277,7 @@ FarmifAI es una app Android que integra recuperacion local (RAG), generacion loc
 
 ### Modelo Base
 
-- Nombre preferido de modelo local: `Qwen3.5-0.8B-Q4_K_M.gguf`.
+- Nombre preferido de modelo local: `Qwen3.5-0.8B.Q4_K_M.gguf`.
 - Preferencias adicionales: variantes Q5/Q4_0/Q3 y un nombre fallback de Qwen2.5.
 
 ### Cuantizacion / Formato
