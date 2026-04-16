@@ -205,20 +205,14 @@ Feedback data notes:
 
 ## Installation
 
-### For Judges
+
 
 1. Install [FarmifAI-release-signed-20260415_132722.apk](FarmifAI-release-signed-20260415_132722.apk).
 2. Open the app once with internet to complete model setup.
 3. Switch to offline mode and run the quick prompts in the evaluation path.
 
-### For Developers
 
-```bash
-git clone https://github.com/Bryan-Andres-Suarez-Sanchez/AgroChat_Project.git
-cd AgroChat_Project
-git lfs install
-git lfs pull
-```
+
 
 
 Requirements:
