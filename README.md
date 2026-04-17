@@ -18,24 +18,26 @@ Built for rural environments, it enables farmers to **diagnose crops and receive
 
 ## 📽️ Demo
 
-- Latest APK:  
-  https://github.com/Bryan-Andres-Suarez-Sanchez/FarmifAI/releases/latest  
-- Specific build:  
-  https://github.com/Bryan-Andres-Suarez-Sanchez/FarmifAI/releases/download/apk-kb-records-20260324/FarmifAI-debug-v1.0-20260324_201415.apk  
+- Final signed APK (direct download):  
+   https://raw.githubusercontent.com/Bryan-Andres-Suarez-Sanchez/FarmifAI/apk-builds/apk-artifacts/release/latest-release.apk  
+- Signed APK history (artifacts branch):  
+   https://github.com/Bryan-Andres-Suarez-Sanchez/FarmifAI/tree/apk-builds/apk-artifacts/release  
+- GitHub Releases (alternative):  
+   https://github.com/Bryan-Andres-Suarez-Sanchez/FarmifAI/releases/latest  
+- Download guide + checksum:  
+   docs/APK_DOWNLOAD.md  
 
 ---
 
 ## ⚡ Quick Start (under 5 minutes)
 
-1. Clone the repository  
-   git clone https://github.com/Bryan-Andres-Suarez-Sanchez/FarmifAI.git  
-   cd FarmifAI  
+1. Download the final signed APK  
+   https://raw.githubusercontent.com/Bryan-Andres-Suarez-Sanchez/FarmifAI/apk-builds/apk-artifacts/release/latest-release.apk  
 
-2. Build APK  
-   ./gradlew :app:assembleDebug  
+2. Install on Android device  
+   adb install -r latest-release.apk  
 
-3. Install on device  
-   adb install -r app/build/outputs/apk/debug/*.apk  
+3. Open the app and wait for first-time model setup  
 
 4. Test offline  
    - Enable airplane mode  

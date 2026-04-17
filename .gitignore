@@ -84,6 +84,11 @@ tools/azure_env/
 temp_compatibility/
 assets_old/
 
+# Keystores de firma local
+keystore/
+*.jks
+*.keystore
+
 .github/`
 
 
