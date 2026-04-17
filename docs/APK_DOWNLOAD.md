@@ -4,19 +4,8 @@ This document points to the official signed APK published in GitHub Releases.
 
 ## Direct Download
 
-- Direct asset URL:
-  https://github.com/Bryan-Andres-Suarez-Sanchez/FarmifAI/releases/download/apk-final-signed-20260416/FarmifAI-release-v1.0-20260416_193105-signed.apk
-
-- Latest release shortcut:
+- Official APK URL:
   https://github.com/Bryan-Andres-Suarez-Sanchez/FarmifAI/releases/latest/download/FarmifAI-release-v1.0-20260416_193105-signed.apk
-
-- Release page:
-  https://github.com/Bryan-Andres-Suarez-Sanchez/FarmifAI/releases/tag/apk-final-signed-20260416
-
-## All Releases
-
-- Browse all releases:
-  https://github.com/Bryan-Andres-Suarez-Sanchez/FarmifAI/releases
 
 ## Integrity Check (SHA-256)
 

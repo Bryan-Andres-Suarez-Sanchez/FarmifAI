@@ -19,11 +19,7 @@ Built for rural environments, it enables farmers to **diagnose crops and receive
 ## 📽️ Demo
 
 - Final signed APK (direct download):  
-   https://github.com/Bryan-Andres-Suarez-Sanchez/FarmifAI/releases/download/apk-final-signed-20260416/FarmifAI-release-v1.0-20260416_193105-signed.apk  
-- Final release page:  
-   https://github.com/Bryan-Andres-Suarez-Sanchez/FarmifAI/releases/tag/apk-final-signed-20260416  
-- GitHub Releases (latest):  
-   https://github.com/Bryan-Andres-Suarez-Sanchez/FarmifAI/releases/latest  
+   https://github.com/Bryan-Andres-Suarez-Sanchez/FarmifAI/releases/latest/download/FarmifAI-release-v1.0-20260416_193105-signed.apk  
 - Download guide + checksum:  
    [docs/APK_DOWNLOAD.md](docs/APK_DOWNLOAD.md)  
 
