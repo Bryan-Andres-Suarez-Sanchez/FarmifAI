@@ -91,4 +91,7 @@ keystore/
 
 .github/`
 
+# Paquete local para revisión de código
+review_app_code/
+
 

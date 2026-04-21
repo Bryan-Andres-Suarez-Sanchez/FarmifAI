@@ -1,0 +1,94 @@
+LLM-first precision cycle log
+Started: 2026-04-18T16:45:10-05:00
+Branch: master
+Baseline HEAD: 93f80f8466f26db6a22ea1cacf2d0db05ee9847a
+
+Constraints:
+- Always use LLM inference for user-visible answers.
+- Keep streaming generation; do not route to visible KB/direct/fixed fallback answers.
+- Keep RAM pressure low on an 8 GB development machine.
+- Avoid phrase-specific production hacks.
+
+Initial observations:
+- Worktree already had local edits in MainActivity.kt, SemanticSearchHelper.kt, PlantDiseaseClassifier.kt and .gitignore.
+- Existing app code already forces some KB_DIRECT decisions toward LLM, but routing still exposes KB_DIRECT/LLM_GENERAL/ABSTAIN concepts.
+- Some generation paths still use non-streaming generateAgriResponse(), especially repair/preflight and continuation/camera paths.
+- Semantic ranking still contains an aggressive entity floor that can inflate candidates to 0.85+ from a single topical overlap.
+
+Cycle 0 offline evaluation:
+- Command: python3 tools/eval_llm_first_precision.py --json
+- Cases from kb_nueva/extract: 1523
+- Legacy-style top1: 82.86%; candidate general-rerank top1: 97.83%
+- Legacy-style top3: 91.99%; candidate general-rerank top3: 99.74%
+- Average context chars: 1830.7 legacy vs 1553.2 candidate
+- Expected number coverage: 95.36% legacy vs 96.99% candidate
+- Expected facet coverage: 97.93% legacy vs 91.39% candidate
+- Decision: implement candidate retrieval/routing changes, but preserve structured action/timing/amount lines in prompt to avoid facet loss.
+
+Cycle 1 implementation:
+- Changed ResponseRoutingPolicy so it only returns LLM_GROUNDED_HIGH_CONFIDENCE or LLM_GROUNDED_LOW_CONFIDENCE.
+- Removed visible routing concepts KB_DIRECT, LLM_GENERAL and ABSTAIN from the active decision path.
+- Added structured KB fields, QuantDatum and EvidenceBlock in SemanticSearchHelper.
+- Replaced aggressive entity score floors with bounded entity boosts plus entity/number/facet scoring.
+- Made unknownTokenRatio use real query-token vocabulary coverage instead of 1 - supportScore.
+- Changed tokenizer/embedding alignment check from one sample to five distributed samples.
+- Changed combined RAG context to render structured evidence with support_score, coverage and unknown_ratio.
+- Changed LlamaService streaming emission to buffered semantic updates and structural context truncation.
+- Added cooperative cancelGeneration() in LLamaAndroid/LlamaService.
+- Changed main chat and continuation paths to use streaming generation; no visible KB/direct/fixed fallback is emitted when LLM is unavailable.
+
+Cycle 1 local verification:
+- Command: GRADLE_OPTS='-Xmx1536m -Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2' ./gradlew :app:testDebugUnitTest --no-daemon --max-workers=2
+- Result: BUILD SUCCESSFUL in 43s.
+- Only warning observed: deprecated LocalLifecycleOwner import, pre-existing UI concern.
+- Offline evaluation after implementation stayed at candidate top1 97.83%, top3 99.74%, average context 1553.2 chars.
+
+Cycle 1 device test:
+- Device: 192.168.101.71:38279, model 2303ERA42L.
+- APK installed: app/build/outputs/apk/debug/FarmifAI-debug-v1.0-20260418_165349.apk.
+- Startup logs: local LLM loaded, SemanticSearch OK with KB=293, Q=2842, MindSpore=true.
+- Tokenizer/embedding alignment: avg=1.0000, min=1.0000 across 5 samples.
+- Query tested: que debo hacer cuando el fosforo es menor de 30 ppm.
+- Failure observed: retrieval ranked "Transplantar solo chapolas y no fosforos al almacigo" first, and the LLM produced a wrong answer about not transplanting.
+- Decision: keep LLM-first/streaming changes, but discard the ranking behavior that allowed lexical topic overlap to beat required numeric/unit/threshold evidence.
+
+Cycle 2 implementation:
+- Added general numeric/unit/threshold evidence penalties in SemanticSearchHelper.
+- If a query contains numbers, units or threshold words, candidates missing those evidence classes are penalized.
+- This is not a phrase-specific rule; it applies to agricultural quantities, units and comparison language generally.
+- Lowered the streaming semantic chunk threshold so visible partial output starts earlier without removing LLM inference.
+
+Cycle 2 offline evaluation:
+- Command: python3 tools/eval_llm_first_precision.py --json
+- Cases from kb_nueva/extract plus one manual numeric-threshold case: 1524
+- Legacy-style top1: 82.81%; candidate general-rerank top1: 97.83%
+- Legacy-style top3: 91.93%; candidate general-rerank top3: 99.74%
+- Average context chars: 1830.9 legacy vs 1558.6 candidate
+- Expected number coverage: 95.3% legacy vs 97.0% candidate
+- Net synthetic movement: 245 improvements, 16 regressions.
+- Manual threshold query now ranks cap07_practice_006 first: "Fertilizar la zoca desde el tercer mes y ajustar segun suelo".
+
+Cycle 2 local verification:
+- Command: GRADLE_OPTS='-Xmx1536m -Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2' ./gradlew :app:testDebugUnitTest --no-daemon --max-workers=2
+- Result: BUILD SUCCESSFUL in 33s.
+- Command: GRADLE_OPTS='-Xmx1536m -Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2' ./gradlew :app:assembleDebug --no-daemon --max-workers=2
+- Result: BUILD SUCCESSFUL.
+- APK installed: app/build/outputs/apk/debug/FarmifAI-debug-v1.0-20260418_170121.apk.
+
+Cycle 2 device verification:
+- Device query: que debo hacer cuando el fosforo es menor de 30 ppm.
+- Retrieval fixed: top evidence became "Fertilizar la zoca desde el tercer mes y ajustar segun suelo" with support about fosforo menor de 30 ppm.
+- Route: LLM_GROUNDED_LOW_CONFIDENCE, still LLM inference and streaming.
+- First streaming chunk observed; final generation completed with 8 chunks.
+- Observed answer: in soils with less than 6% organic matter, apply organic fertilizer; if phosphorus is under 30 ppm, add 15 g of DAP or triple superphosphate at 6 months.
+- Quality evaluation: materially better than Cycle 1 because the answer now uses the correct threshold and action evidence instead of the transplanting passage.
+- Memory after query from adb dumpsys meminfo: TOTAL PSS about 1.71 GB, TOTAL SWAP PSS about 26 MB. No app crash observed.
+
+Final decision:
+- Keep Cycle 2 changes. They improve the real failing query on-device while preserving the requirements: always LLM, streaming, no visible KB/direct/fixed fallback, no phrase-specific production hack, and low-memory local build/test settings.
+
+Final sanity check after writing this log:
+- Command: git diff --check
+- Result: no whitespace errors reported.
+- Command: python3 tools/eval_llm_first_precision.py --json
+- Result confirmed: 1524 cases, candidate top1 97.83%, candidate top3 99.74%, average context 1558.6 chars, expected number coverage 97.0%, 245 improvements and 16 regressions.

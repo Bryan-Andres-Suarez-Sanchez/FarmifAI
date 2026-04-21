@@ -19,7 +19,7 @@ Built for rural environments, it enables farmers to **diagnose crops and receive
 ## Demo
 
 - Final signed APK (direct download):  
-   https://github.com/Bryan-Andres-Suarez-Sanchez/FarmifAI/releases/latest/download/FarmifAI-release-v1.0-20260416_193105-signed.apk  
+   https://github.com/Bryan-Andres-Suarez-Sanchez/FarmifAI/releases/latest/download/FarmifAI-release-v1.0-20260420_182313-signed.apk  
 - Download guide + checksum:  
    [docs/APK_DOWNLOAD.md](docs/APK_DOWNLOAD.md)  
 
@@ -28,17 +28,42 @@ Built for rural environments, it enables farmers to **diagnose crops and receive
 ## Quick Start (under 5 minutes)
 
 1. Download the final signed APK  
-   https://github.com/Bryan-Andres-Suarez-Sanchez/FarmifAI/releases/latest/download/FarmifAI-release-v1.0-20260416_193105-signed.apk  
+   https://github.com/Bryan-Andres-Suarez-Sanchez/FarmifAI/releases/latest/download/FarmifAI-release-v1.0-20260420_182313-signed.apk  
 
 2. Install on Android device  
-   adb install -r FarmifAI-release-v1.0-20260416_193105-signed.apk  
+   adb install -r FarmifAI-release-v1.0-20260420_182313-signed.apk  
 
 3. Open the app and wait for first-time model setup  
 
 4. Test offline  
    - Enable airplane mode  
    - Open the app  
-   - Try:
+   - Try one of the questions from the **Sample RAG Questions (Coffee KB)** section below.
+
+---
+
+## Sample RAG Questions (Coffee KB)
+
+These prompts are based on the local knowledge base in `kb nueva/extract/*.jsonl`.
+
+- Que es un sistema de produccion de cafe y cuales son sus componentes principales?
+- Que es la fitotecnia y como se aplica al cultivo de cafe?
+- Cuantos anos dura la vida comercial del cafeto en condiciones normales?
+- A que edad empieza a producir el cafeto y cuando alcanza su maxima productividad?
+- Como se define la productividad del cafetal usando cafe pergamino seco?
+- De que depende el potencial de produccion del cafetal (genetica, ambiente y manejo)?
+- Que decisiones debo definir desde la siembra para planificar un cafetal de largo plazo?
+- Como seleccionar semilla de cafe para variedades tradicionales como Caturra, Tipica y Borbon?
+- Cual es la diferencia entre arvense y maleza en caficultura?
+- Que riesgos trae el control indiscriminado de arvenses y herbicidas?
+- Que diferencia hay entre competencia intraespecifica e interespecifica en un cafetal?
+- Como influye la densidad de siembra en la productividad del cafe?
+- Despues de cuantas cosechas suele bajar la formacion de ramas y nudos productivos?
+- Que es la agroforesteria en cafe y cuando puede ayudar o perjudicar la produccion?
+- Cuales son los macronutrimentos y micronutrimentos esenciales para el cafeto?
+- Que caracteriza a un cafe especial y por que puede tener mejor precio?
+- Como disenar sistemas intercalados con cafe para reducir competencia y alelopatia?
+- Que son las Buenas Practicas Agricolas (BPA) y cuales son sus objetivos en caficultura?
 
 ---
 

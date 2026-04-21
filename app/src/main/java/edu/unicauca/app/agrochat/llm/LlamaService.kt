@@ -119,6 +119,10 @@ class LlamaService private constructor() {
      */
     fun isLoaded(): Boolean = llama.isLoaded()
 
+    fun cancelGeneration() {
+        llama.cancelGeneration()
+    }
+
     /**
      * Descarga el modelo GGUF automáticamente desde Hugging Face
      */
@@ -277,25 +281,29 @@ class LlamaService private constructor() {
             Log.d(TAG, "Prompt streaming (${detectModelFamily()}): ${prompt.length} chars, maxTokens: $maxTokens")
 
             val raw = StringBuilder()
-            var emittedChunks = 0
+            var emittedLength = 0
             llama.send(prompt, formatChat = false, maxTokens = maxTokens).collect { chunk ->
                 if (chunk.isBlank()) return@collect
                 raw.append(chunk)
-                emittedChunks++
 
-                // Evita saturar Compose actualizando en cada token.
-                if (emittedChunks <= 6 || emittedChunks % 5 == 0 || chunk.contains('\n')) {
-                    val partial = cleanResponse(raw.toString())
-                    if (partial.length >= 5) {
-                        onPartialResponse(partial)
-                    }
+                val partial = cleanResponse(raw.toString())
+                val shouldEmit =
+                    partial.length >= 48 &&
+                        (
+                            partial.length - emittedLength >= 32 ||
+                                partial.endsWith("\n") ||
+                                partial.endsWith(".") ||
+                                partial.endsWith(":")
+                            )
+
+                if (shouldEmit) {
+                    emittedLength = partial.length
+                    onPartialResponse(partial)
                 }
             }
 
             val finalResponse = cleanResponse(raw.toString())
-            if (finalResponse.length >= 5) {
-                onPartialResponse(finalResponse)
-            }
+            onPartialResponse(finalResponse)
             Result.success(finalResponse)
         } catch (e: Exception) {
             Log.e(TAG, "Error generando respuesta streaming", e)
@@ -494,7 +502,28 @@ class LlamaService private constructor() {
      * Trunca contexto de KB para que no exceda el limite de longitud.
      */
     private fun truncateContextPreservingKb(context: String, maxLen: Int): String {
-        return context.take(maxLen)
+        if (context.length <= maxLen) return context
+
+        val chunks = context
+            .split("\n---\n")
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+
+        val out = StringBuilder()
+        for (chunk in chunks) {
+            val next = if (out.isEmpty()) chunk else "\n---\n$chunk"
+            if (out.length + next.length > maxLen) break
+            out.append(next)
+        }
+        if (out.isNotEmpty()) return out.toString()
+
+        val outLines = StringBuilder()
+        for (line in context.lines()) {
+            val candidate = if (outLines.isEmpty()) line else "\n$line"
+            if (outLines.length + candidate.length > maxLen) break
+            outLines.append(candidate)
+        }
+        return outLines.toString().trim()
     }
 
     /**

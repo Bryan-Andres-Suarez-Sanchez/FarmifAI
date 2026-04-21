@@ -35,6 +35,7 @@ class SemanticSearchHelper(private val context: Context) {
         private const val SUPPLEMENTAL_CONVERSATIONS_FILE = "kb_nueva/FarmifAI_dataset.json"
         private const val MODEL_FILE = "sentence_encoder.ms"
         private const val TOKENIZER_FILE = "sentence_tokenizer.json"
+        private const val LOAD_SUPPLEMENTAL_CONVERSATIONS = false
         
         // Configuración del modelo
         private const val EMBEDDING_DIM = 384  // MiniLM produce embeddings de 384 dims
@@ -76,7 +77,9 @@ class SemanticSearchHelper(private val context: Context) {
     private val stopWords = setOf(
         "de", "del", "la", "las", "el", "los", "y", "o", "a", "en", "con",
         "por", "para", "al", "un", "una", "unos", "unas", "que", "me", "te",
-        "se", "mi", "tu", "su", "sobre", "acerca", "dices"
+        "se", "mi", "tu", "su", "sobre", "acerca", "dices", "esta", "estan",
+        "estoy", "tengo", "tiene", "tienen", "hay", "bajo", "baja", "bajos",
+        "bajas", "alto", "alta", "altos", "altas", "despues"
     )
     private val tokenCanonicalMap = mapOf(
         "fertilizante" to "fertilizacion",
@@ -138,11 +141,22 @@ class SemanticSearchHelper(private val context: Context) {
         "poda" to "poda",
         "podas" to "poda",
         "podar" to "poda",
-        "recepa" to "renovacion",
-        "zoca" to "renovacion",
-        "zoqueo" to "renovacion",
+        "recepa" to "zoca",
+        "zoca" to "zoca",
+        "zoqueo" to "zoca",
         "renovar" to "renovacion",
         "renovacion" to "renovacion",
+        "chupon" to "brote",
+        "chupones" to "brote",
+        "brote" to "brote",
+        "brotes" to "brote",
+        "rebrote" to "brote",
+        "rebrotes" to "brote",
+        "seleccionar" to "seleccion",
+        "seleccione" to "seleccion",
+        "selecciona" to "seleccion",
+        "seleccion" to "seleccion",
+        "preseleccion" to "seleccion",
         "variedades" to "variedad",
         "geisha" to "variedad",
         "caturra" to "variedad",
@@ -176,7 +190,8 @@ class SemanticSearchHelper(private val context: Context) {
     private val genericIntentTokens = setOf(
         "como", "cuando", "donde", "porque", "cual", "cuales", "informacion",
         "saber", "tema", "sobre", "acerca", "explicacion", "consulta", "ayuda",
-        "orientacion", "recomendacion", "recomendaciones", "metodo", "forma"
+        "orientacion", "recomendacion", "recomendaciones", "metodo", "forma",
+        "dame", "paso", "pasos"
     )
     // Estado
     private var isInitialized = false
@@ -187,7 +202,44 @@ class SemanticSearchHelper(private val context: Context) {
         val category: String,
         val questions: List<String>,
         val answer: String,
+        val title: String? = null,
+        val statement: String? = null,
+        val condition: String? = null,
+        val action: String? = null,
+        val expectedEffect: String? = null,
+        val riskIfIgnored: String? = null,
+        val applicability: String? = null,
+        val quantData: List<QuantDatum> = emptyList(),
+        val classificationText: String? = null,
+        val uncertaintyNote: String? = null,
         val entityTokens: Set<String> = emptySet()
+    )
+
+    data class QuantDatum(
+        val metric: String,
+        val valueExact: String?,
+        val valueMin: String?,
+        val valueMax: String?,
+        val unit: String?,
+        val qualifier: String?
+    )
+
+    enum class FactualFacet {
+        ACTION,
+        TIMING,
+        AMOUNT,
+        THRESHOLD,
+        EFFECT,
+        RISK
+    }
+
+    data class EvidenceBlock(
+        val entryId: Int,
+        val category: String,
+        val title: String,
+        val facets: Set<FactualFacet>,
+        val lines: List<String>,
+        val supportScore: Float
     )
     
     data class MatchResult(
@@ -337,13 +389,19 @@ class SemanticSearchHelper(private val context: Context) {
 
         val loadedFromRecords = loadKnowledgeBaseFromRecordsJsonl()
         if (loadedFromRecords) {
-            mergeSupplementalConversationDataset()
+            if (LOAD_SUPPLEMENTAL_CONVERSATIONS) {
+                mergeSupplementalConversationDataset()
+            } else {
+                Log.d(TAG, "Dataset conversacional omitido: RAG limitado a $KNOWLEDGE_RECORDS_DIR")
+            }
             return
         }
 
         val loadedLegacy = loadKnowledgeBaseFromLegacyJson()
         if (loadedLegacy) {
-            mergeSupplementalConversationDataset()
+            if (LOAD_SUPPLEMENTAL_CONVERSATIONS) {
+                mergeSupplementalConversationDataset()
+            }
             return
         }
 
@@ -406,19 +464,9 @@ class SemanticSearchHelper(private val context: Context) {
 
                     try {
                         val record = JSONObject(line)
-                        val questions = buildQuestionsFromRecord(record)
-                        if (questions.isEmpty()) return@forEach
-
-                        val category = buildRecordCategory(record)
-                        val answer = buildAnswerFromRecord(record)
-                        val entityTokens = extractEntityTokens(record)
-                        entriesMap[nextId] = KnowledgeEntry(
-                            id = nextId,
-                            category = category,
-                            questions = questions,
-                            answer = answer,
-                            entityTokens = entityTokens
-                        )
+                        val entry = buildStructuredEntryFromRecord(record, nextId)
+                            ?: return@forEach
+                        entriesMap[nextId] = entry
                         nextId++
                     } catch (parseError: Exception) {
                         Log.w(TAG, "Linea invalida en $path: ${parseError.message}")
@@ -436,6 +484,80 @@ class SemanticSearchHelper(private val context: Context) {
         kbInformativeVocabulary = buildKbVocabulary(entriesMap)
         Log.d(TAG, "KB records cargada: ${entriesMap.size} entradas desde ${fileNames.size} archivos")
         return true
+    }
+
+    private fun buildStructuredEntryFromRecord(
+        record: JSONObject,
+        entryId: Int
+    ): KnowledgeEntry? {
+        val questions = buildQuestionsFromRecord(record)
+        if (questions.isEmpty()) return null
+
+        return KnowledgeEntry(
+            id = entryId,
+            category = buildRecordCategory(record),
+            questions = questions,
+            answer = buildAnswerFromRecord(record),
+            title = record.optCleanString("title"),
+            statement = record.optCleanString("statement"),
+            condition = record.optCleanString("condition"),
+            action = record.optCleanString("action"),
+            expectedEffect = record.optCleanString("expected_effect"),
+            riskIfIgnored = record.optCleanString("risk_if_ignored"),
+            applicability = record.optCleanString("applicability"),
+            quantData = parseQuantData(record.optJSONArray("quant_data")),
+            classificationText = buildClassificationText(record),
+            uncertaintyNote = buildUncertaintyText(record),
+            entityTokens = extractEntityTokens(record)
+        )
+    }
+
+    private fun JSONObject.optCleanString(key: String): String? {
+        if (!has(key) || isNull(key)) return null
+        return optString(key, "").trim().ifBlank { null }
+    }
+
+    private fun parseQuantData(quantData: JSONArray?): List<QuantDatum> {
+        if (quantData == null || quantData.length() == 0) return emptyList()
+
+        val out = mutableListOf<QuantDatum>()
+        for (i in 0 until quantData.length()) {
+            val item = quantData.optJSONObject(i) ?: continue
+            out.add(
+                QuantDatum(
+                    metric = item.optString("metric", "").trim().ifBlank { "dato" },
+                    valueExact = item.optJsonValueAsString("value_exact"),
+                    valueMin = item.optJsonValueAsString("value_min"),
+                    valueMax = item.optJsonValueAsString("value_max"),
+                    unit = item.optString("unit", "").trim().ifBlank { null },
+                    qualifier = item.optString("qualifier", "").trim().ifBlank { null }
+                )
+            )
+        }
+        return out
+    }
+
+    private fun JSONObject.optJsonValueAsString(key: String): String? {
+        if (!has(key) || isNull(key)) return null
+        return opt(key)?.toString()?.trim()?.ifBlank { null }
+    }
+
+    private fun buildClassificationText(record: JSONObject): String? {
+        val classification = record.optJSONObject("classification") ?: return null
+        val criterion = classification.optString("criterion", "").trim()
+        val classes = jsonArrayToStrings(classification.optJSONArray("classes"))
+        if (classes.isEmpty()) return null
+        return if (criterion.isNotBlank()) {
+            "$criterion: ${classes.joinToString(", ")}"
+        } else {
+            classes.joinToString(", ")
+        }
+    }
+
+    private fun buildUncertaintyText(record: JSONObject): String? {
+        if (!record.optBoolean("uncertain_text", false)) return null
+        return record.optString("uncertainty_note", "").trim()
+            .ifBlank { "la fuente marca este registro como incierto" }
     }
 
     private fun mergeSupplementalConversationDataset() {
@@ -529,20 +651,14 @@ class SemanticSearchHelper(private val context: Context) {
             for (i in 0 until entitiesArr.length()) {
                 val entity = entitiesArr.optString(i, "").trim()
                 if (entity.isNotBlank()) {
-                    val normalized = normalizeText(entity)
-                    normalized.split(Regex("\\s+")).filter { it.length >= 3 && it !in stopWords }.forEach { word ->
-                        tokens.add(tokenCanonicalMap[word] ?: word)
-                    }
+                    tokens.addAll(informativeTokensFromText(entity))
                 }
             }
         }
         // Also include topic and subtopic as entity tokens
         val topic = record.optString("topic", "").trim()
         if (topic.isNotBlank()) {
-            val normalizedTopic = normalizeText(topic)
-            normalizedTopic.split(Regex("[\\s_]+")).filter { it.length >= 3 && it !in stopWords }.forEach { word ->
-                tokens.add(tokenCanonicalMap[word] ?: word)
-            }
+            tokens.addAll(informativeTokensFromText(topic))
         }
         return tokens
     }
@@ -863,7 +979,10 @@ class SemanticSearchHelper(private val context: Context) {
         val ranked = rankSemanticCandidates(
             queryEmbedding = queryEmbedding,
             embeddings = embeddings,
-            minScore = -1f
+            minScore = -1f,
+            queryTokens = informativeTokensFromText(normalizedQuery),
+            queryNumbers = extractComparableNumbers(normalizedQuery),
+            queryFacets = inferFacetsFromText(normalizedQuery, isQuery = true)
         )
         val best = ranked.firstOrNull() ?: return null
 
@@ -1007,7 +1126,9 @@ class SemanticSearchHelper(private val context: Context) {
         queryEmbedding: FloatArray,
         embeddings: Array<FloatArray>,
         minScore: Float,
-        queryTokens: Set<String> = emptySet()
+        queryTokens: Set<String> = emptySet(),
+        queryNumbers: Set<String> = emptySet(),
+        queryFacets: Set<FactualFacet> = emptySet()
     ): List<RankedSemanticCandidate> {
         if (embeddings.isEmpty()) return emptyList()
 
@@ -1022,30 +1143,67 @@ class SemanticSearchHelper(private val context: Context) {
             val baseScore = cosineSimilarity(queryEmbedding, embeddings[idx])
             if (baseScore < minScore) continue
 
-            // Hybrid scoring: combine embedding similarity with entity overlap.
-            // Problem: embedding model weights common words ("café") too heavily,
-            // so "roya en café" matches "raíz del café" (0.84) better than
-            // "reducir pérdidas por roya" (0.52). Fix: when query tokens
-            // match entry entities, guarantee a competitive score floor.
             val entryId = entryIds[idx]
             val entry = entries[entryId]
-            val finalScore = if (queryTokens.isNotEmpty() && entry != null && entry.entityTokens.isNotEmpty()) {
+            val finalScore = if (queryTokens.isNotEmpty() && entry != null) {
+                val entryTokens = buildEntrySearchTokens(entry)
                 val genericTokens = setOf("cafe", "cafeto", "cafetal")
                 val specificQueryTokens = queryTokens.filterNot { it in genericTokens }
                 val specificEntityTokens = entry.entityTokens.filterNot { it in genericTokens }
-                if (specificQueryTokens.isNotEmpty() && specificEntityTokens.isNotEmpty()) {
-                    val overlap = specificQueryTokens.count { it in specificEntityTokens }
-                    if (overlap > 0) {
-                        // Any entity match = topic-relevant. Guarantee minimum 0.85.
-                        // Additional matches push higher.
-                        val entityFloor = (0.85f + (overlap - 1) * 0.05f).coerceAtMost(0.95f)
-                        maxOf(baseScore, entityFloor)
+                val entityOverlapCount = queryTokens.count { it in entry.entityTokens }
+                val entityOverlap = entityOverlapCount.toFloat() / queryTokens.size.toFloat()
+                val numberOverlap = if (queryNumbers.isNotEmpty()) {
+                    val entryNumbers = extractComparableNumbers(entry.answer)
+                    queryNumbers.count { it in entryNumbers }.toFloat() / queryNumbers.size.toFloat()
+                } else {
+                    0f
+                }
+                val queryMeasurementUnits = extractMeasurementUnitTokens(queryTokens)
+                val entryMeasurementUnits = extractMeasurementUnitTokens(entryTokens)
+                val unitCoverage = if (queryMeasurementUnits.isNotEmpty()) {
+                    queryMeasurementUnits.count { it in entryMeasurementUnits }.toFloat() /
+                        queryMeasurementUnits.size.toFloat()
+                } else {
+                    1f
+                }
+                val entryFacets = inferEntryFacets(entry)
+                val facetCoverage = if (queryFacets.isNotEmpty()) {
+                    queryFacets.count { it in entryFacets }.toFloat() / queryFacets.size.toFloat()
+                } else {
+                    0f
+                }
+                val entryOverlap = queryTokens.count { it in entryTokens }.toFloat() / queryTokens.size.toFloat()
+                val boundedBoost = when {
+                    entityOverlapCount >= 3 -> 0.12f
+                    entityOverlapCount == 2 -> 0.08f
+                    entityOverlapCount == 1 -> 0.04f
+                    else -> 0f
+                }
+                val weightedScore = (
+                    baseScore * 0.48f +
+                        entityOverlap * 0.24f +
+                        numberOverlap * 0.14f +
+                        facetCoverage * 0.14f
+                    ).coerceIn(0f, 1f)
+                val boostedScore = (baseScore + boundedBoost + entryOverlap * 0.04f).coerceIn(0f, 1f)
+                val missingSpecificPenalty =
+                    if (specificQueryTokens.isNotEmpty() && specificEntityTokens.isNotEmpty() &&
+                        specificQueryTokens.none { it in specificEntityTokens }
+                    ) {
+                        0.92f
                     } else {
-                        // Query has specific terms but none match this entry's entities.
-                        // Slight penalty: this entry is probably off-topic.
-                        baseScore * 0.88f
+                        1f
                     }
-                } else baseScore
+                val missingNumberPenalty = if (queryNumbers.isNotEmpty() && numberOverlap <= 0f) 0.68f else 1f
+                val missingUnitPenalty = if (queryMeasurementUnits.isNotEmpty() && unitCoverage <= 0f) 0.76f else 1f
+                val missingThresholdPenalty =
+                    if (FactualFacet.THRESHOLD in queryFacets && FactualFacet.THRESHOLD !in entryFacets) 0.82f else 1f
+
+                maxOf(weightedScore, boostedScore) *
+                    missingSpecificPenalty *
+                    missingNumberPenalty *
+                    missingUnitPenalty *
+                    missingThresholdPenalty
             } else baseScore
 
             if (finalScore < minScore) continue
@@ -1061,7 +1219,11 @@ class SemanticSearchHelper(private val context: Context) {
             )
         }
 
-        return ranked.sortedByDescending { it.score }
+        return ranked.sortedWith(
+            compareByDescending<RankedSemanticCandidate> { it.score }
+                .thenByDescending { it.entryScore }
+                .thenByDescending { it.baseScore }
+        )
     }
 
     private fun findAnnCandidateIndices(queryEmbedding: FloatArray, totalEmbeddings: Int): IntArray {
@@ -1224,24 +1386,39 @@ class SemanticSearchHelper(private val context: Context) {
         val questions = kbQuestions ?: return
         if (embeddings.isEmpty() || questions.isEmpty()) return
 
-        val idx = 0
-        val q = questions.getOrNull(idx) ?: return
-        val precomputed = embeddings.getOrNull(idx) ?: return
-        val computed = computeEmbedding(q) ?: run {
-            Log.w(TAG, "⚠ Verificación tokenizer: no se pudo computar embedding")
+        val indices = listOf(
+            0,
+            questions.size / 4,
+            questions.size / 2,
+            (questions.size * 3) / 4,
+            questions.lastIndex
+        ).distinct().filter { it in questions.indices && it in embeddings.indices }
+        val scores = mutableListOf<Float>()
+
+        for (idx in indices) {
+            val q = questions.getOrNull(idx) ?: continue
+            val precomputed = embeddings.getOrNull(idx) ?: continue
+            val computed = computeEmbedding(q) ?: continue
+            scores.add(cosineSimilarity(computed, precomputed))
+        }
+
+        if (scores.isEmpty()) {
+            Log.w(TAG, "Verificacion tokenizer: no se pudo computar ninguna muestra")
+            useMindSporeEncoder = false
             return
         }
 
-        val sim = cosineSimilarity(computed, precomputed)
-        Log.i(TAG, "Verificación tokenizer/KB: cosine(q0, emb0)=${String.format("%.4f", sim)}")
-        if (sim < 0.90f) {
-            Log.w(TAG, "⚠ Posible tokenizer incorrecto o KB desalineada (sim < 0.90).")
-        }
-        if (sim < 0.50f) {
+        val avg = scores.average().toFloat()
+        val min = scores.minOrNull() ?: avg
+        Log.i(
+            TAG,
+            "Verificacion tokenizer/KB: avg=${String.format("%.4f", avg)} min=${String.format("%.4f", min)} samples=${scores.size}"
+        )
+        if (avg < 0.70f) {
             useMindSporeEncoder = false
-            AppLogger.log(TAG, "Tokenizer/KB desalineados criticamente (sim=$sim). Se desactiva retrieval semantico.")
-        } else if (sim < 0.70f) {
-            AppLogger.log(TAG, "Tokenizer/KB con desalineacion moderada (sim=$sim). Se mantiene retrieval semantico.")
+            AppLogger.log(TAG, "Tokenizer/KB desalineados (avg=$avg min=$min). Se desactiva retrieval semantico.")
+        } else if (avg < 0.82f || min < 0.60f) {
+            AppLogger.log(TAG, "Tokenizer/KB con alineacion moderada (avg=$avg min=$min). Se mantiene retrieval semantico.")
         }
     }
     
@@ -1250,6 +1427,7 @@ class SemanticSearchHelper(private val context: Context) {
      */
     private fun normalizeText(text: String): String {
         return text.lowercase()
+            .replace(Regex("(?<=\\d)\\.(?=\\d{3}(\\D|$))"), "")
             .replace("á", "a").replace("é", "e").replace("í", "i")
             .replace("ó", "o").replace("ú", "u").replace("ñ", "n")
             .replace(Regex("[^a-z0-9\\s]"), " ")
@@ -1271,6 +1449,14 @@ class SemanticSearchHelper(private val context: Context) {
         if (normalized.isBlank()) return emptySet()
         val words = normalized.split(Regex("\\s+")).filter { it.isNotBlank() }.toSet()
         return extractInformativeTokens(words)
+    }
+
+    private fun buildEntrySearchTokens(entry: KnowledgeEntry): Set<String> {
+        val out = mutableSetOf<String>()
+        entry.questions.forEach { question -> out.addAll(informativeTokensFromText(question)) }
+        out.addAll(informativeTokensFromText(entry.answer))
+        out.addAll(entry.entityTokens)
+        return out
     }
 
     private fun buildKbVocabulary(entries: Map<Int, KnowledgeEntry>): Set<String> {
@@ -1297,6 +1483,87 @@ class SemanticSearchHelper(private val context: Context) {
             }
             .filter { it.length >= 3 && it !in stopWords }
             .toSet()
+    }
+
+    private fun inferEntryFacets(entry: KnowledgeEntry): Set<FactualFacet> {
+        val facets = mutableSetOf<FactualFacet>()
+        if (!entry.action.isNullOrBlank()) facets.add(FactualFacet.ACTION)
+        if (!entry.condition.isNullOrBlank()) facets.add(FactualFacet.TIMING)
+        if (entry.quantData.isNotEmpty()) facets.add(FactualFacet.AMOUNT)
+        if (!entry.expectedEffect.isNullOrBlank()) facets.add(FactualFacet.EFFECT)
+        if (!entry.riskIfIgnored.isNullOrBlank()) facets.add(FactualFacet.RISK)
+        facets.addAll(inferFacetsFromText(entry.answer, isQuery = false))
+        return facets
+    }
+
+    private fun inferFacetsFromText(
+        text: String,
+        isQuery: Boolean
+    ): Set<FactualFacet> {
+        val normalized = normalizeComparableText(text)
+        if (normalized.isBlank()) return emptySet()
+
+        val facets = mutableSetOf<FactualFacet>()
+        val actionPattern = Regex(
+            "\\b(que\\s+hacer|accion|aplic(?:o|a|ar|arlo|arla)|hago|debo|manej(?:o|ar)|control(?:o|ar)|trat(?:o|ar)|fertiliz(?:o|ar)|abon(?:o|ar)|seleccion(?:ar|o|a)|dejar|deje|program(?:ar|e)|renov(?:ar|e)|zoque(?:o|ar)|pod(?:a|ar|o)|recolect(?:o|ar|e)|adicion(?:ar|a|e|o)|agreg(?:ar|a|e|o)|aport(?:ar|a|e|o)|correg(?:ir|irse|a|e|o))\\b"
+        )
+        val timingPattern = Regex(
+            "\\b(cuando|momento|epoca|al\\s+terminar|despues\\s+de|a\\s+los\\s+\\d+\\s+(mes|meses|dia|dias|semana|semanas|ano|anos|cosecha|cosechas))\\b"
+        )
+        val amountPattern = Regex(
+            "\\b(dosis|cantidad|cuanto|\\d+(?:\\.\\d+)?\\s*(g|kg|l|ml|ppm|%)(?:\\s*(?:/|por)\\s*(planta|sitio|ha|l|hectarea|arbol|100\\s*g|100g))?)\\b"
+        )
+        val thresholdPattern = Regex(
+            "(<=|>=|<|>)|\\b(menor\\s+de|mayor\\s+de|por\\s+debajo\\s+de|por\\s+encima\\s+de|umbral)\\b"
+        )
+        val effectPattern = Regex("\\b(efecto|beneficio|sirve|objetivo|resultado|logra)\\b")
+        val riskPattern = Regex("\\b(riesgo|ignora|ignorar|problema|consecuencia|afecta)\\b")
+
+        if (actionPattern.containsMatchIn(normalized)) facets.add(FactualFacet.ACTION)
+        if (timingPattern.containsMatchIn(normalized)) facets.add(FactualFacet.TIMING)
+        if (amountPattern.containsMatchIn(normalized)) facets.add(FactualFacet.AMOUNT)
+        if (thresholdPattern.containsMatchIn(normalized) && Regex("\\d").containsMatchIn(normalized)) {
+            facets.add(FactualFacet.THRESHOLD)
+        }
+        if (effectPattern.containsMatchIn(normalized)) facets.add(FactualFacet.EFFECT)
+        if (riskPattern.containsMatchIn(normalized)) facets.add(FactualFacet.RISK)
+
+        if (!isQuery && normalized.startsWith("accion:")) facets.add(FactualFacet.ACTION)
+        if (!isQuery && normalized.startsWith("condicion:")) facets.add(FactualFacet.TIMING)
+        return facets
+    }
+
+    private fun extractComparableNumbers(text: String): Set<String> {
+        val normalized = normalizeComparableText(text)
+            .replace(Regex("(?m)^\\s*\\d+[.)]\\s+"), " ")
+        return Regex("\\b\\d+(?:\\.\\d+)?\\b")
+            .findAll(normalized)
+            .map { canonicalComparableNumber(it.value.trim('.')) }
+            .filter { it.isNotBlank() }
+            .toSet()
+    }
+
+    private fun extractMeasurementUnitTokens(tokens: Set<String>): Set<String> {
+        val units = setOf(
+            "ppm", "meq", "g", "kg", "l", "ml", "ha", "hectarea", "planta",
+            "sitio", "mes", "meses", "dia", "dias", "semana", "semanas", "%"
+        )
+        return tokens.filter { it in units }.toSet()
+    }
+
+    private fun canonicalComparableNumber(number: String): String {
+        return number
+            .removeSuffix(".0")
+            .removeSuffix(".00")
+            .ifBlank { number }
+    }
+
+    private fun normalizeComparableText(text: String): String {
+        return text.lowercase()
+            .replace(Regex("(?<=\\d)\\.(?=\\d{3}(\\D|$))"), "")
+            .replace(",", ".")
+            .replace("á", "a").replace("é", "e").replace("í", "i")
+            .replace("ó", "o").replace("ú", "u").replace("ñ", "n")
     }
 
     /**
@@ -1380,12 +1647,16 @@ class SemanticSearchHelper(private val context: Context) {
             AppLogger.log(TAG, "findTopKContexts: no se pudo calcular embedding de query")
             return ContextResult(emptyList(), "", null)
         }
+        val queryNumbers = extractComparableNumbers(normalizedQuery)
+        val queryFacets = inferFacetsFromText(normalizedQuery, isQuery = true)
 
         val ranked = rankSemanticCandidates(
             queryEmbedding = queryEmbedding,
             embeddings = embeddings!!,
             minScore = minScore,
-            queryTokens = queryTokens
+            queryTokens = queryTokens,
+            queryNumbers = queryNumbers,
+            queryFacets = queryFacets
         )
 
         if (ranked.isEmpty()) {
@@ -1514,8 +1785,8 @@ class SemanticSearchHelper(private val context: Context) {
         val elapsedTime = System.currentTimeMillis() - startTime
         Log.d(TAG, "findTopKContexts: ${finalResults.size} contextos en ${elapsedTime}ms ($modeLabel)")
 
-        // Construir contexto combinado para el LLM
-        val combinedContext = buildCombinedContext(finalResults)
+        // Construir contexto estructurado para el LLM.
+        val combinedContext = buildCombinedContext(finalResults, userQuery)
         val groundingAssessment = buildGroundingAssessment(
             userQuery = userQuery,
             topMatch = finalResults.firstOrNull(),
@@ -1661,8 +1932,13 @@ class SemanticSearchHelper(private val context: Context) {
      * Construye un contexto combinado formateado para el LLM
      * NOTA: Se evita incluir las preguntas del KB para que el LLM no las repita
      */
-    private fun buildCombinedContext(results: List<MatchResult>): String {
+    private fun buildCombinedContext(results: List<MatchResult>, userQuery: String): String {
         if (results.isEmpty()) return ""
+
+        val evidenceBlocks = buildEvidenceBlocks(userQuery, results)
+        if (evidenceBlocks.isNotEmpty()) {
+            return renderEvidenceBlocksForPrompt(userQuery, evidenceBlocks)
+        }
 
         val sb = StringBuilder()
         sb.append("Informacion agricola relevante:\n")
@@ -1676,6 +1952,188 @@ class SemanticSearchHelper(private val context: Context) {
         return sb.toString().trim()
     }
 
+    fun buildEvidenceBlocks(
+        userQuery: String,
+        topK: Int = 4
+    ): List<EvidenceBlock> {
+        val contexts = findTopKContexts(
+            userQuery = userQuery,
+            topK = topK,
+            minScore = 0.15f
+        ).contexts
+        return buildEvidenceBlocks(userQuery, contexts)
+    }
+
+    fun buildEvidenceBlocks(
+        userQuery: String,
+        matches: List<MatchResult>
+    ): List<EvidenceBlock> {
+        val entries = kbEntries ?: return emptyList()
+        val queryTokens = informativeTokensFromText(normalizeQueryForSearch(userQuery))
+        val queryNumbers = extractComparableNumbers(userQuery)
+        val queryFacets = inferFacetsFromText(userQuery, isQuery = true)
+
+        return matches
+            .mapNotNull { match ->
+                val entry = entries[match.entryId] ?: return@mapNotNull null
+                buildEvidenceBlock(entry, match, queryTokens, queryNumbers, queryFacets)
+            }
+            .sortedByDescending { it.supportScore }
+    }
+
+    private fun buildEvidenceBlock(
+        entry: KnowledgeEntry,
+        match: MatchResult,
+        queryTokens: Set<String>,
+        queryNumbers: Set<String>,
+        queryFacets: Set<FactualFacet>
+    ): EvidenceBlock {
+        val requiredFacets = queryFacets + inferEntryFacets(entry).filter {
+            it == FactualFacet.ACTION || it == FactualFacet.AMOUNT || it == FactualFacet.THRESHOLD
+        }
+        val scored = mutableListOf<Pair<Float, String>>()
+
+        fun addLine(label: String, value: String?, facets: Set<FactualFacet> = emptySet(), base: Float = 0f) {
+            val clean = value?.trim()?.replace(Regex("\\s+"), " ") ?: return
+            if (clean.isBlank()) return
+            val line = if (label.isBlank()) clean else "$label: $clean"
+            val lineTokens = informativeTokensFromText(line)
+            val lineNumbers = extractComparableNumbers(line)
+            val lineFacets = inferFacetsFromText(line, isQuery = false) + facets
+            val tokenScore = if (queryTokens.isNotEmpty()) {
+                lineTokens.count { it in queryTokens }.toFloat() / queryTokens.size.toFloat()
+            } else {
+                0f
+            }
+            val numberScore = if (queryNumbers.isNotEmpty()) {
+                lineNumbers.count { it in queryNumbers }.toFloat() / queryNumbers.size.toFloat()
+            } else {
+                0f
+            }
+            val facetScore = if (requiredFacets.isNotEmpty()) {
+                lineFacets.count { it in requiredFacets }.toFloat() / requiredFacets.size.toFloat()
+            } else {
+                0f
+            }
+            val score = base + tokenScore * 0.45f + numberScore * 0.25f + facetScore * 0.30f
+            scored.add(score to line)
+        }
+
+        addLine("Titulo", entry.title, base = 0.15f)
+        addLine("Dato", entry.statement, base = 0.12f)
+        addLine("Condicion", entry.condition, setOf(FactualFacet.TIMING), base = 0.18f)
+        addLine("Accion", entry.action, setOf(FactualFacet.ACTION), base = 0.22f)
+        if (FactualFacet.EFFECT in queryFacets) {
+            addLine("Efecto esperado", entry.expectedEffect, setOf(FactualFacet.EFFECT), base = 0.16f)
+        }
+        if (FactualFacet.RISK in queryFacets) {
+            addLine("Riesgo si se ignora", entry.riskIfIgnored, setOf(FactualFacet.RISK), base = 0.16f)
+        }
+        addLine("Aplicabilidad", entry.applicability, base = 0.06f)
+
+        for (quant in entry.quantData) {
+            addLine(
+                "Dato cuantitativo",
+                renderQuantDatum(quant),
+                setOf(FactualFacet.AMOUNT, FactualFacet.THRESHOLD),
+                base = 0.20f
+            )
+        }
+        addLine("Clasificacion", entry.classificationText, base = 0.06f)
+        addLine("Nota de incertidumbre", entry.uncertaintyNote, base = 0.10f)
+
+        val selected = mutableListOf<String>()
+        val coveredFacets = mutableSetOf<FactualFacet>()
+        for ((_, line) in scored.sortedByDescending { it.first }) {
+            if (line in selected) continue
+            selected.add(line)
+            coveredFacets.addAll(inferFacetsFromText(line, isQuery = false))
+            if (selected.size >= 7) break
+        }
+
+        for (facet in requiredFacets) {
+            if (facet in coveredFacets) continue
+            val candidate = scored
+                .map { it.second }
+                .firstOrNull { facet in inferFacetsFromText(it, isQuery = false) && it !in selected }
+            if (candidate != null && selected.size < 9) {
+                selected.add(candidate)
+                coveredFacets.add(facet)
+            }
+        }
+
+        val lines = selected.ifEmpty {
+            entry.answer.lines().map { it.trim() }.filter { it.isNotBlank() }.take(5)
+        }
+        val facets = lines.flatMap { inferFacetsFromText(it, isQuery = false) }.toSet() + inferEntryFacets(entry)
+        val support = (
+            match.similarityScore * 0.58f +
+                (if (queryTokens.isNotEmpty()) {
+                    lines
+                        .flatMap { informativeTokensFromText(it) }
+                        .count { it in queryTokens }
+                        .toFloat() / queryTokens.size.toFloat()
+                } else 0f) * 0.28f +
+                (if (queryFacets.isNotEmpty()) {
+                    facets.count { it in queryFacets }.toFloat() / queryFacets.size.toFloat()
+                } else 0f) * 0.14f
+            ).coerceIn(0f, 1f)
+
+        return EvidenceBlock(
+            entryId = entry.id,
+            category = entry.category,
+            title = entry.title ?: entry.questions.firstOrNull() ?: entry.category,
+            facets = facets,
+            lines = lines,
+            supportScore = support
+        )
+    }
+
+    private fun renderQuantDatum(quant: QuantDatum): String {
+        val value = when {
+            !quant.valueExact.isNullOrBlank() -> quant.valueExact
+            !quant.valueMin.isNullOrBlank() && !quant.valueMax.isNullOrBlank() ->
+                "${quant.valueMin}-${quant.valueMax}"
+            !quant.valueMin.isNullOrBlank() -> ">= ${quant.valueMin}"
+            !quant.valueMax.isNullOrBlank() -> "<= ${quant.valueMax}"
+            else -> "sin valor"
+        }
+        val unitPart = quant.unit?.let { " $it" }.orEmpty()
+        val qualifierPart = quant.qualifier?.let { " ($it)" }.orEmpty()
+        return "${quant.metric}: $value$unitPart$qualifierPart"
+    }
+
+    private fun renderEvidenceBlocksForPrompt(
+        userQuery: String,
+        blocks: List<EvidenceBlock>
+    ): String {
+        val queryTokens = informativeTokensFromText(normalizeQueryForSearch(userQuery))
+        val supportedTokens = blocks
+            .flatMap { block -> block.lines.flatMap { informativeTokensFromText(it) } }
+            .toSet()
+        val coverage = if (queryTokens.isNotEmpty()) {
+            queryTokens.count { it in supportedTokens }.toFloat() / queryTokens.size.toFloat()
+        } else {
+            0f
+        }
+        val support = blocks.firstOrNull()?.supportScore ?: 0f
+        val unknown = computeUnknownQueryTokenRatio(queryTokens, kbInformativeVocabulary)
+
+        return buildString {
+            appendLine("EVIDENCIA DISPONIBLE:")
+            appendLine("support_score=${String.format("%.2f", support)}")
+            appendLine("coverage=${String.format("%.2f", coverage)}")
+            appendLine("unknown_ratio=${String.format("%.2f", unknown)}")
+            appendLine()
+            blocks.take(4).forEachIndexed { index, block ->
+                appendLine("[FUENTE ${index + 1}] ${block.category}")
+                appendLine("Titulo: ${block.title}")
+                block.lines.forEach { appendLine("- $it") }
+                appendLine()
+            }
+        }.trim()
+    }
+
     private fun buildGroundingAssessment(
         userQuery: String,
         topMatch: MatchResult?,
@@ -1685,18 +2143,21 @@ class SemanticSearchHelper(private val context: Context) {
         if (queryTokens.isEmpty()) return null
 
         if (topMatch == null) {
+            val unknownQueryTokens = queryTokens.filter { it !in kbInformativeVocabulary }.toSet()
             return GroundingAssessment(
                 supportScore = 0f,
                 lexicalCoverage = 0f,
                 entityCoverage = 0f,
-                unknownTokenRatio = 1f,
+                unknownTokenRatio = computeUnknownQueryTokenRatio(queryTokens, kbInformativeVocabulary),
                 queryTokens = queryTokens,
                 missingEntityTokens = queryTokens,
-                unknownQueryTokens = queryTokens,
+                unknownQueryTokens = unknownQueryTokens,
                 hasStrongSupport = false
             )
         }
 
+        val entries = kbEntries
+        val topEntry = entries?.get(topMatch.entryId)
         val effectiveQueryEmbedding = queryEmbedding ?: computeEmbedding(normalizeQueryForSearch(userQuery))
         val entryScore = if (effectiveQueryEmbedding != null) {
             entrySemanticEmbeddings[topMatch.entryId]?.let { cosineSimilarity(effectiveQueryEmbedding, it) }
@@ -1704,28 +2165,49 @@ class SemanticSearchHelper(private val context: Context) {
             null
         } ?: topMatch.similarityScore
 
+        val topEntryTokens = topEntry?.let { buildEntrySearchTokens(it) }
+            ?: informativeTokensFromText("${topMatch.matchedQuestion} ${topMatch.answer}")
+        val lexicalCoverage = queryTokens.count { it in topEntryTokens }.toFloat() / queryTokens.size.toFloat()
+        val entityTokens = topEntry?.entityTokens.orEmpty()
+        val specificQueryTokens = queryTokens.filterNot { it in genericIntentTokens || it == "cafe" }.toSet()
+        val entityCoverage = if (specificQueryTokens.isNotEmpty() && entityTokens.isNotEmpty()) {
+            specificQueryTokens.count { it in entityTokens }.toFloat() / specificQueryTokens.size.toFloat()
+        } else {
+            lexicalCoverage
+        }.coerceIn(0f, 1f)
+        val unknownQueryTokens = queryTokens.filter { it !in kbInformativeVocabulary }.toSet()
+        val missingEntityTokens = specificQueryTokens.filter { it !in topEntryTokens }.toSet()
+        val unknownTokenRatio = computeUnknownQueryTokenRatio(queryTokens, kbInformativeVocabulary)
         val supportScore = (
-            topMatch.similarityScore * 0.66f +
-                entryScore * 0.34f
+            topMatch.similarityScore * 0.45f +
+                entryScore * 0.25f +
+                lexicalCoverage * 0.20f +
+                entityCoverage * 0.10f
             ).coerceIn(0f, 1f)
-        val semanticCoverage = ((topMatch.similarityScore + entryScore) * 0.5f).coerceIn(0f, 1f)
-        val entityCoverage = maxOf(topMatch.similarityScore, entryScore).coerceIn(0f, 1f)
-        val unknownTokenRatio = (1f - supportScore).coerceIn(0f, 1f)
         val hasStrongSupport =
-            supportScore >= 0.50f &&
-                semanticCoverage >= 0.42f &&
-                unknownTokenRatio <= 0.58f
+            supportScore >= 0.48f &&
+                lexicalCoverage >= 0.30f &&
+                unknownTokenRatio <= 0.65f
 
         return GroundingAssessment(
             supportScore = supportScore,
-            lexicalCoverage = semanticCoverage,
+            lexicalCoverage = lexicalCoverage,
             entityCoverage = entityCoverage,
             unknownTokenRatio = unknownTokenRatio,
             queryTokens = queryTokens,
-            missingEntityTokens = emptySet(),
-            unknownQueryTokens = emptySet(),
+            missingEntityTokens = missingEntityTokens,
+            unknownQueryTokens = unknownQueryTokens,
             hasStrongSupport = hasStrongSupport
         )
+    }
+
+    private fun computeUnknownQueryTokenRatio(
+        queryTokens: Set<String>,
+        kbVocabulary: Set<String>
+    ): Float {
+        if (queryTokens.isEmpty()) return 1f
+        val unknown = queryTokens.count { it !in kbVocabulary }
+        return unknown.toFloat() / queryTokens.size.toFloat()
     }
 
     fun scoreResponseGrounding(

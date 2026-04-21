@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.util.Log
 import edu.unicauca.app.agrochat.AppLogger
 import edu.unicauca.app.agrochat.MindSporeHelper
+import edu.unicauca.app.agrochat.models.LocalModelRegistry
 import org.json.JSONObject
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -42,7 +43,7 @@ class PlantDiseaseClassifier(private val context: Context) {
     
     companion object {
         private const val TAG = "PlantDiseaseClassifier"
-        private const val MODEL_FILE = "plant_disease_model_old.ms"
+        private const val MODEL_FILE = "plant_disease_model.ms"
         private const val LABELS_FILE = "plant_disease_labels.json"
         private const val INPUT_SIZE = 224
         private const val PIXEL_SIZE = 3  // RGB
@@ -87,8 +88,15 @@ class PlantDiseaseClassifier(private val context: Context) {
             }
             AppLogger.log(TAG, "✓ ${labels.size} etiquetas cargadas")
             
-            AppLogger.log(TAG, "Cargando modelo MindSpore local desde assets: $MODEL_FILE")
-            modelHandle = MindSporeHelper.loadModelFromAssets(context, MODEL_FILE, numThreads = 2)
+            val localRegistry = LocalModelRegistry.getInstance()
+            val modelPath = localRegistry.getModelPath(context, MODEL_FILE)
+            if (modelPath == null) {
+                AppLogger.log(TAG, "❌ Modelo requerido no encontrado en almacenamiento interno: $MODEL_FILE")
+                return false
+            }
+
+            AppLogger.log(TAG, "Cargando modelo MindSpore local desde files/models: $modelPath")
+            modelHandle = MindSporeHelper.loadModelFromFilePath(modelPath, numThreads = 2)
             
             if (modelHandle == 0L) {
                 AppLogger.log(TAG, "❌ MindSpore devolvió handle=0")

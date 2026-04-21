@@ -1460,6 +1460,7 @@ class MainActivity : ComponentActivity() {
         val promptStripped = original
             .replace(Regex("(?i)^(Responde con PRECISION usando SOLO los siguientes datos[.\\s]*)", RegexOption.MULTILINE), "")
             .replace(Regex("(?i)^(DATOS DISPONIBLES:)", RegexOption.MULTILINE), "")
+            .replace(Regex("(?i)^(TEXTO FACTUAL:)", RegexOption.MULTILINE), "")
             .replace(Regex("(?i)^(CONSULTA DEL AGRICULTOR:)", RegexOption.MULTILINE), "")
             .replace(Regex("(?i)^(CONSULTA:)", RegexOption.MULTILINE), "")
             .replace(Regex("(?i)^(Usa los datos de abajo para responder[.\\s]*)", RegexOption.MULTILINE), "")
@@ -1533,6 +1534,13 @@ class MainActivity : ComponentActivity() {
             .replace(Regex("\\bLLM\\b", RegexOption.IGNORE_CASE), "asistente")
             .replace(Regex("con base en", RegexOption.IGNORE_CASE), "con la informacion disponible")
             .replace(
+                Regex("^\\s*El\\s+f[oó]sforo\\s+debe\\s+abonosarse\\s+cuando\\s+el\\s+contenido\\s+es\\s+menor\\s+de\\s+30\\s+ppm\\.", RegexOption.IGNORE_CASE),
+                "Si el fosforo es menor de 30 ppm, se debe corregir."
+            )
+            .replace(Regex("\\babonosarse\\b", RegexOption.IGNORE_CASE), "abonarse")
+            .replace(Regex("\\babonar\\s+organico\\b", RegexOption.IGNORE_CASE), "aplicar abono organico")
+            .replace(Regex("\\bhectaria\\b", RegexOption.IGNORE_CASE), "hectarea")
+            .replace(
                 Regex("para afinar mas la recomendacion faltan datos en la\\s+(kb|informacion)\\s+sobre\\s*", RegexOption.IGNORE_CASE),
                 "Para afinar mejor la recomendacion necesito mas datos sobre "
             )
@@ -1547,6 +1555,8 @@ class MainActivity : ComponentActivity() {
 
 
         normalized = normalized
+            .replace(Regex("(?<=[A-Za-zÁÉÍÓÚáéíóúÑñ])(?=\\d)"), " ")
+            .replace(Regex("(?<=\\d)(?=[A-Za-zÁÉÍÓÚáéíóúÑñ])"), " ")
             .replace(Regex("[ \\t]{2,}"), " ")
             .replace(Regex("\\n{3,}"), "\n\n")
             .replace(" .", ".")
@@ -1578,33 +1588,34 @@ class MainActivity : ComponentActivity() {
 
         val baseConfigured = advancedMaxTokens.coerceIn(ADAPTIVE_MIN_MAX_TOKENS, ADAPTIVE_MAX_MAX_TOKENS)
         val normalized = normalizeForTokenBudget(userQuery)
+        val asksForGuidance = asksForPracticalGuidance(normalized)
         val longFormHints = listOf(
             "paso a paso", "detall", "detalle", "profund", "plan completo", "cronograma",
             "calendario", "manual", "compar", "explica", "amplia", "continua", "continuar",
             "y que mas", "guia completa", "tabla", "todo"
         )
         val asksLongForm = normalized.length > 140 || longFormHints.any { normalized.contains(it) }
-        val weakGrounding = hasKbContext && (
-            kbSupportScore < 0.45f ||
-                kbCoverage < 0.30f ||
-                kbUnknownRatio > 0.45f
-            )
-        val largeContext = contextLength >= 1500
 
-        val needsExtended = continuationLike || forcedContext || asksLongForm || (weakGrounding && largeContext)
-        if (needsExtended) {
-            return TokenBudgetPlan(ADAPTIVE_MAX_MAX_TOKENS, "extended_needed")
+        val targetTokens = when {
+            continuationLike || forcedContext || asksLongForm -> 1100
+            hasKbContext && asksForGuidance && normalized.length <= 90 -> 300
+            hasKbContext && asksForGuidance -> 380
+            hasKbContext && kbSupportScore >= 0.70f && kbCoverage >= 0.55f && normalized.length <= 70 -> 340
+            hasKbContext -> 560
+            asksForGuidance -> 260
+            else -> 220
         }
 
-        val fastTarget = when {
-            hasKbContext && kbSupportScore >= 0.60f && kbCoverage >= 0.45f -> 800
-            hasKbContext -> 900
-            normalized.length <= 45 -> 600
-            normalized.length <= 90 -> 750
-            else -> 900
+        val chosen = minOf(baseConfigured, targetTokens)
+            .coerceIn(ADAPTIVE_MIN_MAX_TOKENS, ADAPTIVE_MAX_MAX_TOKENS)
+        val reason = when {
+            continuationLike || forcedContext || asksLongForm -> "extended_needed"
+            hasKbContext && asksForGuidance -> "kb_guidance"
+            hasKbContext -> "kb_precise"
+            asksForGuidance -> "no_kb_guidance_limited"
+            else -> "no_kb_precise"
         }
-        val chosen = maxOf(baseConfigured, fastTarget).coerceIn(ADAPTIVE_MIN_MAX_TOKENS, ADAPTIVE_MAX_MAX_TOKENS)
-        return TokenBudgetPlan(chosen, "fast_path")
+        return TokenBudgetPlan(chosen, reason)
     }
 
     private fun normalizeForTokenBudget(text: String): String {
@@ -1617,6 +1628,20 @@ class MainActivity : ComponentActivity() {
             .replace("ñ", "n")
             .replace(Regex("\\s+"), " ")
             .trim()
+    }
+
+    private fun asksForPracticalGuidance(normalizedQuery: String): Boolean {
+        if (normalizedQuery.isBlank()) return false
+        val stepPattern = Regex("\\b(pasos?|paso\\s+a\\s+paso|instrucciones?|procedimiento|guia|plan)\\b")
+        if (stepPattern.containsMatchIn(normalizedQuery)) return true
+
+        val questionCue = Regex("\\b(que|como|cuando|cuanto|cual|cuales)\\b")
+            .containsMatchIn(normalizedQuery)
+        val actionCue = Regex(
+            "\\b(aplic(?:o|a|ar|arlo|arla)|hago|debo|manej(?:o|ar)|control(?:o|ar)|trat(?:o|ar)|fertiliz(?:o|ar)|abon(?:o|ar)|recomiend(?:a|as|an))\\b"
+        ).containsMatchIn(normalizedQuery)
+
+        return questionCue && actionCue
     }
 
     private fun sendMessage(userMessage: String) {
@@ -2010,12 +2035,36 @@ class MainActivity : ComponentActivity() {
                     continuationLike = true
                 ).maxTokens
                 
-                val result = llamaService?.generateAgriResponse(
+                var streamingThinkingMessageId: String? = null
+                var streamingAnswerMessageId: String? = null
+                val result = llamaService?.generateAgriResponseStreaming(
                     userQuery = continuePrompt,
                     contextFromKB = lastContext,
                     maxTokens = continuationMaxTokens,
                     maxContextLength = advancedContextLength,
-                    systemPrompt = advancedSystemPrompt
+                    systemPrompt = advancedSystemPrompt,
+                    onPartialResponse = { partial ->
+                        val displayPayload = buildAssistantDisplayPayload(partial)
+                        val thinkingPartial = displayPayload.thinking
+                        val answerPartial = displayPayload.answer
+                        withContext(Dispatchers.Main) {
+                            if (thinkingPartial.length >= 8) {
+                                streamingThinkingMessageId = upsertStreamingAssistantBubble(
+                                    existingId = streamingThinkingMessageId,
+                                    text = thinkingPartial,
+                                    isThinking = true
+                                )
+                            }
+                            if (answerPartial.length >= 8) {
+                                streamingAnswerMessageId = upsertStreamingAssistantBubble(
+                                    existingId = streamingAnswerMessageId,
+                                    text = answerPartial,
+                                    isThinking = false
+                                )
+                                lastResponse = answerPartial
+                            }
+                        }
+                    }
                 )
                 
                 result?.fold(
@@ -2038,15 +2087,26 @@ class MainActivity : ComponentActivity() {
                         if (cleanResponse.length > 10) {
                             // Verificar si esta continuación está completa
                             val isComplete = isResponseComplete(cleanResponse)
-                            // Agregar como continuación
-                            chatMessages.add(
-                                ChatMessage(
+                            val existingStreamIndex = streamingAnswerMessageId?.let { id ->
+                                chatMessages.indexOfFirst { it.id == id }
+                            } ?: -1
+                            if (existingStreamIndex >= 0) {
+                                chatMessages[existingStreamIndex] = chatMessages[existingStreamIndex].copy(
                                     text = cleanResponse,
-                                    isUser = false,
                                     canContinue = !isComplete,
+                                    feedbackEligible = false,
                                     isThinking = false
                                 )
-                            )
+                            } else {
+                                chatMessages.add(
+                                    ChatMessage(
+                                        text = cleanResponse,
+                                        isUser = false,
+                                        canContinue = !isComplete,
+                                        isThinking = false
+                                    )
+                                )
+                            }
                             lastResponse = cleanResponse
                             voiceHelper?.speak(cleanResponse)
                         }
@@ -2082,7 +2142,6 @@ class MainActivity : ComponentActivity() {
         val effectiveChatHistorySize = if (STRICT_TERMINAL_PARITY_MODE) PARITY_CHAT_HISTORY_SIZE else advancedChatHistorySize
         val effectiveContextLength = if (STRICT_TERMINAL_PARITY_MODE) PARITY_CONTEXT_LENGTH else advancedContextLength
         val effectiveSystemPrompt = if (STRICT_TERMINAL_PARITY_MODE) PARITY_SYSTEM_PROMPT else advancedSystemPrompt
-        val effectiveUseLlmForAll = if (STRICT_TERMINAL_PARITY_MODE) false else advancedUseLlmForAll
         val effectiveDetectGreetings = if (STRICT_TERMINAL_PARITY_MODE) true else advancedDetectGreetings
         val retrievalMinScore = KB_RETRIEVAL_MIN_SCORE
         val llmAvailable = isLlamaEnabled && isLlamaLoaded && llamaService != null
@@ -2146,8 +2205,7 @@ class MainActivity : ComponentActivity() {
         val hasRelatedKbSignal = bestMatch != null &&
             bestMatch.similarityScore >= semanticRelatedMinScore &&
             kbSupportScore >= 0.30f
-        val hasKbContext = hasRelatedKbSignal
-        val allowGeneralLlmCandidate = llmAvailable
+        val hasKbContext = hasRelatedKbSignal && !combinedKBContext.isNullOrBlank()
 
         if (forcedContext == null) {
             lastContext = if (!combinedKBContext.isNullOrBlank()) combinedKBContext else bestMatch?.answer
@@ -2164,15 +2222,10 @@ class MainActivity : ComponentActivity() {
         val routeResult = ResponseRoutingPolicy.decide(
             ResponseRoutingPolicy.Input(
                 hasRelatedKbSignal = hasRelatedKbSignal,
-                hasGroundedKbSupport = hasGroundedKbSupport,
-                allowGeneralLlmMode = allowGeneralLlmCandidate,
-                skipKbDirect = skipKbDirect || forcedContext != null,
-                useLlmForAll = effectiveUseLlmForAll,
                 bestSimilarityScore = bestMatch?.similarityScore ?: 0f,
                 kbSupportScore = kbSupportScore,
                 kbCoverage = kbCoverage,
-                kbUnknownRatio = kbUnknownRatio,
-                effectiveKbFastPathThreshold = effectiveKbFastPathThreshold
+                kbUnknownRatio = kbUnknownRatio
             )
         )
 
@@ -2181,16 +2234,11 @@ class MainActivity : ComponentActivity() {
             "Decision route=${routeResult.decision} reason=${routeResult.reason} kbScore=${String.format("%.2f", bestMatch?.similarityScore ?: 0f)} support=${String.format("%.2f", kbSupportScore)} coverage=${String.format("%.2f", kbCoverage)} unknown=${String.format("%.2f", kbUnknownRatio)}"
         )
 
-        if (routeResult.decision == ResponseRoutingPolicy.Decision.KB_DIRECT && forcedContext == null && bestMatch != null) {
-            AppLogger.log("MainActivity", "Decision: KB_DIRECT detectado, se fuerza LLM_WITH_KB por política ALWAYS_LLM")
-        }
-
-        if (routeResult.decision == ResponseRoutingPolicy.Decision.ABSTAIN && !isSimpleGreeting && forcedContext == null && !llmAvailable) {
+        if (!llmAvailable) {
             AppLogger.log(
                 "MainActivity",
-                "Decision: KB_ABSTAIN support=${String.format("%.2f", kbSupportScore)} coverage=${String.format("%.2f", kbCoverage)} unknown=${String.format("%.2f", kbUnknownRatio)} related=$hasRelatedKbSignal llmAvailable=$llmAvailable"
+                "Decision: LLM unavailable; no visible non-LLM fallback support=${String.format("%.2f", kbSupportScore)} coverage=${String.format("%.2f", kbCoverage)} unknown=${String.format("%.2f", kbUnknownRatio)} related=$hasRelatedKbSignal"
             )
-            // No LLM available — return empty so UI shows nothing rather than hardcoded text
             return@withContext ResponseMeta(
                 response = "",
                 usedLlm = false,
@@ -2199,13 +2247,6 @@ class MainActivity : ComponentActivity() {
                 kbCoverage = kbCoverage,
                 kbUnknownRatio = kbUnknownRatio,
                 enforcedKbAbstention = true
-            )
-        }
-        val allowGeneralLlmMode = routeResult.decision == ResponseRoutingPolicy.Decision.LLM_GENERAL
-        if (allowGeneralLlmMode) {
-            AppLogger.log(
-                "MainActivity",
-                "Decision: LLM_GENERAL support=${String.format("%.2f", kbSupportScore)} coverage=${String.format("%.2f", kbCoverage)} unknown=${String.format("%.2f", kbUnknownRatio)}"
             )
         }
 
@@ -2217,6 +2258,7 @@ class MainActivity : ComponentActivity() {
         }
 
         // --- Contexto KB limpio (sin historial plano) ---
+        val asksPracticalGuidance = asksForPracticalGuidance(normalizeForTokenBudget(userQuery))
         val kbContextForPrompt = combinedKBContext?.take(effectiveContextLength)
         val forcedContextForPrompt = forcedContext?.take(effectiveContextLength)
         val contextToPass = forcedContextForPrompt
@@ -2236,7 +2278,6 @@ class MainActivity : ComponentActivity() {
             "MainActivity",
             "Context budget: max=$effectiveContextLength kbLen=${kbContextForPrompt?.length ?: 0} histTurns=${conversationHistory.size} forcedLen=${forcedContextForPrompt?.length ?: 0} finalLen=${contextToPass?.length ?: 0}"
         )
-
         val tokenBudgetPlan = computeTokenBudgetPlan(
             userQuery = userQuery,
             hasKbContext = hasKbContext,
@@ -2259,60 +2300,278 @@ class MainActivity : ComponentActivity() {
         }
 
         if (isLlamaEnabled && isLlamaLoaded && llamaService != null) {
+            val guidanceStylePrompt = if (asksPracticalGuidance) {
+                "Para consultas operativas, usa 2 a 4 pasos numerados: 1) Condicion exacta, 2) Accion exacta, 3) Momento y dosis solo si existen en los datos. No hagas comentarios sobre si la pregunta es importante o no."
+            } else {
+                ""
+            }
             val finalSystemPrompt = if (isSimpleGreeting) {
                 "Eres FarmifAI. Responde SOLO con un saludo corto de maximo 10 palabras. Ejemplo: Hola! En que te puedo ayudar? NO agregues explicaciones, ofertas de ayuda detalladas ni listas."
             } else if (hasKbContext) {
-                "$effectiveSystemPrompt\nBasa tu respuesta EXCLUSIVAMENTE en los DATOS DISPONIBLES. Cita cifras exactas (edades, densidades, porcentajes, medidas) cuando aparezcan. Reformula con tus palabras pero sin omitir ni alterar valores numericos. Si los datos no cubren la consulta completamente, indica con claridad que informacion falta. Si el usuario pide indicaciones o pasos, responde un poco mas largo en 3 a 6 pasos cortos y accionables. NO inventes datos adicionales."
+                val confidenceDirective = if (routeResult.decision == ResponseRoutingPolicy.Decision.LLM_GROUNDED_HIGH_CONFIDENCE) {
+                    "La evidencia recuperada es suficientemente relacionada. Responde con precision y conserva las relaciones factuales."
+                } else {
+                    "La evidencia recuperada es debil o incompleta. Prioriza precision sobre cobertura; si no puedes sostener una recomendacion concreta, dilo con naturalidad y sin inventar."
+                }
+                "$effectiveSystemPrompt\nUsa SOLO los datos disponibles. No inventes ni completes con conocimiento externo. Conserva numeros, unidades y relaciones exactamente como aparecen (dosis, umbrales, tiempos, densidades). Si aparecen reglas de umbral (menor/mayor, <, >, <=, >=), conserva exactamente la direccion de la desigualdad y su accion asociada; nunca inviertas menor por mayor ni aplica por no aplica. No menciones terminos internos como KB, RAG, contexto, modelo o sistema. $confidenceDirective $guidanceStylePrompt"
             } else {
-                "$effectiveSystemPrompt\nNo tienes datos disponibles para esta consulta. Si puedes dar una orientacion breve y general basada en la pregunta, hazlo en maximo 3 oraciones. Si el usuario pide indicaciones, puedes dar hasta 3 pasos generales y cortos. Si no, indica que no tienes informacion sobre ese tema."
+                "$effectiveSystemPrompt\nNo hay evidencia recuperada suficiente para esta consulta. Responde como FarmifAI en maximo 2 frases, admitiendo que faltan datos suficientes para responder con precision. No des dosis, productos, umbrales ni pasos tecnicos inventados."
             }
 
             val contextForLlm = if (isSimpleGreeting) null else contextToPass
 
-            try {
-                val llamaHistory = if (isSimpleGreeting) emptyList() else conversationHistory
-                val result = if (onLocalLlmChunk != null) {
-                    llamaService!!.generateAgriResponseStreaming(
+            val shouldUseStrictGroundedFirst = false
+
+            if (hasGroundedKbSupport && !kbDirectResponse.isNullOrBlank() && asksPracticalGuidance && onLocalLlmChunk != null) {
+                AppLogger.log("MainActivity", "Streaming activo: se omite preflight estricto para evitar latencia")
+            }
+
+            if (shouldUseStrictGroundedFirst) {
+                AppLogger.log("MainActivity", "LLM strict grounded first para respuesta instructiva con KB fuerte")
+                val focusedFactualText = buildFocusedFactualTextForLlm(kbDirectResponse.orEmpty(), userQuery)
+                val requiredFacets = inferRequiredResponseFacets(
+                    userQuery = userQuery,
+                    factualText = focusedFactualText
+                )
+
+                val strictResponse = generateGroundedRewriteWithLlm(
+                    userQuery = userQuery,
+                    factualResponse = kbDirectResponse.orEmpty(),
+                    systemPrompt = effectiveSystemPrompt,
+                    maxTokens = effectiveMaxTokens
+                )
+                if (!strictResponse.isNullOrBlank()) {
+                    val strictAnchored = isResponseAnchoredToContext(
+                        response = strictResponse,
                         userQuery = userQuery,
-                        contextFromKB = contextForLlm,
-                        maxTokens = effectiveMaxTokens,
-                        maxContextLength = effectiveContextLength,
-                        systemPrompt = finalSystemPrompt,
-                        conversationHistory = llamaHistory,
-                        onPartialResponse = { partial ->
-                            val rawPartial = partial.trim()
-                            if (rawPartial.length >= 5) {
-                                onLocalLlmChunk(rawPartial)
-                            }
-                        }
+                        kbContext = focusedFactualText
                     )
-                } else {
-                    llamaService!!.generateAgriResponse(
+                    val strictLexicallySupported = isLexicallySupportedByFactualText(
+                        response = strictResponse,
+                        factualText = focusedFactualText,
+                        minSupportedRatio = 0.45f
+                    )
+                    val strictNumbersSupported = responseNumbersAreSupported(
+                        response = strictResponse,
+                        factualText = focusedFactualText
+                    )
+                    val strictThresholdConsistency = responseThresholdRulesAreConsistent(
+                        response = strictResponse,
+                        factualText = focusedFactualText
+                    )
+                    val strictFacetCoverage = responseCoversRequiredFacets(
+                        response = strictResponse,
+                        requiredFacets = requiredFacets
+                    )
+                    AppLogger.log(
+                        "MainActivity",
+                        "LLM strict grounding anchored=$strictAnchored lexical=$strictLexicallySupported numbers=$strictNumbersSupported threshold=$strictThresholdConsistency facets=$strictFacetCoverage"
+                    )
+                    if (strictAnchored && strictLexicallySupported && strictNumbersSupported &&
+                        strictFacetCoverage && strictThresholdConsistency
+                    ) {
+                        return@withContext ResponseMeta(
+                            response = strictResponse,
+                            usedLlm = true,
+                            kbSupported = true,
+                            kbSupportScore = kbSupportScore,
+                            kbCoverage = kbCoverage,
+                            kbUnknownRatio = kbUnknownRatio,
+                            enforcedKbAbstention = false
+                        )
+                    }
+                }
+
+                val repairedResponse = generateGroundedRepairWithLlm(
+                    userQuery = userQuery,
+                    factualResponse = kbDirectResponse.orEmpty(),
+                    previousResponse = strictResponse.orEmpty(),
+                    systemPrompt = effectiveSystemPrompt,
+                    maxTokens = effectiveMaxTokens
+                )
+                if (!repairedResponse.isNullOrBlank()) {
+                    val repairedAnchored = isResponseAnchoredToContext(
+                        response = repairedResponse,
                         userQuery = userQuery,
-                        contextFromKB = contextForLlm,
-                        maxTokens = effectiveMaxTokens,
-                        maxContextLength = effectiveContextLength,
-                        systemPrompt = finalSystemPrompt,
-                        conversationHistory = llamaHistory
+                        kbContext = focusedFactualText
+                    )
+                    val repairedLexicallySupported = isLexicallySupportedByFactualText(
+                        response = repairedResponse,
+                        factualText = focusedFactualText
+                    )
+                    val repairedNumbersSupported = responseNumbersAreSupported(
+                        response = repairedResponse,
+                        factualText = focusedFactualText
+                    )
+                    val repairedThresholdConsistency = responseThresholdRulesAreConsistent(
+                        response = repairedResponse,
+                        factualText = focusedFactualText
+                    )
+                    val repairedFacetCoverage = responseCoversRequiredFacets(
+                        response = repairedResponse,
+                        requiredFacets = requiredFacets
+                    )
+                    val repairedHasUnsupportedInference = hasUnsupportedInferencePhrases(repairedResponse)
+                    AppLogger.log(
+                        "MainActivity",
+                        "LLM repair grounding anchored=$repairedAnchored lexical=$repairedLexicallySupported numbers=$repairedNumbersSupported threshold=$repairedThresholdConsistency facets=$repairedFacetCoverage inference=$repairedHasUnsupportedInference"
+                    )
+                    if (repairedAnchored && repairedLexicallySupported && repairedNumbersSupported &&
+                        repairedFacetCoverage && repairedThresholdConsistency && !repairedHasUnsupportedInference
+                    ) {
+                        return@withContext ResponseMeta(
+                            response = repairedResponse,
+                            usedLlm = true,
+                            kbSupported = true,
+                            kbSupportScore = kbSupportScore,
+                            kbCoverage = kbCoverage,
+                            kbUnknownRatio = kbUnknownRatio,
+                            enforcedKbAbstention = false
+                        )
+                    }
+                }
+
+                val constrainedResponse = generateGroundedConstrainedWithLlm(
+                    userQuery = userQuery,
+                    factualResponse = kbDirectResponse.orEmpty(),
+                    systemPrompt = effectiveSystemPrompt,
+                    maxTokens = effectiveMaxTokens
+                )
+                if (!constrainedResponse.isNullOrBlank()) {
+                    val constrainedAnchored = isResponseAnchoredToContext(
+                        response = constrainedResponse,
+                        userQuery = userQuery,
+                        kbContext = focusedFactualText
+                    )
+                    val constrainedLexicallySupported = isLexicallySupportedByFactualText(
+                        response = constrainedResponse,
+                        factualText = focusedFactualText,
+                        minSupportedRatio = 0.40f
+                    )
+                    val constrainedNumbersSupported = responseNumbersAreSupported(
+                        response = constrainedResponse,
+                        factualText = focusedFactualText
+                    )
+                    val constrainedThresholdConsistency = responseThresholdRulesAreConsistent(
+                        response = constrainedResponse,
+                        factualText = focusedFactualText
+                    )
+                    val constrainedFacetCoverage = responseCoversRequiredFacets(
+                        response = constrainedResponse,
+                        requiredFacets = requiredFacets
+                    )
+                    val constrainedHasUnsupportedInference = hasUnsupportedInferencePhrases(constrainedResponse)
+                    AppLogger.log(
+                        "MainActivity",
+                        "LLM constrained grounding anchored=$constrainedAnchored lexical=$constrainedLexicallySupported numbers=$constrainedNumbersSupported threshold=$constrainedThresholdConsistency facets=$constrainedFacetCoverage inference=$constrainedHasUnsupportedInference"
+                    )
+                    if (constrainedAnchored && constrainedLexicallySupported &&
+                        constrainedNumbersSupported && constrainedFacetCoverage &&
+                        constrainedThresholdConsistency && !constrainedHasUnsupportedInference
+                    ) {
+                        return@withContext ResponseMeta(
+                            response = constrainedResponse,
+                            usedLlm = true,
+                            kbSupported = true,
+                            kbSupportScore = kbSupportScore,
+                            kbCoverage = kbCoverage,
+                            kbUnknownRatio = kbUnknownRatio,
+                            enforcedKbAbstention = false
+                        )
+                    }
+                }
+
+                val noReliableKbResponse = generateUnsafeToAnswerWithLlm(
+                    userQuery = userQuery,
+                    systemPrompt = effectiveSystemPrompt,
+                    maxTokens = effectiveMaxTokens
+                )
+                if (!noReliableKbResponse.isNullOrBlank()) {
+                    AppLogger.log("MainActivity", "LLM strict grounded first no fue aceptado; se responde con abstencion generada por LLM")
+                    return@withContext ResponseMeta(
+                        response = noReliableKbResponse,
+                        usedLlm = true,
+                        kbSupported = false,
+                        kbSupportScore = kbSupportScore,
+                        kbCoverage = kbCoverage,
+                        kbUnknownRatio = kbUnknownRatio,
+                        enforcedKbAbstention = true
                     )
                 }
 
-                result.fold(
-                    onSuccess = { response ->
-                        val cleanResponse = response.trim()
-                        if (cleanResponse.length > 10) {
-                            val anchored = !hasKbContext || kbContextForPrompt.isNullOrBlank() || isResponseAnchoredToContext(cleanResponse, userQuery, kbContextForPrompt)
-                            if (!anchored) {
-                                AppLogger.log("MainActivity", "LLM response con ancla KB débil; se mantiene por política ALWAYS_LLM")
-                            }
+                AppLogger.log("MainActivity", "LLM strict grounded first no produjo salida valida")
+                return@withContext ResponseMeta(
+                    response = "",
+                    usedLlm = true,
+                    kbSupported = false,
+                    kbSupportScore = kbSupportScore,
+                    kbCoverage = kbCoverage,
+                    kbUnknownRatio = kbUnknownRatio,
+                    enforcedKbAbstention = true
+                )
+            }
 
-                            AppLogger.log("MainActivity", "LLM response: ${cleanResponse.length} chars mode=$mode")
-                            return@withContext ResponseMeta(
-                                response = cleanResponse,
-                                usedLlm = true,
-                                kbSupported = hasKbContext,
-                                kbSupportScore = kbSupportScore,
-                                kbCoverage = kbCoverage,
+            try {
+                val shouldUseHistory = !isSimpleGreeting && (forcedContext != null || skipKbDirect)
+                val llamaHistory = if (shouldUseHistory) conversationHistory else emptyList()
+                var streamingChunkCount = 0
+                var loggedFirstStreamingChunk = false
+                val result = llamaService!!.generateAgriResponseStreaming(
+                    userQuery = userQuery,
+                    contextFromKB = contextForLlm,
+                    maxTokens = effectiveMaxTokens,
+                    maxContextLength = effectiveContextLength,
+                    systemPrompt = finalSystemPrompt,
+                    conversationHistory = llamaHistory,
+                    onPartialResponse = { partial ->
+                        val rawPartial = partial.trim()
+                        if (rawPartial.length >= 5) {
+                            streamingChunkCount += 1
+                            if (!loggedFirstStreamingChunk) {
+                                loggedFirstStreamingChunk = true
+                                AppLogger.log("MainActivity", "Streaming primer chunk recibido len=${rawPartial.length}")
+                            }
+                            onLocalLlmChunk?.invoke(rawPartial)
+                        }
+                    }
+                )
+
+                result.fold(
+	                    onSuccess = { response ->
+	                        val cleanResponse = response.trim()
+		                        if (cleanResponse.length > 10) {
+		                            val anchored = !hasKbContext || kbContextForPrompt.isNullOrBlank() || isResponseAnchoredToContext(cleanResponse, userQuery, kbContextForPrompt)
+		                            val focusedFactualText = if (
+		                                hasKbContext && asksPracticalGuidance && !kbDirectResponse.isNullOrBlank()
+		                            ) {
+		                                buildFocusedFactualTextForLlm(
+		                                    kbDirectResponse.orEmpty(),
+		                                    userQuery
+		                                )
+		                            } else {
+		                                ""
+		                            }
+		                            val thresholdConsistent = focusedFactualText.isBlank() || responseThresholdRulesAreConsistent(
+		                                response = cleanResponse,
+		                                factualText = focusedFactualText
+		                            )
+		                            if (!anchored) {
+		                                AppLogger.log("MainActivity", "LLM response con ancla KB débil; se mantiene salida de una sola inferencia")
+		                            }
+		                            if (!thresholdConsistent) {
+		                                AppLogger.log("MainActivity", "LLM response con inconsistencia umbral-accion; se mantiene salida de una sola inferencia")
+		                            }
+
+	                            AppLogger.log("MainActivity", "LLM response: ${cleanResponse.length} chars mode=$mode")
+	                            if (onLocalLlmChunk != null) {
+	                                AppLogger.log("MainActivity", "Streaming chunks totales=$streamingChunkCount")
+	                            }
+	                            return@withContext ResponseMeta(
+	                                response = cleanResponse,
+	                                usedLlm = true,
+		                                kbSupported = hasKbContext && anchored && thresholdConsistent,
+	                                kbSupportScore = kbSupportScore,
+	                                kbCoverage = kbCoverage,
                                 kbUnknownRatio = kbUnknownRatio,
                                 enforcedKbAbstention = false
                             )
@@ -2343,7 +2602,7 @@ class MainActivity : ComponentActivity() {
                 kbSupportScore = kbSupportScore,
                 kbCoverage = kbCoverage,
                 kbUnknownRatio = kbUnknownRatio,
-                enforcedKbAbstention = !kbSignal && !allowGeneralLlmMode
+                enforcedKbAbstention = !kbSignal
             )
         }
 
@@ -2365,17 +2624,894 @@ class MainActivity : ComponentActivity() {
             kbSupportScore = kbSupportScore,
             kbCoverage = kbCoverage,
             kbUnknownRatio = kbUnknownRatio,
-            enforcedKbAbstention = !kbSignal && !allowGeneralLlmMode
+            enforcedKbAbstention = !kbSignal
         )
     }
 
-    private fun buildKbDirectResponseFromRag(
-        ragContext: SemanticSearchHelper.ContextResult?
-    ): String? {
+    private fun buildKbDirectResponseFromRag(ragContext: SemanticSearchHelper.ContextResult?): String? {
         val contexts = ragContext?.contexts.orEmpty()
         val primary = contexts.firstOrNull()?.answer?.trim().orEmpty()
         if (primary.isBlank()) return null
         return primary
+    }
+
+    private fun buildSingleKbContextForPrompt(
+        match: SemanticSearchHelper.MatchResult,
+        rawResponse: String
+    ): String {
+        val compactResponse = trimToLineBudget(rawResponse.trim(), maxChars = 900)
+        return buildString {
+            append("Informacion agricola relevante:\n")
+            append("[1] ${match.category.uppercase()}\n")
+            append(compactResponse)
+        }.trim()
+    }
+
+    private fun formatKbDirectResponse(rawResponse: String): String {
+        val lines = rawResponse
+            .trim()
+            .lines()
+            .mapNotNull { rawLine ->
+                val line = rawLine.trim()
+                if (line.isBlank()) return@mapNotNull null
+
+                when {
+                    line.startsWith("Condicion:", ignoreCase = true) ->
+                        "Cuando aplica: ${line.substringAfter(":").trim()}"
+                    line.startsWith("Accion:", ignoreCase = true) ->
+                        "Que hacer: ${line.substringAfter(":").trim()}"
+                    line.startsWith("Efecto esperado:", ignoreCase = true) ->
+                        "Para que sirve: ${line.substringAfter(":").trim()}"
+                    line.startsWith("Riesgo si se ignora:", ignoreCase = true) ->
+                        "Si no se hace: ${line.substringAfter(":").trim()}"
+                    line.startsWith("Aplicabilidad:", ignoreCase = true) ->
+                        "Uso practico: ${line.substringAfter(":").trim()}"
+                    line.equals("Datos cuantitativos:", ignoreCase = true) ->
+                        "Datos clave:"
+                    line.startsWith("- ") ->
+                        "• ${line.removePrefix("- ").trim()}"
+                    else -> line
+                }
+            }
+
+        val normalized = lines.joinToString("\n")
+            .replace(Regex("\\n{3,}"), "\n\n")
+            .trim()
+
+        return humanizeTechnicalTerms(stripUserFacingMarkdown(normalized)).trim()
+    }
+
+    private suspend fun generateGroundedRewriteWithLlm(
+        userQuery: String,
+        factualResponse: String,
+        systemPrompt: String,
+        maxTokens: Int
+    ): String? {
+        val factualText = buildFocusedFactualTextForLlm(factualResponse, userQuery)
+        if (factualText.isBlank()) return null
+
+        val rewriteSystemPrompt = "$systemPrompt\n" +
+            "Tarea obligatoria: redacta la respuesta usando exclusivamente el TEXTO FACTUAL. " +
+            "No agregues causas, cifras, definiciones ni recomendaciones que no esten en ese texto. " +
+            "No agregues sintomas, explicaciones fisiologicas ni consecuencias que no aparezcan en el texto. " +
+            "Conserva el alcance exacto del texto factual; si el texto habla de germinador, almacigo, semilla o cafetal, dilo asi. " +
+            "Si la pregunta usa un alcance distinto al del texto factual, aclara ese limite de forma natural. " +
+            "Si la pregunta menciona un nutrimento o condicion especifica, centra la respuesta en ese punto y no agregues otros nutrimentos salvo que sean indispensables. " +
+            "Si la pregunta menciona una densidad, dosis, edad o umbral especifico, no menciones otros valores alternativos. " +
+            "Si hay reglas de umbral, conserva literalmente la direccion de desigualdad y su accion asociada; nunca inviertas menor/mayor ni aplica/no aplica. " +
+            "Si existe una seccion REGLAS DE UMBRAL, priorizala de forma textual. " +
+            "No emitas juicios de importancia o relevancia del dato pedido; entrega solo la respuesta factual. " +
+            "Nunca menciones una recomendacion con dosis incompleta: conserva umbral, dosis y momento completos o omite esa linea. " +
+            "Cuando haya pares de datos, por ejemplo densidad y numero de brotes, conserva cada par exactamente como aparece. " +
+            "No hagas inferencias con frases como 'si tiene menos', 'si tiene mas', 'esto indica' o 'por eso' salvo que el texto las diga literalmente. " +
+            "Si el usuario pide indicaciones, responde solo con 3 a 6 pasos cortos numerados, sin parrafo adicional, usando momento, dosis y condicion solo cuando aparezcan. " +
+            "Responde en espanol claro y no menciones el TEXTO FACTUAL."
+
+        val result = llamaService?.generateAgriResponse(
+            userQuery = userQuery,
+            contextFromKB = "TEXTO FACTUAL:\n$factualText",
+            maxTokens = maxTokens.coerceIn(160, 360),
+            maxContextLength = 1200,
+            systemPrompt = rewriteSystemPrompt,
+            conversationHistory = emptyList()
+        ) ?: return null
+
+        return result.getOrNull()
+            ?.trim()
+            ?.takeIf { it.length > 10 && !isMalformedLlmResponse(it) }
+    }
+
+    private suspend fun generateGroundedRepairWithLlm(
+        userQuery: String,
+        factualResponse: String,
+        previousResponse: String,
+        systemPrompt: String,
+        maxTokens: Int
+    ): String? {
+        val factualText = buildFocusedFactualTextForLlm(factualResponse, userQuery)
+        if (factualText.isBlank()) return null
+
+        val repairPrompt = "$systemPrompt\n" +
+            "Tarea obligatoria: corrige la RESPUESTA ANTERIOR usando exclusivamente el TEXTO FACTUAL. " +
+            "Elimina cualquier fragmento no respaldado por el TEXTO FACTUAL. " +
+            "No cambies numeros ni unidades que si esten en el TEXTO FACTUAL. " +
+            "Si hay reglas de umbral, conserva literalmente la direccion de desigualdad y su accion asociada; no inviertas menor/mayor ni aplica/no aplica. " +
+            "Si falta informacion para responder una parte de la pregunta, dilo de forma breve sin inventar. " +
+            "Si el usuario pidio indicaciones, entrega 3 a 6 pasos cortos y precisos."
+
+        val result = llamaService?.generateAgriResponse(
+            userQuery = userQuery,
+            contextFromKB = "TEXTO FACTUAL:\n$factualText\n\nRESPUESTA ANTERIOR:\n$previousResponse",
+            maxTokens = maxTokens.coerceIn(160, 380),
+            maxContextLength = 1300,
+            systemPrompt = repairPrompt,
+            conversationHistory = emptyList()
+        ) ?: return null
+
+        return result.getOrNull()
+            ?.trim()
+            ?.takeIf { it.length > 10 && !isMalformedLlmResponse(it) }
+    }
+
+    private suspend fun generateGroundedConstrainedWithLlm(
+        userQuery: String,
+        factualResponse: String,
+        systemPrompt: String,
+        maxTokens: Int
+    ): String? {
+        val factualText = buildFocusedFactualTextForLlm(factualResponse, userQuery)
+        if (factualText.isBlank()) return null
+
+        val constrainedPrompt = "$systemPrompt\n" +
+            "Tarea obligatoria: responde con estilo extractivo guiado usando solo el TEXTO FACTUAL. " +
+            "No introduzcas terminos tecnicos nuevos ni explicaciones externas. " +
+            "Si hay reglas de umbral, conserva literalmente la direccion de desigualdad y su accion asociada; no inviertas menor/mayor ni aplica/no aplica. " +
+            "Si el usuario pide indicaciones, da 3 a 6 pasos cortos con accion, momento, umbral y dosis solo cuando existan en el TEXTO FACTUAL. " +
+            "Si falta una pieza de informacion, dilo en una frase breve sin inventar."
+
+        val result = llamaService?.generateAgriResponse(
+            userQuery = userQuery,
+            contextFromKB = "TEXTO FACTUAL:\n$factualText",
+            maxTokens = maxTokens.coerceIn(140, 320),
+            maxContextLength = 1200,
+            systemPrompt = constrainedPrompt,
+            conversationHistory = emptyList()
+        ) ?: return null
+
+        return result.getOrNull()
+            ?.trim()
+            ?.takeIf { it.length > 10 && !isMalformedLlmResponse(it) }
+    }
+
+    private data class RankedFactualLine(
+        val index: Int,
+        val line: String,
+        val score: Float,
+        val facets: Set<FactualFacet>,
+        val tokenOverlap: Float,
+        val numberOverlap: Float
+    )
+
+    private enum class FactualFacet {
+        ACTION,
+        TIMING,
+        AMOUNT,
+        THRESHOLD
+    }
+
+    private enum class ThresholdDirection {
+        LT,
+        LTE,
+        GT,
+        GTE
+    }
+
+    private enum class ThresholdAction {
+        APPLY,
+        AVOID
+    }
+
+    private data class ThresholdRule(
+        val value: String,
+        val directions: Set<ThresholdDirection>,
+        val action: ThresholdAction?
+    )
+
+    private fun buildFocusedFactualTextForLlm(
+        rawResponse: String,
+        userQuery: String
+    ): String {
+        val formatted = formatKbDirectResponse(rawResponse)
+        val lines = formatted.lines().map { it.trim() }.filter { it.isNotBlank() }
+        val dataLines = lines.filter { it.startsWith("•") }
+        if (dataLines.isEmpty()) return formatted
+
+        val queryTokens = extractInformativeTokens(userQuery)
+        val queryNumbers = extractComparableNumbers(userQuery)
+        val queryAnchorTokens = queryTokens.filterNot {
+            it in setOf(
+                "si", "cuando", "como", "que", "hago", "hacer", "debo",
+                "aplico", "aplicar", "dosis", "cantidad", "umbral", "menor", "mayor",
+                "ppm", "zoca", "suelo", "planta", "sitio", "mes", "meses"
+            )
+        }.toSet()
+        val normalizedQuery = normalizeComparableText(userQuery)
+        val wantsRisk = Regex("\\b(riesgo|pasa|ignora|ignorar|problema|consecuencia|afecta)\\b")
+            .containsMatchIn(normalizedQuery)
+        val wantsEffect = Regex("\\b(para que|sirve|beneficio|efecto|logra|objetivo)\\b")
+            .containsMatchIn(normalizedQuery)
+        val requiredFacets = inferRequiredResponseFacets(userQuery, formatted)
+        val guidance = asksForPracticalGuidance(normalizeForTokenBudget(userQuery))
+
+        val ranked = dataLines.mapIndexed { index, line ->
+            val lineTokens = extractInformativeTokens(line)
+            val lineNumbers = extractComparableNumbers(line)
+            val facets = inferFacetsFromText(line, isQuery = false)
+
+            val tokenOverlap = if (queryTokens.isNotEmpty()) {
+                lineTokens.count { it in queryTokens }.toFloat() / queryTokens.size.toFloat()
+            } else {
+                0f
+            }
+            val numberOverlap = if (queryNumbers.isNotEmpty()) {
+                lineNumbers.count { it in queryNumbers }.toFloat() / queryNumbers.size.toFloat()
+            } else {
+                0f
+            }
+            val entityOverlap = if (queryAnchorTokens.isNotEmpty()) {
+                lineTokens.count { it in queryAnchorTokens }.toFloat() / queryAnchorTokens.size.toFloat()
+            } else {
+                tokenOverlap
+            }
+            val facetCoverage = if (requiredFacets.isNotEmpty()) {
+                facets.count { it in requiredFacets }.toFloat() / requiredFacets.size.toFloat()
+            } else {
+                0f
+            }
+
+            val score = tokenOverlap * 0.52f + entityOverlap * 0.20f +
+                numberOverlap * 0.18f + facetCoverage * 0.10f +
+                if (lineNumbers.isNotEmpty()) 0.02f else 0f
+
+            RankedFactualLine(
+                index = index,
+                line = line,
+                score = score,
+                facets = facets,
+                tokenOverlap = tokenOverlap,
+                numberOverlap = numberOverlap
+            )
+        }.sortedByDescending { it.score }
+
+        val selected = mutableListOf<RankedFactualLine>()
+        val minScore = if (queryTokens.isNotEmpty() || queryNumbers.isNotEmpty()) 0.06f else 0f
+        val baseLimit = if (guidance) 4 else 3
+
+        for (candidate in ranked) {
+            if (selected.size >= baseLimit) break
+            if (candidate.score >= minScore || selected.isEmpty()) {
+                selected.add(candidate)
+            }
+        }
+        if (selected.isEmpty() && ranked.isNotEmpty()) {
+            selected.add(ranked.first())
+        }
+
+        val selectedIndexes = selected.map { it.index }.toMutableSet()
+        val coveredFacets = selected.flatMap { it.facets }.toSet()
+        val missingFacets = requiredFacets - coveredFacets
+        val hasAnchorConstraint = queryAnchorTokens.isNotEmpty()
+        val anchorIndices = selected
+            .filter { it.tokenOverlap > 0f || it.numberOverlap > 0f }
+            .ifEmpty { selected }
+            .map { it.index }
+        for (facet in missingFacets) {
+            val candidate = ranked
+                .asSequence()
+                .filter { rank ->
+                    !selectedIndexes.contains(rank.index) &&
+                        facet in rank.facets &&
+                        (!hasAnchorConstraint ||
+                            extractInformativeTokens(rank.line).any { it in queryAnchorTokens })
+                }
+                .maxByOrNull { rank ->
+                    val distance = anchorIndices.minOfOrNull { anchor ->
+                        if (anchor >= rank.index) anchor - rank.index else rank.index - anchor
+                    } ?: 99
+                    val proximityBonus = when {
+                        distance <= 1 -> 0.22f
+                        distance == 2 -> 0.14f
+                        distance <= 4 -> 0.08f
+                        else -> 0f
+                    }
+                    rank.score + proximityBonus
+                }
+            if (candidate != null && selected.size < 5) {
+                selected.add(candidate)
+                selectedIndexes.add(candidate.index)
+            }
+        }
+
+        if (queryNumbers.isNotEmpty()) {
+            val anchors = selected.toList()
+            for (anchor in anchors) {
+                val currentCovered = selected.flatMap { it.facets }.toSet()
+                val missingNow = requiredFacets - currentCovered
+                val neighbor = ranked
+                    .asSequence()
+                    .filter { rank ->
+                        !selectedIndexes.contains(rank.index) &&
+                            (rank.index == anchor.index - 1 || rank.index == anchor.index + 1) &&
+                            (!hasAnchorConstraint ||
+                                extractInformativeTokens(rank.line).any { it in queryAnchorTokens }) &&
+                            (rank.numberOverlap > 0f || rank.facets.any { it in requiredFacets })
+                    }
+                    .maxByOrNull { rank ->
+                        val facetGain = rank.facets.count { it in missingNow }.toFloat()
+                        rank.score + facetGain * 0.2f
+                    }
+                if (neighbor != null && selected.size < 5) {
+                    selected.add(neighbor)
+                    selectedIndexes.add(neighbor.index)
+                }
+            }
+        }
+
+        val focusedData = selected
+            .sortedBy { it.index }
+            .map { it.line }
+            .distinct()
+
+        if (focusedData.isEmpty()) return formatted
+
+        val headerLines = mutableListOf<String>()
+        var freeTextLines = 0
+        val maxFreeTextLines = 1
+        for (line in lines) {
+            if (line == "Datos clave:" || line.startsWith("•")) continue
+            val headerTokens = extractInformativeTokens(line)
+            val headerNumbers = extractComparableNumbers(line)
+            val headerFacets = inferFacetsFromText(line, isQuery = false)
+            val headerRelevant = headerTokens.any { it in queryTokens } ||
+                headerNumbers.any { it in queryNumbers } ||
+                headerFacets.any { it in requiredFacets }
+            val labeled = line.startsWith("Cuando aplica:", ignoreCase = true) ||
+                line.startsWith("Que hacer:", ignoreCase = true) ||
+                line.startsWith("Uso practico:", ignoreCase = true)
+            val optionalEffect = wantsEffect && line.startsWith("Para que sirve:", ignoreCase = true)
+            val optionalRisk = wantsRisk && line.startsWith("Si no se hace:", ignoreCase = true)
+            val narrativeClauses = if (guidance || queryNumbers.isNotEmpty()) {
+                extractRelevantNarrativeClauses(
+                    line = line,
+                    queryTokens = queryTokens,
+                    queryAnchorTokens = queryAnchorTokens,
+                    queryNumbers = queryNumbers,
+                    requiredFacets = requiredFacets
+                )
+            } else {
+                emptyList()
+            }
+
+            if ((labeled && headerRelevant) || optionalEffect || optionalRisk) {
+                headerLines.add(line)
+            } else if (narrativeClauses.isNotEmpty()) {
+                headerLines.addAll(narrativeClauses)
+                freeTextLines += 1
+            } else {
+                val thresholdRelevantFreeText =
+                    headerRelevant && FactualFacet.THRESHOLD in headerFacets
+                if (freeTextLines < maxFreeTextLines || thresholdRelevantFreeText) {
+                    headerLines.add(line)
+                }
+                freeTextLines += 1
+            }
+        }
+
+        val thresholdHints = buildThresholdRuleHints(headerLines + focusedData)
+
+        return buildString {
+            headerLines.forEach { appendLine(it) }
+            if (thresholdHints.isNotEmpty()) {
+                appendLine("Reglas de umbral:")
+                thresholdHints.forEach { appendLine(it) }
+            }
+            appendLine("Datos clave:")
+            focusedData.forEach { appendLine(it) }
+        }.trim()
+    }
+
+    private fun buildThresholdRuleHints(lines: List<String>): List<String> {
+        val hints = mutableListOf<String>()
+        var pendingCondition: String? = null
+
+        for (rawLine in lines) {
+            val line = rawLine.trim().removePrefix("•").trim()
+            if (line.isBlank()) continue
+
+            val normalized = normalizeComparableText(line)
+            val hasThreshold = detectThresholdDirections(normalized).isNotEmpty() &&
+                extractComparableNumbers(normalized).isNotEmpty()
+            val action = detectThresholdAction(normalized)
+
+            if (line.startsWith("Cuando aplica:", ignoreCase = true) && hasThreshold) {
+                pendingCondition = line.substringAfter(":").trim()
+            }
+
+            if (line.startsWith("Que hacer:", ignoreCase = true) && action != null) {
+                val actionClause = line.substringAfter(":").trim()
+                val conditionClause = pendingCondition
+                if (!conditionClause.isNullOrBlank() && actionClause.isNotBlank()) {
+                    val merged = if (
+                        conditionClause.startsWith("si ", ignoreCase = true) ||
+                            conditionClause.startsWith("cuando ", ignoreCase = true)
+                    ) {
+                        "$conditionClause, $actionClause"
+                    } else {
+                        "Si $conditionClause, $actionClause"
+                    }
+                    hints.add(merged)
+                }
+            }
+
+            if (hasThreshold && action != null) {
+                hints.add(line)
+            }
+        }
+
+        return hints
+            .map { it.trim().trimEnd('.') }
+            .filter { it.length >= 12 }
+            .distinct()
+            .take(4)
+    }
+
+    private fun extractRelevantNarrativeClauses(
+        line: String,
+        queryTokens: Set<String>,
+        queryAnchorTokens: Set<String>,
+        queryNumbers: Set<String>,
+        requiredFacets: Set<FactualFacet>
+    ): List<String> {
+        val clauses = line
+            .split(Regex("\\s*;\\s*|,\\s*(?=si\\s+)|\\s+y\\s+(?=si\\s+)"))
+            .map { it.trim().trimEnd('.') }
+            .filter { it.isNotBlank() }
+        if (clauses.isEmpty()) return emptyList()
+
+        return clauses
+            .filter { clause ->
+                val clauseTokens = extractInformativeTokens(clause)
+                val clauseNumbers = extractComparableNumbers(clause)
+                val clauseFacets = inferFacetsFromText(clause, isQuery = false)
+                val anchorHit = clauseTokens.any { it in queryAnchorTokens }
+                val lexicalRelevant = if (queryAnchorTokens.isNotEmpty()) {
+                    anchorHit
+                } else {
+                    clauseTokens.any { it in queryTokens }
+                }
+                val numericRelevant = if (clauseNumbers.any { it in queryNumbers }) {
+                    queryAnchorTokens.isEmpty() || anchorHit
+                } else {
+                    false
+                }
+                val facetRelevant = clauseFacets.any { it in requiredFacets } &&
+                    (queryAnchorTokens.isEmpty() || anchorHit)
+
+                lexicalRelevant || numericRelevant || facetRelevant ||
+                    (queryNumbers.isNotEmpty() && FactualFacet.THRESHOLD in clauseFacets && lexicalRelevant)
+            }
+            .distinct()
+            .take(2)
+    }
+
+    private fun trimToLineBudget(text: String, maxChars: Int): String {
+        if (text.length <= maxChars) return text
+
+        val out = StringBuilder()
+        for (line in text.lines()) {
+            val normalizedLine = line.trim()
+            if (normalizedLine.isBlank()) continue
+            val extraChars = if (out.isEmpty()) normalizedLine.length else normalizedLine.length + 1
+            if (out.length + extraChars > maxChars) break
+            if (out.isNotEmpty()) out.append('\n')
+            out.append(normalizedLine)
+        }
+
+        if (out.isNotEmpty()) return out.toString().trim()
+        return text.take(maxChars).trim()
+    }
+
+    private suspend fun generateNoReliableKbResponseWithLlm(
+        userQuery: String,
+        systemPrompt: String,
+        maxTokens: Int
+    ): String? {
+        val abstentionPrompt = "$systemPrompt\n" +
+            "Tarea obligatoria: redacta una respuesta honesta y breve. " +
+            "No hay evidencia suficiente en los datos disponibles para responder con precision. " +
+            "No des dosis, fechas, productos, causas ni recomendaciones tecnicas inventadas. " +
+            "Di en lenguaje natural que faltan datos suficientes y pide el dato clave si corresponde. " +
+            "Maximo 2 frases."
+
+        val result = llamaService?.generateAgriResponse(
+            userQuery = userQuery,
+            contextFromKB = null,
+            maxTokens = maxTokens.coerceIn(80, 180),
+            maxContextLength = 600,
+            systemPrompt = abstentionPrompt,
+            conversationHistory = emptyList()
+        ) ?: return null
+
+        val candidate = result.getOrNull()
+            ?.trim()
+            ?.takeIf { it.length > 10 && !isMalformedLlmResponse(it) }
+        if (!candidate.isNullOrBlank() && isSafeAbstentionResponse(candidate)) {
+            return candidate
+        }
+
+        val reinforcedPrompt = "$systemPrompt\n" +
+            "Responde en 1 o 2 frases. " +
+            "La primera frase debe empezar con: 'No tengo datos suficientes en la informacion disponible para responder con precision.' " +
+            "No incluyas dosis, fechas, productos ni recomendaciones tecnicas."
+
+        val reinforcedResult = llamaService?.generateAgriResponse(
+            userQuery = userQuery,
+            contextFromKB = null,
+            maxTokens = maxTokens.coerceIn(60, 120),
+            maxContextLength = 400,
+            systemPrompt = reinforcedPrompt,
+            conversationHistory = emptyList()
+        ) ?: return null
+
+        return reinforcedResult.getOrNull()
+            ?.trim()
+            ?.takeIf { it.length > 10 && !isMalformedLlmResponse(it) }
+    }
+
+    private suspend fun generateUnsafeToAnswerWithLlm(
+        userQuery: String,
+        systemPrompt: String,
+        maxTokens: Int
+    ): String? {
+        val abstentionPrompt = "$systemPrompt\n" +
+            "Tarea obligatoria: redacta una respuesta breve y honesta. " +
+            "Los datos disponibles parecen relacionados, pero no se pudo generar una respuesta suficientemente precisa sin riesgo de alterar cifras o relaciones. " +
+            "No des dosis, fechas, productos, causas ni recomendaciones tecnicas. " +
+            "Pide reformular con el dato clave o consultar la ficha tecnica. Maximo 2 frases."
+
+        val result = llamaService?.generateAgriResponse(
+            userQuery = userQuery,
+            contextFromKB = null,
+            maxTokens = maxTokens.coerceIn(80, 180),
+            maxContextLength = 600,
+            systemPrompt = abstentionPrompt,
+            conversationHistory = emptyList()
+        ) ?: return null
+
+        val candidate = result.getOrNull()
+            ?.trim()
+            ?.takeIf { it.length > 10 && !isMalformedLlmResponse(it) }
+        if (!candidate.isNullOrBlank() && isSafeAbstentionResponse(candidate)) {
+            return candidate
+        }
+
+        val reinforcedPrompt = "$systemPrompt\n" +
+            "Responde en 1 o 2 frases. " +
+            "La primera frase debe empezar con: 'No tengo datos suficientes en la informacion disponible para responder con precision.' " +
+            "No incluyas dosis, fechas, productos ni recomendaciones tecnicas."
+
+        val reinforcedResult = llamaService?.generateAgriResponse(
+            userQuery = userQuery,
+            contextFromKB = null,
+            maxTokens = maxTokens.coerceIn(60, 120),
+            maxContextLength = 400,
+            systemPrompt = reinforcedPrompt,
+            conversationHistory = emptyList()
+        ) ?: return null
+
+        return reinforcedResult.getOrNull()
+            ?.trim()
+            ?.takeIf { it.length > 10 && !isMalformedLlmResponse(it) }
+    }
+
+    private fun isSafeAbstentionResponse(response: String): Boolean {
+        val normalized = normalizeComparableText(response)
+        val transparencySignals = listOf(
+            "no tengo datos suficientes",
+            "no hay evidencia suficiente",
+            "no puedo responder con precision",
+            "prefiero no inventar",
+            "faltan datos suficientes"
+        )
+        val hasTransparency = transparencySignals.any { normalized.contains(it) }
+        val forbiddenTechnicalClaims = Regex(
+            "\\b(aplique|aplicar|use|usar|dosis|g/planta|g/l|ppm|mezcle|enema|fungicida|insecticida)\\b"
+        ).containsMatchIn(normalized)
+
+        return hasTransparency && !forbiddenTechnicalClaims
+    }
+
+    private fun isLexicallySupportedByFactualText(
+        response: String,
+        factualText: String,
+        minSupportedRatio: Float = 0.34f
+    ): Boolean {
+        val responseTokens = extractInformativeTokens(response)
+        if (responseTokens.isEmpty()) return false
+
+        val factualTokens = extractInformativeTokens(factualText)
+        if (factualTokens.isEmpty()) return false
+
+        val supportedRatio = responseTokens.count { it in factualTokens }.toFloat() / responseTokens.size.toFloat()
+        return supportedRatio >= minSupportedRatio
+    }
+
+    private fun responseNumbersAreSupported(
+        response: String,
+        factualText: String
+    ): Boolean {
+        val responseNumbers = extractComparableNumbers(response)
+        if (responseNumbers.isEmpty()) return true
+
+        val factualNumbers = extractComparableNumbers(factualText)
+        return responseNumbers.all { it in factualNumbers }
+    }
+
+    private fun responseThresholdRulesAreConsistent(
+        response: String,
+        factualText: String
+    ): Boolean {
+        val responseRules = extractThresholdRules(response)
+        if (responseRules.isEmpty()) return true
+
+        val factualRules = extractThresholdRules(factualText)
+        if (factualRules.isEmpty()) return true
+
+        for (responseRule in responseRules) {
+            val sameValue = factualRules.filter { it.value == responseRule.value }
+            if (sameValue.isEmpty()) continue
+
+            val sameDirection = sameValue.filter { factualRule ->
+                factualRule.directions.intersect(responseRule.directions).isNotEmpty()
+            }
+            if (responseRule.directions.isNotEmpty() && sameDirection.isEmpty()) {
+                return false
+            }
+
+            if (responseRule.action != null) {
+                val directionScoped = if (sameDirection.isNotEmpty()) sameDirection else sameValue
+                val factualActions = directionScoped.mapNotNull { it.action }.toSet()
+                if (factualActions.isNotEmpty() && responseRule.action !in factualActions) {
+                    return false
+                }
+            }
+        }
+
+        return true
+    }
+
+    private fun extractThresholdRules(text: String): List<ThresholdRule> {
+        val segments = text
+            .lines()
+            .flatMap { line ->
+                line.split(Regex("[.;]"))
+                    .map { it.trim() }
+            }
+            .filter { it.isNotBlank() }
+
+        if (segments.isEmpty()) return emptyList()
+
+        val rules = mutableListOf<ThresholdRule>()
+        for (segment in segments) {
+            val normalized = normalizeComparableText(segment)
+            val directions = detectThresholdDirections(normalized)
+            if (directions.isEmpty()) continue
+
+            val numbers = extractComparableNumbers(normalized)
+            if (numbers.isEmpty()) continue
+
+            val action = detectThresholdAction(normalized)
+            numbers.forEach { number ->
+                rules.add(
+                    ThresholdRule(
+                        value = canonicalComparableNumber(number),
+                        directions = directions,
+                        action = action
+                    )
+                )
+            }
+        }
+
+        return rules
+    }
+
+    private fun detectThresholdDirections(normalizedText: String): Set<ThresholdDirection> {
+        val directions = mutableSetOf<ThresholdDirection>()
+
+        if (Regex("<=|\\b(menor\\s+o\\s+igual\\s+(?:a|que)|igual\\s+o\\s+menor|a\\s+lo\\s+sumo)\\b")
+                .containsMatchIn(normalizedText)
+        ) {
+            directions.add(ThresholdDirection.LTE)
+        }
+        if (Regex(">=|\\b(mayor\\s+o\\s+igual\\s+(?:a|que)|igual\\s+o\\s+mayor|al\\s+menos)\\b")
+                .containsMatchIn(normalizedText)
+        ) {
+            directions.add(ThresholdDirection.GTE)
+        }
+        if (Regex("(?<![<>])<(?![=>])|\\b(menor\\s+de|por\\s+debajo\\s+de|inferior\\s+a|menos\\s+de)\\b")
+                .containsMatchIn(normalizedText)
+        ) {
+            directions.add(ThresholdDirection.LT)
+        }
+        if (Regex("(?<![<>])>(?![=>])|\\b(mayor\\s+de|por\\s+encima\\s+de|superior\\s+a|mas\\s+de)\\b")
+                .containsMatchIn(normalizedText)
+        ) {
+            directions.add(ThresholdDirection.GT)
+        }
+
+        return directions
+    }
+
+    private fun detectThresholdAction(normalizedText: String): ThresholdAction? {
+        val avoidPattern = Regex(
+            "\\b(no\\s+(?:aplic(?:ar|a|o|arlo|arla)|usar|use|recomienda|adicionar|agregar|aport(?:ar|a|e|o))|evit(?:ar|e|a|o)|suspend(?:er|a|e|o)|omitir|no\\s+conviene)\\b"
+        )
+        if (avoidPattern.containsMatchIn(normalizedText)) {
+            return ThresholdAction.AVOID
+        }
+
+        val applyPattern = Regex(
+            "\\b(aplic(?:ar|a|o|arlo|arla)|usar|use|recomienda|adicionar|agregar|aport(?:ar|a|e|o)|dar|suministrar)\\b"
+        )
+        if (applyPattern.containsMatchIn(normalizedText)) {
+            return ThresholdAction.APPLY
+        }
+
+        return null
+    }
+
+    private fun canonicalComparableNumber(number: String): String {
+        val cleaned = number.trim()
+        return cleaned
+            .removeSuffix(".0")
+            .removeSuffix(".00")
+            .ifBlank { cleaned }
+    }
+
+    private fun hasUnsupportedInferencePhrases(response: String): Boolean {
+        val normalized = normalizeComparableText(response)
+        return listOf(
+            "si tiene menos",
+            "si tiene mas",
+            "rango medio",
+            "mejora la productividad",
+            "protege la planta"
+        ).any { normalized.contains(it) }
+    }
+
+    private fun inferRequiredResponseFacets(
+        userQuery: String,
+        factualText: String
+    ): Set<FactualFacet> {
+        val queryFacets = inferFacetsFromText(userQuery, isQuery = true)
+        if (queryFacets.isEmpty()) return emptySet()
+
+        val factualFacets = inferFacetsFromText(factualText, isQuery = false)
+        val required = queryFacets.intersect(factualFacets).toMutableSet()
+
+        val normalizedQuery = normalizeComparableText(userQuery)
+        val asksGuidance = asksForPracticalGuidance(normalizeForTokenBudget(userQuery))
+        val asksAction = FactualFacet.ACTION in queryFacets
+        val factualHasAmount = FactualFacet.AMOUNT in factualFacets
+        val factualHasTiming = FactualFacet.TIMING in factualFacets
+        val asksConcreteAction = Regex(
+            "\\b(aplic(?:o|a|ar|arlo|arla)|abono|abonar|fertiliz(?:o|ar)|dosis|cantidad|cuanto)\\b"
+        ).containsMatchIn(normalizedQuery)
+
+        if (asksAction && factualHasAmount && asksConcreteAction) {
+            required.add(FactualFacet.AMOUNT)
+        }
+
+        // En consultas operativas, si el factual trae dosis/momento, la salida debe cubrirlos.
+        if ((asksGuidance || asksAction) && factualHasAmount) {
+            required.add(FactualFacet.AMOUNT)
+        }
+        if ((asksGuidance || asksAction) && factualHasTiming) {
+            required.add(FactualFacet.TIMING)
+        }
+
+        return required
+    }
+
+    private fun responseCoversRequiredFacets(
+        response: String,
+        requiredFacets: Set<FactualFacet>
+    ): Boolean {
+        if (requiredFacets.isEmpty()) return true
+        val responseFacets = inferFacetsFromText(response, isQuery = false)
+
+        if (FactualFacet.AMOUNT in requiredFacets && FactualFacet.AMOUNT !in responseFacets) {
+            return false
+        }
+        if (FactualFacet.TIMING in requiredFacets && FactualFacet.TIMING !in responseFacets) {
+            return false
+        }
+
+        val matched = requiredFacets.count { it in responseFacets }
+        val coverage = matched.toFloat() / requiredFacets.size.toFloat()
+        val minCoverage = when {
+            requiredFacets.size <= 2 -> 1.0f
+            requiredFacets.size == 3 -> 0.67f
+            else -> 0.60f
+        }
+
+        val hasOperationalFacet = FactualFacet.ACTION in responseFacets ||
+            FactualFacet.TIMING in responseFacets ||
+            FactualFacet.AMOUNT in responseFacets
+
+        return coverage >= minCoverage && hasOperationalFacet
+    }
+
+    private fun inferFacetsFromText(
+        text: String,
+        isQuery: Boolean
+    ): Set<FactualFacet> {
+        val normalized = normalizeComparableText(text)
+        if (normalized.isBlank()) return emptySet()
+
+        val facets = mutableSetOf<FactualFacet>()
+        val actionPattern = Regex(
+            "\\b(que\\s+hacer|accion|aplic(?:o|a|ar|arlo|arla)|hago|debo|manej(?:o|ar)|control(?:o|ar)|trat(?:o|ar)|fertiliz(?:o|ar)|abon(?:o|ar)|seleccion(?:ar|o|a)|dejar|deje|program(?:ar|e)|renov(?:ar|e)|zoque(?:o|ar)|pod(?:a|ar|o)|recolect(?:o|ar|e)|adicion(?:ar|a|e|o)|agreg(?:ar|a|e|o)|aport(?:ar|a|e|o)|correg(?:ir|irse|a|e|o))\\b"
+        )
+        val timingPattern = Regex(
+            "\\b(cuando|momento|epoca|al\\s+terminar|despues\\s+de|a\\s+los\\s+\\d+\\s+(mes|meses|dia|dias|semana|semanas|ano|anos|cosecha|cosechas))\\b"
+        )
+        val amountPattern = Regex(
+            "\\b(dosis|cantidad|cuanto|\\d+(?:\\.\\d+)?\\s*(g|kg|l|ml)(?:\\s*(?:/|por)\\s*(planta|sitio|ha|l|hectarea|arbol|100\\s*g|100g))?|\\d+(?:\\.\\d+)?\\s*%)\\b"
+        )
+        val thresholdPattern = Regex(
+            "(<=|>=|<|>)|\\b(menor\\s+de|mayor\\s+de|por\\s+debajo\\s+de|por\\s+encima\\s+de|umbral)\\b"
+        )
+
+        if (actionPattern.containsMatchIn(normalized)) {
+            facets.add(FactualFacet.ACTION)
+        }
+        if (timingPattern.containsMatchIn(normalized)) {
+            facets.add(FactualFacet.TIMING)
+        }
+        if (amountPattern.containsMatchIn(normalized)) {
+            facets.add(FactualFacet.AMOUNT)
+        }
+        if (thresholdPattern.containsMatchIn(normalized) && Regex("\\d").containsMatchIn(normalized)) {
+            facets.add(FactualFacet.THRESHOLD)
+        }
+
+        if (!isQuery && normalized.startsWith("que hacer:")) {
+            facets.add(FactualFacet.ACTION)
+        }
+        if (!isQuery && normalized.startsWith("cuando aplica:")) {
+            facets.add(FactualFacet.TIMING)
+        }
+
+        return facets
+    }
+
+    private fun extractComparableNumbers(text: String): Set<String> {
+        val normalized = normalizeComparableText(text)
+            .replace(Regex("(?m)^\\s*\\d+[.)]\\s+"), " ")
+        return Regex("\\b\\d+(?:\\.\\d+)?\\b")
+            .findAll(normalized)
+            .map { it.value.trim('.') }
+            .filter { it.isNotBlank() }
+            .toSet()
+    }
+
+    private fun normalizeComparableText(text: String): String {
+        return text.lowercase()
+            .replace(Regex("(?<=\\d)\\.(?=\\d{3}(\\D|$))"), "")
+            .replace(",", ".")
+            .replace("á", "a").replace("é", "e").replace("í", "i")
+            .replace("ó", "o").replace("ú", "u").replace("ñ", "n")
     }
 
     private fun isResponseAnchoredToContext(
@@ -2429,9 +3565,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun extractInformativeTokens(text: String): Set<String> {
-        val normalized = text.lowercase()
-            .replace("á", "a").replace("é", "e").replace("í", "i")
-            .replace("ó", "o").replace("ú", "u").replace("ñ", "n")
+        val normalized = normalizeComparableText(text)
             .replace(Regex("[^a-z0-9\\s]"), " ")
             .replace(Regex("\\s+"), " ")
             .trim()
@@ -2439,10 +3573,12 @@ class MainActivity : ComponentActivity() {
         val stopWords = setOf(
             "de", "del", "la", "las", "el", "los", "y", "o", "a", "en", "con", "por",
             "para", "al", "un", "una", "unos", "unas", "que", "me", "te", "se",
-            "mi", "tu", "su", "sobre", "acerca", "como", "cuando", "donde", "porque"
+            "mi", "tu", "su", "sobre", "acerca", "como", "cuando", "donde", "porque",
+            "dame", "paso", "pasos", "despues"
         )
         return normalized
             .split(Regex("\\s+"))
+            .map { canonicalGroundingToken(it) }
             .map {
                 when {
                     it.length > 4 && it.endsWith("es") -> it.dropLast(2)
@@ -2452,6 +3588,17 @@ class MainActivity : ComponentActivity() {
             }
             .filter { it.length >= 4 && it !in stopWords }
             .toSet()
+    }
+
+    private fun canonicalGroundingToken(token: String): String {
+        return when (token) {
+            "zoca", "zoqueo", "recepa" -> "zoca"
+            "chupon", "chupones", "brote", "brotes", "rebrote", "rebrotes" -> "brote"
+            "seleccionar", "seleccione", "selecciona", "seleccion", "preseleccion" -> "seleccion"
+            "fertilizar", "fertilizacion", "abonar", "abono", "abonos" -> "fertilizacion"
+            "fosforo", "fosforos" -> "fosforo"
+            else -> token
+        }
     }
 
     private fun isLikelyAgriculturalQuery(text: String): Boolean {

@@ -1,35 +1,27 @@
 package edu.unicauca.app.agrochat.routing
 
-import kotlin.math.max
-
 /**
  * Pure routing policy for response decisions.
- * Keeps decision rules testable outside Android runtime.
+ * The policy never chooses a visible non-LLM answer. It only decides how strict
+ * the grounded LLM generation should be.
  */
 object ResponseRoutingPolicy {
-    private const val HIGH_DIRECT_MIN_SIMILARITY = 0.88f
-    private const val HIGH_DIRECT_MIN_SUPPORT = 0.72f
-    private const val HIGH_DIRECT_MIN_COVERAGE = 0.58f
-    private const val HIGH_DIRECT_MAX_UNKNOWN_RATIO = 0.28f
+    private const val HIGH_CONFIDENCE_MIN_SIMILARITY = 0.74f
+    private const val HIGH_CONFIDENCE_MIN_SUPPORT = 0.62f
+    private const val HIGH_CONFIDENCE_MIN_COVERAGE = 0.46f
+    private const val HIGH_CONFIDENCE_MAX_UNKNOWN_RATIO = 0.42f
 
     data class Input(
         val hasRelatedKbSignal: Boolean,
-        val hasGroundedKbSupport: Boolean,
-        val allowGeneralLlmMode: Boolean,
-        val skipKbDirect: Boolean,
-        val useLlmForAll: Boolean,
         val bestSimilarityScore: Float,
         val kbSupportScore: Float,
         val kbCoverage: Float,
-        val kbUnknownRatio: Float,
-        val effectiveKbFastPathThreshold: Float
+        val kbUnknownRatio: Float
     )
 
     enum class Decision {
-        KB_DIRECT,
-        LLM_WITH_KB,
-        LLM_GENERAL,
-        ABSTAIN
+        LLM_GROUNDED_HIGH_CONFIDENCE,
+        LLM_GROUNDED_LOW_CONFIDENCE
     }
 
     data class Result(
@@ -38,41 +30,23 @@ object ResponseRoutingPolicy {
     )
 
     fun decide(input: Input): Result {
-        val directSimilarityThreshold = max(input.effectiveKbFastPathThreshold, HIGH_DIRECT_MIN_SIMILARITY)
-        val isHighConfidenceKbDirect =
+        val highConfidence =
             input.hasRelatedKbSignal &&
-                input.hasGroundedKbSupport &&
-                !input.skipKbDirect &&
-                !input.useLlmForAll &&
-                input.bestSimilarityScore >= directSimilarityThreshold &&
-                input.kbSupportScore >= HIGH_DIRECT_MIN_SUPPORT &&
-                input.kbCoverage >= HIGH_DIRECT_MIN_COVERAGE &&
-                input.kbUnknownRatio <= HIGH_DIRECT_MAX_UNKNOWN_RATIO
+                input.bestSimilarityScore >= HIGH_CONFIDENCE_MIN_SIMILARITY &&
+                input.kbSupportScore >= HIGH_CONFIDENCE_MIN_SUPPORT &&
+                input.kbCoverage >= HIGH_CONFIDENCE_MIN_COVERAGE &&
+                input.kbUnknownRatio <= HIGH_CONFIDENCE_MAX_UNKNOWN_RATIO
 
-        if (isHighConfidenceKbDirect) {
-            return Result(
-                decision = Decision.KB_DIRECT,
-                reason = "high_confidence_kb_match"
+        return if (highConfidence) {
+            Result(
+                decision = Decision.LLM_GROUNDED_HIGH_CONFIDENCE,
+                reason = "high_confidence_grounded_generation"
+            )
+        } else {
+            Result(
+                decision = Decision.LLM_GROUNDED_LOW_CONFIDENCE,
+                reason = "low_confidence_grounded_generation"
             )
         }
-
-        if (input.hasRelatedKbSignal) {
-            return Result(
-                decision = Decision.LLM_WITH_KB,
-                reason = "kb_related_signal"
-            )
-        }
-
-        if (input.allowGeneralLlmMode) {
-            return Result(
-                decision = Decision.LLM_GENERAL,
-                reason = "general_llm_mode"
-            )
-        }
-
-        return Result(
-            decision = Decision.ABSTAIN,
-            reason = "no_relevant_kb_signal"
-        )
     }
 }

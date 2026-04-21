@@ -55,6 +55,9 @@ class LLamaAndroid private constructor() {
     // Estado actual - solo modelo y contexto (batch/sampler se crean por consulta)
     @Volatile
     private var currentState: State = State.Idle
+
+    @Volatile
+    private var cancelRequested: Boolean = false
     
     private val runLoop: CoroutineDispatcher = Executors.newSingleThreadExecutor {
         thread(start = false, name = "Llama-RunLoop") {
@@ -122,6 +125,10 @@ class LLamaAndroid private constructor() {
      * Verifica si el modelo está cargado
      */
     fun isLoaded(): Boolean = currentState is State.Loaded
+
+    fun cancelGeneration() {
+        cancelRequested = true
+    }
     
     /**
      * Obtiene información del sistema
@@ -165,6 +172,7 @@ class LLamaAndroid private constructor() {
     fun send(message: String, formatChat: Boolean = true, maxTokens: Int = nlen): Flow<String> = flow {
         when (val state = currentState) {
             is State.Loaded -> {
+                cancelRequested = false
                 // Limpiar KV cache antes de la consulta
                 kv_cache_clear(state.context)
                 
@@ -184,6 +192,7 @@ class LLamaAndroid private constructor() {
                     val totalLimit = promptTokens + maxTokens
                     
                     while (ncur.value <= totalLimit) {
+                        if (cancelRequested) break
                         val str = completion_loop(
                             state.context, 
                             batch, 
@@ -213,6 +222,7 @@ class LLamaAndroid private constructor() {
         return withContext(runLoop) {
             when (val state = currentState) {
                 is State.Loaded -> {
+                    cancelRequested = false
                     // Limpiar KV cache antes de la consulta
                     kv_cache_clear(state.context)
                     
@@ -238,6 +248,7 @@ class LLamaAndroid private constructor() {
                         
                         var tokenCount = 0
                         while (ncur.value <= totalLimit) {
+                            if (cancelRequested) break
                             val str = completion_loop(
                                 state.context,
                                 batch,
