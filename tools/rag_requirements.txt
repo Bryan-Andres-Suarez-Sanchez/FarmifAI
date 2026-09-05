@@ -1,0 +1,7 @@
+numpy>=1.22,<2.1
+nltk
+onnx
+rank-bm25
+sentence-transformers
+torch
+transformers
