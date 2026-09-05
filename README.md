@@ -36,7 +36,7 @@ The project was developed at the **Universidad del Cauca** in the context of res
 
 ## RAG Architecture
 
-![FarmifAI RAG Architecture](docs/images/system_overview.png)
+![FarmifAI RAG Architecture](docs/system_overview.png)
 
 The current RAG pipeline follows these stages:
 
