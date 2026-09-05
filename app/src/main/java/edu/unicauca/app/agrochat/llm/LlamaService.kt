@@ -333,10 +333,14 @@ class LlamaService private constructor() {
                     }
                     raw.append(chunk)
 
-                    // Con XML estricto no mostramos parciales: antes de </answer>
-                    // podrían contener el razonamiento interno o etiquetas incompletas.
-                    if (!requiresXml) {
-                        val partial = cleanResponse(raw.toString())
+                    val partial = if (requiresXml) {
+                        AnswerXmlValidator.extractStreamingAnswer(raw.toString())?.let(::cleanResponse)
+                    } else {
+                        cleanResponse(raw.toString())
+                    }
+                    // Con XML solo mostramos texto una vez identificado <answer>;
+                    // así el razonamiento nunca llega a la interfaz.
+                    if (!partial.isNullOrBlank()) {
                         val shouldEmit = partial.length >= 48 &&
                             (partial.length - emittedLength >= 32 || partial.endsWith("\n") ||
                                 partial.endsWith(".") || partial.endsWith(":"))

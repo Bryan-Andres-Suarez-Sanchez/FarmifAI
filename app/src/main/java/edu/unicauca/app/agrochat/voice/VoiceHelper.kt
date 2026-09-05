@@ -36,6 +36,8 @@ class VoiceHelper(private val context: Context) {
     private var speechService: SpeechService? = null
     private var isVoskReady = false
     private var isListening = false
+    private var recognitionSession = 0L
+    private var suppressRecognitionResults = false
     
     // Modo conversación (auto-escuchar después de hablar)
     private var conversationMode = false
@@ -87,28 +89,23 @@ class VoiceHelper(private val context: Context) {
                 // Listener para estado de habla
                 tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                     override fun onStart(utteranceId: String?) {
+                        suppressRecognitionResults = true
                         onSpeakingStateChanged?.invoke(true)
                     }
                     
                     override fun onDone(utteranceId: String?) {
+                        suppressRecognitionResults = false
                         onSpeakingStateChanged?.invoke(false)
-                        // En modo conversación, esperar un momento antes de escuchar
-                        // para evitar capturar eco del altavoz
-                        if (conversationMode && isVoskReady) {
-                            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                                if (!isSpeaking()) {
-                                    startListening()
-                                }
-                            }, 500) // 500ms de delay para evitar eco
-                        }
                     }
                     
                     @Deprecated("Deprecated in Java")
                     override fun onError(utteranceId: String?) {
+                        suppressRecognitionResults = false
                         onSpeakingStateChanged?.invoke(false)
                     }
                     
                     override fun onError(utteranceId: String?, errorCode: Int) {
+                        suppressRecognitionResults = false
                         onSpeakingStateChanged?.invoke(false)
                     }
                 })
@@ -278,8 +275,8 @@ class VoiceHelper(private val context: Context) {
      * Activa/desactiva modo conversación
      */
     fun setConversationMode(enabled: Boolean) {
-        conversationMode = enabled
-        Log.d(TAG, "Modo conversación: $enabled")
+        conversationMode = false
+        Log.d(TAG, "Escucha automática deshabilitada (solicitado=$enabled)")
     }
     
     fun isConversationModeEnabled(): Boolean = conversationMode
@@ -300,14 +297,17 @@ class VoiceHelper(private val context: Context) {
         
         // Detener TTS si está hablando
         stopSpeaking()
+        suppressRecognitionResults = false
         
         try {
+            val session = ++recognitionSession
             val recognizer = Recognizer(voskModel, 16000.0f)
             
             speechService = SpeechService(recognizer, 16000.0f)
             speechService?.startListening(object : RecognitionListener {
                 
                 override fun onPartialResult(hypothesis: String?) {
+                    if (!isActiveRecognition(session)) return
                     hypothesis?.let {
                         try {
                             val json = JSONObject(it)
@@ -323,26 +323,26 @@ class VoiceHelper(private val context: Context) {
                 }
                 
                 override fun onResult(hypothesis: String?) {
-                    processResult(hypothesis)
+                    processResultOnce(hypothesis, session)
                 }
                 
                 override fun onFinalResult(hypothesis: String?) {
-                    processResult(hypothesis)
-                    isListening = false
-                    onListeningStateChanged?.invoke(false)
+                    if (!processResultOnce(hypothesis, session) && isActiveRecognition(session)) {
+                        finishRecognition(session)
+                    }
                 }
                 
                 override fun onError(exception: Exception?) {
+                    if (session != recognitionSession) return
                     Log.e(TAG, "Error Vosk: ${exception?.message}")
-                    isListening = false
-                    onListeningStateChanged?.invoke(false)
+                    finishRecognition(session)
                     onError?.invoke("Error de reconocimiento: ${exception?.message ?: "desconocido"}")
                 }
                 
                 override fun onTimeout() {
+                    if (session != recognitionSession) return
                     Log.d(TAG, "Timeout")
-                    isListening = false
-                    onListeningStateChanged?.invoke(false)
+                    finishRecognition(session)
                     onError?.invoke("No escuché nada. Intenta de nuevo.")
                 }
             })
@@ -362,17 +362,40 @@ class VoiceHelper(private val context: Context) {
     /**
      * Procesa el resultado de Vosk
      */
-    private fun processResult(hypothesis: String?) {
-        hypothesis?.let {
+    private fun isActiveRecognition(session: Long): Boolean =
+        session == recognitionSession && isListening && !suppressRecognitionResults && !isSpeaking()
+
+    private fun processResultOnce(hypothesis: String?, session: Long): Boolean {
+        if (!isActiveRecognition(session) || hypothesis == null) return false
+        return try {
+            val text = JSONObject(hypothesis).optString("text", "").trim()
+            if (text.isEmpty()) {
+                false
+            } else {
+                finishRecognition(session)
+                Log.i(TAG, "Resultado único: $text")
+                onResult?.invoke(text)
+                true
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error parsing: ${e.message}")
+            false
+        }
+    }
+
+    private fun finishRecognition(session: Long) {
+        if (session != recognitionSession) return
+        recognitionSession += 1
+        isListening = false
+        val service = speechService
+        speechService = null
+        onListeningStateChanged?.invoke(false)
+        android.os.Handler(android.os.Looper.getMainLooper()).post {
             try {
-                val json = JSONObject(it)
-                val text = json.optString("text", "")
-                if (text.isNotEmpty()) {
-                    Log.i(TAG, "Resultado: $text")
-                    onResult?.invoke(text)
-                }
+                service?.stop()
+                service?.shutdown()
             } catch (e: Exception) {
-                Log.w(TAG, "Error parsing: ${e.message}")
+                Log.w(TAG, "Error cerrando sesión Vosk: ${e.message}")
             }
         }
     }
@@ -381,15 +404,17 @@ class VoiceHelper(private val context: Context) {
      * Detiene el reconocimiento
      */
     fun stopListening() {
-        if (isListening) {
-            try {
-                speechService?.stop()
-            } catch (e: Exception) {
-                Log.e(TAG, "Error al detener: ${e.message}")
-            }
-            isListening = false
-            onListeningStateChanged?.invoke(false)
+        recognitionSession += 1
+        isListening = false
+        val service = speechService
+        speechService = null
+        try {
+            service?.stop()
+            service?.shutdown()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error al detener: ${e.message}")
         }
+        onListeningStateChanged?.invoke(false)
     }
     
     /**
@@ -407,8 +432,9 @@ class VoiceHelper(private val context: Context) {
         }
         
         // IMPORTANTE: Detener reconocimiento antes de hablar para evitar que se escuche a sí mismo
-        stopListening()
         stopSpeaking()
+        suppressRecognitionResults = true
+        stopListening()
         
         val cleanText = cleanTextForSpeech(text)
         if (cleanText.isBlank()) return
@@ -427,6 +453,7 @@ class VoiceHelper(private val context: Context) {
      */
     fun stopSpeaking() {
         tts?.stop()
+        suppressRecognitionResults = false
         onSpeakingStateChanged?.invoke(false)
     }
     

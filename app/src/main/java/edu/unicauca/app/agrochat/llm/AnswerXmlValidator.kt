@@ -43,6 +43,22 @@ internal object AnswerXmlValidator {
 
     fun isValid(response: String): Boolean = extract(response) != null
 
+    /** Extracts only an answer fragment whose start is already unambiguous. */
+    fun extractStreamingAnswer(response: String): String? {
+        answerOpen.find(response)?.let { opening ->
+            val remainder = response.substring(opening.range.last + 1)
+            val end = listOfNotNull(
+                answerClose.find(remainder)?.range?.first,
+                reasoningOpen.find(remainder)?.range?.first
+            ).minOrNull() ?: remainder.length
+            return sanitize(remainder.substring(0, end))
+        }
+        reasoningClose.find(response)?.let { closing ->
+            return sanitize(response.substring(closing.range.last + 1))
+        }
+        return null
+    }
+
     private fun sanitize(value: String): String? {
         val cleaned = value
             .replace(answerClose, " ")

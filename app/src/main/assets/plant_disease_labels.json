@@ -1,0 +1,29 @@
+{
+  "version": "colombia_v1.0",
+  "date": "2025-12-09",
+  "num_classes": 21,
+  "input_size": 224,
+  "labels": [
+    { "id": 0, "name": "Cafe___Cercospora", "crop": "Café", "display": "Cercospora (Ojo de gallo)" },
+    { "id": 1, "name": "Cafe___Minador", "crop": "Café", "display": "Minador de hoja" },
+    { "id": 2, "name": "Cafe___Phoma", "crop": "Café", "display": "Phoma (Derrite)" },
+    { "id": 3, "name": "Cafe___Roya", "crop": "Café", "display": "Roya del café" },
+    { "id": 4, "name": "Maiz___Mancha_gris", "crop": "Maíz", "display": "Mancha gris" },
+    { "id": 5, "name": "Maiz___Roya_comun", "crop": "Maíz", "display": "Roya común" },
+    { "id": 6, "name": "Maiz___Saludable", "crop": "Maíz", "display": "Saludable" },
+    { "id": 7, "name": "Maiz___Tizon_norteno", "crop": "Maíz", "display": "Tizón norteño" },
+    { "id": 8, "name": "Papa___Saludable", "crop": "Papa", "display": "Saludable" },
+    { "id": 9, "name": "Papa___Tizon_tardio", "crop": "Papa", "display": "Tizón tardío (Gota)" },
+    { "id": 10, "name": "Papa___Tizon_temprano", "crop": "Papa", "display": "Tizón temprano" },
+    { "id": 11, "name": "Pimiento___Mancha_bacteriana", "crop": "Pimiento", "display": "Mancha bacteriana" },
+    { "id": 12, "name": "Pimiento___Saludable", "crop": "Pimiento", "display": "Saludable" },
+    { "id": 13, "name": "Tomate___Mancha_bacteriana", "crop": "Tomate", "display": "Mancha bacteriana" },
+    { "id": 14, "name": "Tomate___Mancha_diana", "crop": "Tomate", "display": "Mancha diana" },
+    { "id": 15, "name": "Tomate___Moho_foliar", "crop": "Tomate", "display": "Moho foliar" },
+    { "id": 16, "name": "Tomate___Saludable", "crop": "Tomate", "display": "Saludable" },
+    { "id": 17, "name": "Tomate___Septoriosis", "crop": "Tomate", "display": "Septoriosis" },
+    { "id": 18, "name": "Tomate___Tizon_tardio", "crop": "Tomate", "display": "Tizón tardío" },
+    { "id": 19, "name": "Tomate___Tizon_temprano", "crop": "Tomate", "display": "Tizón temprano" },
+    { "id": 20, "name": "Tomate___Virus_mosaico", "crop": "Tomate", "display": "Virus del mosaico" }
+  ]
+}

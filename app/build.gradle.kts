@@ -11,6 +11,25 @@ plugins {
 // Generar timestamp para nombre único de APK
 val buildTimestamp: String = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
 
+val validateVisionLabels by tasks.registering {
+    val labelsFile = layout.projectDirectory.file("src/main/assets/plant_disease_labels.json")
+    inputs.file(labelsFile)
+    doLast {
+        val file = labelsFile.asFile
+        require(file.isFile) {
+            "Falta src/main/assets/plant_disease_labels.json; el diagnóstico visual no puede inicializarse."
+        }
+        val contents = file.readText()
+        require(Regex("\\\"num_classes\\\"\\s*:\\s*21").containsMatchIn(contents)) {
+            "plant_disease_labels.json no corresponde al modelo de visión de 21 clases."
+        }
+    }
+}
+
+tasks.matching { it.name == "preBuild" }.configureEach {
+    dependsOn(validateVisionLabels)
+}
+
 android {
     namespace = "edu.unicauca.app.agrochat"
     compileSdk = 35

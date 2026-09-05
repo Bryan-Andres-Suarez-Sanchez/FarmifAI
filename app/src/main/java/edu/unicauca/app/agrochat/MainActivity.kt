@@ -273,6 +273,7 @@ class MainActivity : ComponentActivity() {
     private var llamaService: LlamaService? = null
     private var isLlamaLoaded by mutableStateOf(false)
     private var isListening by mutableStateOf(false)
+    private var voiceInputArmed = false
     private var hasAudioPermission by mutableStateOf(false)
     private var showSettingsDialog by mutableStateOf(false)
     private var isLlamaEnabled by mutableStateOf(false)
@@ -850,11 +851,17 @@ class MainActivity : ComponentActivity() {
             onResult = { text ->
                 runOnUiThread {
                     isListening = false
-                    if (text.isNotBlank()) sendMessage(text)
+                    if (voiceInputArmed && !isProcessing && text.isNotBlank()) {
+                        voiceInputArmed = false
+                        sendMessage(text)
+                    } else {
+                        AppLogger.log("VoiceHelper", "Resultado Vosk descartado: captura no autorizada o consulta en curso")
+                    }
                 }
             }
             onError = { error ->
                 runOnUiThread {
+                    voiceInputArmed = false
                     isListening = false
                     if (error.contains("No speech") || error.contains("No match") || error.contains("No escuché")) {
                         uiStatus = "No te escuché. Toca para hablar."
@@ -883,7 +890,13 @@ class MainActivity : ComponentActivity() {
             requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
             return
         }
-        if (isListening) voiceHelper?.stopListening() else voiceHelper?.startListening()
+        if (isListening) {
+            voiceInputArmed = false
+            voiceHelper?.stopListening()
+        } else {
+            voiceInputArmed = true
+            voiceHelper?.startListening()
+        }
     }
     
     private fun loadPreferences() {
@@ -1711,7 +1724,11 @@ class MainActivity : ComponentActivity() {
                             removeMessageById(streamingAnswerMessageId)
                             removeMessageById(streamingThinkingMessageId)
                             streamingAnswerMessageId = null
-                            streamingThinkingMessageId = null
+                            streamingThinkingMessageId = upsertStreamingAssistantBubble(
+                                existingId = null,
+                                text = "Error de formato, regenerando respuesta...",
+                                isThinking = true
+                            )
                             thinkingBubbleHasModelContent = false
                         }
                     },
