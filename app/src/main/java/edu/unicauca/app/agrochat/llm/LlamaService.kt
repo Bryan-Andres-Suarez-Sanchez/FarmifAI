@@ -2,12 +2,15 @@ package edu.unicauca.app.agrochat.llm
 
 import android.content.Context
 import android.util.Log
+import android.os.SystemClock
 import android.llama.cpp.LLamaAndroid
+import edu.unicauca.app.agrochat.rag.QueryTelemetry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
@@ -21,15 +24,17 @@ class LlamaService private constructor() {
     companion object {
         private const val TAG = "LlamaService"
         // Modelo offline por defecto FarmifAI (Qwen 3.5 0.8B ajustado)
-        private const val DEFAULT_MODEL_FILENAME = "Qwen3.5-0.8B.Q4_K_M.gguf"
+        private const val DEFAULT_MODEL_FILENAME = "FarmifAI_1.3.Q5_K_M.gguf"
         private const val MAX_TOKENS = 1200  // Salidas más completas por defecto
 
-        // URL de descarga automática desde Hugging Face (FarmifAI/Qwen3.5-0.8B_FarmifAI2.0)
-        private const val MODEL_DOWNLOAD_URL = "https://huggingface.co/FarmifAI/Qwen3.5-0.8B_FarmifAI2.0/resolve/main/Qwen3.5-0.8B.Q4_K_M.gguf"
-        private const val MODEL_SIZE_BYTES = 529_297_024L  // ~505MB
+        // Descarga automática desde FarmifAI/FarmifAI_1.3_GGUF.
+        private const val MODEL_DOWNLOAD_URL = "https://huggingface.co/FarmifAI/FarmifAI_1.3_GGUF/resolve/main/FarmifAI_1.3.Q5_K_M.gguf"
+        private const val MODEL_SIZE_BYTES = 592_636_640L
         private const val MIN_VALID_GGUF_BYTES = 100_000_000L
         private val MODEL_FILENAME_PREFERENCE = listOf(
             DEFAULT_MODEL_FILENAME,
+            "FarmifAI_1.3.Q4_K_M.gguf",
+            "FarmifAI_1.3.F16.gguf",
             "Qwen3.5-0.8B-Q4_K_M.gguf",
             "Qwen3.5-0.8B-Q5_K_M.gguf",
             "Qwen3.5-0.8B-Q4_0.gguf",
@@ -72,7 +77,7 @@ class LlamaService private constructor() {
     fun isPreferredModelAvailable(context: Context): Boolean {
         val dir = context.getExternalFilesDir(null) ?: return false
         val preferred = File(dir, DEFAULT_MODEL_FILENAME)
-        return preferred.exists() && preferred.length() > MIN_VALID_GGUF_BYTES
+        return isValidGguf(preferred, MODEL_SIZE_BYTES)
     }
 
     /**
@@ -83,11 +88,12 @@ class LlamaService private constructor() {
 
         for (name in MODEL_FILENAME_PREFERENCE) {
             val preferred = File(dir, name)
-            if (preferred.exists() && preferred.length() > MIN_VALID_GGUF_BYTES) return preferred
+            val expectedSize = if (name == DEFAULT_MODEL_FILENAME) MODEL_SIZE_BYTES else null
+            if (isValidGguf(preferred, expectedSize)) return preferred
         }
 
         val candidates = dir.listFiles { f ->
-            f.isFile && f.name.endsWith(".gguf", ignoreCase = true) && f.length() > MIN_VALID_GGUF_BYTES
+            f.isFile && f.name.endsWith(".gguf", ignoreCase = true) && isValidGguf(f)
         } ?: emptyArray()
         // En rama fastmodel priorizamos menor huella para mejorar carga/latencia.
         return candidates.minByOrNull { it.length() }
@@ -135,9 +141,13 @@ class LlamaService private constructor() {
             val modelFile = File(dir, DEFAULT_MODEL_FILENAME)
             val tempFile = File(dir, "${DEFAULT_MODEL_FILENAME}.tmp")
 
-            if (modelFile.exists() && modelFile.length() > MIN_VALID_GGUF_BYTES) {
+            if (isValidGguf(modelFile, MODEL_SIZE_BYTES)) {
                 Log.i(TAG, "Modelo ya existe: ${modelFile.absolutePath}")
                 return@withContext Result.success(modelFile)
+            }
+            if (modelFile.exists()) {
+                Log.w(TAG, "Eliminando GGUF incompleto o inválido: ${modelFile.length()} bytes")
+                modelFile.delete()
             }
 
             Log.i(TAG, "Descargando modelo desde: $MODEL_DOWNLOAD_URL")
@@ -147,6 +157,11 @@ class LlamaService private constructor() {
                 connectTimeout = 30_000
                 readTimeout = 60_000
                 setRequestProperty("User-Agent", "AgroChat/1.0")
+            }
+
+            val responseCode = connection.responseCode
+            if (responseCode !in 200..299) {
+                return@withContext Result.failure(Exception("Error HTTP descargando GGUF: $responseCode"))
             }
 
             val totalSize = connection.contentLengthLong.takeIf { it > 0 } ?: MODEL_SIZE_BYTES
@@ -175,14 +190,22 @@ class LlamaService private constructor() {
                 }
             }
 
-            if (tempFile.exists() && tempFile.length() > MIN_VALID_GGUF_BYTES) {
+            if (isValidGguf(tempFile, MODEL_SIZE_BYTES)) {
                 if (modelFile.exists()) modelFile.delete()
-                tempFile.renameTo(modelFile)
+                if (!tempFile.renameTo(modelFile)) {
+                    tempFile.copyTo(modelFile, overwrite = true)
+                    tempFile.delete()
+                }
+                if (!isValidGguf(modelFile, MODEL_SIZE_BYTES)) {
+                    modelFile.delete()
+                    return@withContext Result.failure(Exception("No se pudo guardar el GGUF validado"))
+                }
                 Log.i(TAG, "Modelo descargado: ${modelFile.absolutePath}")
                 Result.success(modelFile)
             } else {
+                val actualSize = tempFile.length()
                 tempFile.delete()
-                Result.failure(Exception("Descarga incompleta"))
+                Result.failure(Exception("Descarga GGUF incompleta o inválida: $actualSize/$MODEL_SIZE_BYTES bytes"))
             }
 
         } catch (e: Exception) {
@@ -190,6 +213,18 @@ class LlamaService private constructor() {
             Result.failure(e)
         } finally {
             connection?.disconnect()
+        }
+    }
+
+    private fun isValidGguf(file: File, expectedSize: Long? = null): Boolean {
+        if (!file.isFile || file.length() <= MIN_VALID_GGUF_BYTES) return false
+        if (expectedSize != null && file.length() != expectedSize) return false
+        return try {
+            val magic = ByteArray(4)
+            FileInputStream(file).use { it.read(magic) == magic.size } &&
+                magic.contentEquals(byteArrayOf('G'.code.toByte(), 'G'.code.toByte(), 'U'.code.toByte(), 'F'.code.toByte()))
+        } catch (_: Exception) {
+            false
         }
     }
     
@@ -274,35 +309,71 @@ class LlamaService private constructor() {
         maxContextLength: Int = 1200,
         systemPrompt: String = "Eres FarmifAI, un asistente agricola experto. Responde en espanol de forma clara, cercana y practica para agricultor. Nunca menciones terminos internos como KB, RAG, LLM, contexto de referencia, modelo o sistema.",
         conversationHistory: List<Pair<String, String>> = emptyList(),
+        queryId: Long = 0L,
+        onFormatRetry: suspend () -> Unit = {},
         onPartialResponse: suspend (String) -> Unit
     ): Result<String> {
         return try {
-            val prompt = buildAgriPrompt(userQuery, contextFromKB, maxContextLength, systemPrompt, conversationHistory)
-            Log.d(TAG, "Prompt streaming (${detectModelFamily()}): ${prompt.length} chars, maxTokens: $maxTokens")
+            val requiresXml = systemPrompt.contains("<answer>", ignoreCase = true)
 
-            val raw = StringBuilder()
-            var emittedLength = 0
-            llama.send(prompt, formatChat = false, maxTokens = maxTokens).collect { chunk ->
-                if (chunk.isBlank()) return@collect
-                raw.append(chunk)
+            suspend fun runAttempt(attemptSystemPrompt: String, attempt: Int): String {
+                var stageStart = SystemClock.elapsedRealtimeNanos()
+                val prompt = buildAgriPrompt(userQuery, contextFromKB, maxContextLength, attemptSystemPrompt, conversationHistory)
+                QueryTelemetry.record(queryId, "SLM_PROMPT_BUILD_A$attempt", QueryTelemetry.elapsedMs(stageStart))
+                Log.d(TAG, "Prompt streaming (${detectModelFamily()}): ${prompt.length} chars, maxTokens: $maxTokens")
+                val raw = StringBuilder()
+                var emittedLength = 0
+                var firstTokenRecorded = false
+                stageStart = SystemClock.elapsedRealtimeNanos()
+                llama.send(prompt, formatChat = false, maxTokens = maxTokens).collect { chunk ->
+                    if (chunk.isBlank()) return@collect
+                    if (!firstTokenRecorded) {
+                        firstTokenRecorded = true
+                        QueryTelemetry.record(queryId, "SLM_TTFT_A$attempt", QueryTelemetry.elapsedMs(stageStart))
+                    }
+                    raw.append(chunk)
 
-                val partial = cleanResponse(raw.toString())
-                val shouldEmit =
-                    partial.length >= 48 &&
-                        (
-                            partial.length - emittedLength >= 32 ||
-                                partial.endsWith("\n") ||
-                                partial.endsWith(".") ||
-                                partial.endsWith(":")
-                            )
-
-                if (shouldEmit) {
-                    emittedLength = partial.length
-                    onPartialResponse(partial)
+                    // Con XML estricto no mostramos parciales: antes de </answer>
+                    // podrían contener el razonamiento interno o etiquetas incompletas.
+                    if (!requiresXml) {
+                        val partial = cleanResponse(raw.toString())
+                        val shouldEmit = partial.length >= 48 &&
+                            (partial.length - emittedLength >= 32 || partial.endsWith("\n") ||
+                                partial.endsWith(".") || partial.endsWith(":"))
+                        if (shouldEmit) {
+                            emittedLength = partial.length
+                            onPartialResponse(partial)
+                        }
+                    }
                 }
+                QueryTelemetry.record(queryId, "SLM_INFERENCE_A$attempt", QueryTelemetry.elapsedMs(stageStart))
+                return raw.toString()
             }
 
-            val finalResponse = cleanResponse(raw.toString())
+            var rawResponse = runAttempt(systemPrompt, 1)
+            var parseStart = SystemClock.elapsedRealtimeNanos()
+            var extraction = if (requiresXml) AnswerXmlValidator.extract(rawResponse) else null
+            QueryTelemetry.record(queryId, "SLM_FORMAT_PARSE_A1", QueryTelemetry.elapsedMs(parseStart))
+            if (requiresXml && extraction == null) {
+                Log.w(TAG, "FORMAT_UNRECOVERABLE attempt=1: no se pudo aislar la respuesta; regenerando")
+                onFormatRetry()
+                val retryPrompt = "$systemPrompt\nREINTENTO: entrega la respuesta final dentro de <answer>...</answer>. Si generas razonamiento, mantenlo antes en <reasoning>...</reasoning>."
+                rawResponse = runAttempt(retryPrompt, 2)
+                parseStart = SystemClock.elapsedRealtimeNanos()
+                extraction = AnswerXmlValidator.extract(rawResponse)
+                QueryTelemetry.record(queryId, "SLM_FORMAT_PARSE_A2", QueryTelemetry.elapsedMs(parseStart))
+                if (extraction == null) {
+                    Log.e(TAG, "FORMAT_UNRECOVERABLE attempt=2: no fue posible separar el razonamiento")
+                    return Result.failure(IllegalStateException("No fue posible aislar la respuesta final después de 2 intentos"))
+                }
+                Log.i(TAG, "FORMAT_RECOVERED attempt=2 strategy=${extraction.strategy}")
+            } else if (requiresXml) {
+                Log.i(TAG, "FORMAT_OK attempt=1 strategy=${extraction?.strategy}")
+            }
+
+            val cleanStart = SystemClock.elapsedRealtimeNanos()
+            val finalResponse = cleanResponse(extraction?.answer ?: rawResponse)
+            QueryTelemetry.record(queryId, "SLM_RESPONSE_CLEAN", QueryTelemetry.elapsedMs(cleanStart))
             onPartialResponse(finalResponse)
             Result.success(finalResponse)
         } catch (e: Exception) {
@@ -366,6 +437,9 @@ class LlamaService private constructor() {
         
         // Limpiar artefactos de conversación inventada (Usuario:/Asistente:)
         cleaned = removeRoleDialogueArtifacts(cleaned).trim()
+
+        // The notebook keeps reasoning internal and returns only <answer>.
+        cleaned = AnswerXmlValidator.extract(cleaned)?.answer ?: cleaned.trim()
         
         // Si quedó muy corta, dejar que capas superiores decidan fallback.
         if (cleaned.length < 5) {
@@ -378,7 +452,7 @@ class LlamaService private constructor() {
     private fun detectModelFamily(): ModelFamily {
         val name = loadedModelName?.lowercase().orEmpty()
         return when {
-            "qwen" in name -> ModelFamily.QWEN
+            "qwen" in name || "farmifai_1.3" in name -> ModelFamily.QWEN
             "llama" in name -> ModelFamily.LLAMA3
             else -> ModelFamily.GENERIC
         }
@@ -454,15 +528,17 @@ class LlamaService private constructor() {
         systemPrompt: String,
         conversationHistory: List<Pair<String, String>> = emptyList()
     ): String {
-        val userMessage: String = if (!contextFromKB.isNullOrBlank()) {
-            val shortContext = truncateContextPreservingKb(contextFromKB, maxContextLength)
-            "DATOS DISPONIBLES:\n$shortContext\n\nCONSULTA DEL AGRICULTOR:\n$userQuery"
+        // Keep both inputs explicit and independent: prior dialogue tells the model
+        // what the conversation is about; knowledge contains the current query's
+        // three freshly retrieved chunks.
+        val knowledgeContext = if (!contextFromKB.isNullOrBlank()) {
+            "<knowledge>\n$contextFromKB\n</knowledge>"
         } else {
-            userQuery
+            "<knowledge>Sin fragmentos recuperados.</knowledge>"
         }
-        // Limitar historial a 3 turnos para no exceder contexto del modelo local
-        val limitedHistory = conversationHistory.takeLast(3)
-        return buildPromptForCurrentModel(systemPrompt, userMessage, limitedHistory)
+        val userMessage = "$knowledgeContext\n\n<pregunta_actual>\n$userQuery\n</pregunta_actual>"
+        val independentSystemPrompt = "$systemPrompt\nEsta es una consulta independiente. Usa solo <pregunta_actual> y <knowledge>; no supongas información de consultas anteriores."
+        return buildPromptForCurrentModel(independentSystemPrompt, userMessage)
     }
 
     /**

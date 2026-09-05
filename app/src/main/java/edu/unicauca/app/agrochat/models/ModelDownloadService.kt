@@ -23,15 +23,45 @@ class ModelDownloadService private constructor() {
         // URLs de descarga de modelos desde GitHub (raw URLs con LFS)
         // Repo: https://github.com/pazussa/models_FarmifAI
         private const val BASE_URL = "https://media.githubusercontent.com/media/pazussa/models_FarmifAI/main"
+        private const val E5_URL = "https://huggingface.co/intfloat/multilingual-e5-small/resolve/main"
+        private const val RERANKER_URL = "https://huggingface.co/cross-encoder/mmarco-mMiniLMv2-L12-H384-v1/resolve/main"
         
         // Modelos disponibles para descarga
         val MODELS = mapOf(
+            "rag_e5_small.onnx" to ModelInfo(
+                filename = "rag_e5_small.onnx",
+                url = "$E5_URL/onnx/model.onnx?download=true",
+                sizeBytes = 470_182_955L,
+                description = "E5 multilingual semantic retriever",
+                required = true
+            ),
+            "rag_e5_tokenizer.json" to ModelInfo(
+                filename = "rag_e5_tokenizer.json",
+                url = "$E5_URL/tokenizer.json?download=true",
+                sizeBytes = 17_082_800L,
+                description = "E5 tokenizer",
+                required = true
+            ),
+            "rag_mmarco_reranker.onnx" to ModelInfo(
+                filename = "rag_mmarco_reranker.onnx",
+                url = "$RERANKER_URL/onnx/model.onnx?download=true",
+                sizeBytes = 470_883_696L,
+                description = "mMARCO cross-encoder reranker",
+                required = true
+            ),
+            "rag_mmarco_tokenizer.json" to ModelInfo(
+                filename = "rag_mmarco_tokenizer.json",
+                url = "$RERANKER_URL/tokenizer.json?download=true",
+                sizeBytes = 17_082_734L,
+                description = "mMARCO tokenizer",
+                required = true
+            ),
             "sentence_encoder.ms" to ModelInfo(
                 filename = "sentence_encoder.ms",
                 url = "$BASE_URL/sentence_encoder.ms",
                 sizeBytes = 235_222_480L,  // ~225MB
                 description = "Modelo de embeddings semánticos",
-                required = true
+                required = false // legacy encoder; notebook RAG uses rag_e5_small.onnx
             ),
             "plant_disease_model.ms" to ModelInfo(
                 filename = "plant_disease_model.ms",
@@ -45,7 +75,7 @@ class ModelDownloadService private constructor() {
                 url = "$BASE_URL/sentence_tokenizer.json",
                 sizeBytes = 17_082_999L,  // ~17MB
                 description = "Tokenizador para embeddings",
-                required = true
+                required = false // legacy tokenizer; notebook RAG uses dedicated E5/mMARCO tokenizers
             ),
             // Vosk model for Spanish speech recognition
             "model-es-small/am/final.mdl" to ModelInfo(

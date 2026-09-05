@@ -70,6 +70,7 @@ import edu.unicauca.app.agrochat.llm.LlamaService
 import edu.unicauca.app.agrochat.mindspore.SemanticSearchHelper
 import edu.unicauca.app.agrochat.models.ModelDownloadService
 import edu.unicauca.app.agrochat.routing.ResponseRoutingPolicy
+import edu.unicauca.app.agrochat.rag.QueryTelemetry
 import edu.unicauca.app.agrochat.ui.theme.AgroChatTheme
 import edu.unicauca.app.agrochat.vision.CameraHelper
 import edu.unicauca.app.agrochat.vision.DiseaseResult
@@ -133,8 +134,29 @@ data class ChatMessage(
     val canContinue: Boolean = false,  // Para mostrar botón "Continuar" en respuestas LLM
     val feedbackEligible: Boolean = false,
     val responseGuidanceType: ResponseGuidanceType? = null,
-    val isThinking: Boolean = false
+    val isThinking: Boolean = false,
+    val sources: List<ChunkSource> = emptyList()
 )
+
+data class ChunkSource(
+    val citation: String,
+    val date: String
+)
+
+internal fun formatKnowledgeBaseDate(raw: String): String {
+    val parts = raw.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
+    val monthNumber = parts.getOrNull(0)?.toIntOrNull()?.takeIf { it in 1..12 }
+    val year = parts.getOrNull(1)?.toIntOrNull()?.takeIf { it > 0 }?.toString()
+    val month = monthNumber?.let {
+        listOf("ene.", "feb.", "mar.", "abr.", "may.", "jun.", "jul.", "ago.", "sept.", "oct.", "nov.", "dic.")[it - 1]
+    }
+    return listOfNotNull(month, year).joinToString(" ")
+}
+
+internal fun deduplicateDocumentSources(sources: List<ChunkSource>): List<ChunkSource> =
+    sources.distinctBy { source ->
+        source.citation.trim().lowercase().replace(Regex("\\s+"), " ")
+    }
 
 enum class ResponseGuidanceType(val label: String) {
     CASE_BASED("Respuesta basada en tu caso"),
@@ -178,7 +200,7 @@ enum class DownloadItemStatus {
 // Características de la app para mostrar durante la descarga
 object AppFeatures {
     val features = listOf(
-        "🧠 IA local qwen3.5_FarmifAI2.0 con razonamiento",
+        "🧠 IA local FarmifAI 1.3 con razonamiento",
         "🌱 Asesoría agrícola personalizada",
         "📸 Diagnóstico visual de enfermedades",
         "🎯 Reconocimiento de voz en español",
@@ -349,6 +371,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        QueryTelemetry.logSystemInfo(applicationContext)
         enableEdgeToEdge()
 
         hasAudioPermission = ContextCompat.checkSelfPermission(
@@ -358,10 +381,6 @@ class MainActivity : ComponentActivity() {
         hasCameraPermission = ContextCompat.checkSelfPermission(
             this, Manifest.permission.CAMERA
         ) == PackageManager.PERMISSION_GRANTED
-
-        feedbackStore = FeedbackEventStore(applicationContext)
-        AppLogger.log("Feedback", "Storage path: ${feedbackStore.storagePath()}")
-        AppLogger.log("Feedback", "Local manifest: ${feedbackStore.syncManifestPath()}")
 
         // Cargar preferencias
         loadPreferences()
@@ -378,14 +397,12 @@ class MainActivity : ComponentActivity() {
                 startSequentialDownloads()
             }
         } else {
+            if (hasAudioPermission) initializeVoice()
             lifecycleScope.launch {
                 initializeLlama()
                 ensureMindSporeModelsAvailable()
                 initializeDiagnostic()
                 initializeSemanticSearch()
-                if (hasAudioPermission) {
-                    initializeVoice()
-                }
             }
         }
 
@@ -511,7 +528,7 @@ class MainActivity : ComponentActivity() {
         if (!localLlmService.isPreferredModelAvailable(applicationContext)) {
             downloadItems.add(
                 DownloadItem(
-                    name = "🦙 LLM Offline (qwen3.5_FarmifAI2.0)",
+                    name = "🦙 LLM Offline (FarmifAI 1.3)",
                     description = "Modelo generativo local para respuestas sin internet",
                     sizeMB = localLlmService.getExpectedDownloadSizeMB()
                 )
@@ -619,7 +636,9 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        val downloadStart = android.os.SystemClock.elapsedRealtimeNanos()
         val result = localLlamaService.downloadModel(applicationContext)
+        QueryTelemetry.recordLifecycle("SLM_MODEL_DOWNLOAD", QueryTelemetry.elapsedMs(downloadStart))
         if (result.isSuccess) {
             AppLogger.log("MainActivity", "Descarga LLM exitosa")
             return true
@@ -808,17 +827,12 @@ class MainActivity : ComponentActivity() {
                 val assistantMessage = ChatMessage(
                     text = fullResponse,
                     isUser = false,
-                    feedbackEligible = true,
+                    feedbackEligible = false,
                     responseGuidanceType = guidanceType
                 )
                 chatMessages.add(assistantMessage)
                 lastResponse = fullResponse
 
-                registerAssistantResponseForFeedback(
-                    message = assistantMessage,
-                    userQuery = query,
-                    responseMeta = responseMeta
-                )
                 voiceHelper?.speak(response)
                 
             } catch (e: Exception) {
@@ -998,7 +1012,9 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                val downloadStart = android.os.SystemClock.elapsedRealtimeNanos()
                 val result = localLlamaService.downloadModel(applicationContext)
+                QueryTelemetry.recordLifecycle("SLM_MODEL_DOWNLOAD", QueryTelemetry.elapsedMs(downloadStart))
                 result.onSuccess { file ->
                     Log.i("MainActivity", "Modelo descargado: ${file.absolutePath}")
                     llamaModelStatusText = "Descargado: ${file.name}"
@@ -1011,7 +1027,7 @@ class MainActivity : ComponentActivity() {
                     llamaModelMissing = true
                     isLlamaChecking = false
                     uiStatus = "Sin LLM local"
-                    Toast.makeText(applicationContext, "No se pudo descargar qwen3.5_FarmifAI2.0", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(applicationContext, "No se pudo descargar FarmifAI 1.3", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 Log.e("MainActivity", "Error en descarga de modelo", e)
@@ -1029,7 +1045,9 @@ class MainActivity : ComponentActivity() {
                 uiStatus = "Cargando LLM local..."
                 llamaModelStatusText = "Cargando..."
                 
+                val loadStart = android.os.SystemClock.elapsedRealtimeNanos()
                 val result = llamaService?.load(applicationContext)
+                QueryTelemetry.recordLifecycle("SLM_MODEL_LOAD_RAM", QueryTelemetry.elapsedMs(loadStart))
                 result?.onSuccess {
                     isLlamaLoaded = true
                     llamaModelStatusText = "Cargado: ${llamaService?.getModelFilename(applicationContext)} (${llamaService?.getModelSizeMB(applicationContext)}MB)"
@@ -1067,11 +1085,15 @@ class MainActivity : ComponentActivity() {
                 lastResponse = "¡Hola! Soy FarmifAI\nTu asistente agrícola con IA.\n\nPregúntame sobre cultivos, plagas, fertilizantes o cualquier tema agrícola."
                 AppLogger.log("MainActivity", "SemanticSearch initialized")
             } else {
-                uiStatus = "Error al cargar"
-                AppLogger.log("MainActivity", "SemanticSearch init failed")
+                // Missing RAG assets must not disable voice, text input, or LLM-only chat.
+                isModelReady = true
+                uiStatus = if (isLlamaLoaded) "Listo (sin RAG)" else "Listo para escribir"
+                lastResponse = "¡Hola! Soy FarmifAI\nTu asistente agrícola con IA."
+                AppLogger.log("MainActivity", "SemanticSearch unavailable; interactive LLM-only mode enabled")
             }
         } catch (e: Throwable) {
-            uiStatus = "Error: ${e.message}"
+            isModelReady = true
+            uiStatus = if (isLlamaLoaded) "Listo (sin RAG)" else "Listo para escribir"
             AppLogger.log("MainActivity", "SemanticSearch error: ${e.message}")
         }
     }
@@ -1136,7 +1158,8 @@ class MainActivity : ComponentActivity() {
         val kbSupportScore: Float,
         val kbCoverage: Float,
         val kbUnknownRatio: Float,
-        val enforcedKbAbstention: Boolean
+        val enforcedKbAbstention: Boolean,
+        val sources: List<ChunkSource> = emptyList()
     )
 
     private data class TokenBudgetPlan(
@@ -1645,48 +1668,53 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun sendMessage(userMessage: String) {
-        if (userMessage.isBlank() || !isModelReady || isProcessing) return
+        if (userMessage.isBlank() || isProcessing) return
+        val telemetryId = QueryTelemetry.begin(userMessage)
         chatMessages.add(ChatMessage(text = userMessage, isUser = true))
         AppLogger.log("MainActivity", "Mensaje: '$userMessage'")
         
-        val canContinuePreviousAnswer = chatMessages
-            .lastOrNull { !it.isUser && !it.isThinking }
-            ?.canContinue == true
-        val isContinuationIntent = canContinuePreviousAnswer && isContinuationMessage(userMessage)
-
-        if (!canContinuePreviousAnswer && isContinuationMessage(userMessage)) {
-            AppLogger.log("MainActivity", "Texto de continuacion detectado pero ignorado porque no hay respuesta pendiente de continuar")
-        }
-
-        if (!isContinuationIntent) {
-            // Guardar última consulta temática real
-            lastUserQuery = userMessage
-        }
-        val effectiveQuery = if (isContinuationIntent && lastUserQuery.isNotBlank()) {
-            "Amplía y continúa la explicación sobre: $lastUserQuery"
-        } else {
-            userMessage
-        }
-        val forcedContinuationContext = if (isContinuationIntent) {
-            buildForcedContinuationContext()
-        } else {
-            null
-        }
+        // Cada consulta es autocontenida e independiente de las anteriores.
+        val isContinuationIntent = false
+        lastUserQuery = userMessage
+        val effectiveQuery = userMessage
+        val forcedContinuationContext: String? = null
 
         lifecycleScope.launch {
             isProcessing = true
+            var querySucceeded = false
             var streamingThinkingMessageId: String? = null
             var streamingAnswerMessageId: String? = null
             var thinkingBubbleHasModelContent = false
             
-            // Mostrar estado según modo disponible
-            uiStatus = "Generando respuesta local..."
+            // La consulta se acepta inmediatamente y espera sin perderse mientras
+            // terminan de inicializarse los motores locales.
+            if (!isModelReady || !isLlamaLoaded) {
+                uiStatus = "Preparando motores para esta consulta..."
+                val waitStarted = android.os.SystemClock.elapsedRealtime()
+                while ((!isModelReady || !isLlamaLoaded) &&
+                    android.os.SystemClock.elapsedRealtime() - waitStarted < 30_000L
+                ) {
+                    kotlinx.coroutines.delay(100)
+                }
+            }
+            uiStatus = "Analizando consulta..."
             
             try {
                 val responseMeta = findResponseWithMeta(
                     userQuery = effectiveQuery,
                     skipKbDirect = isContinuationIntent,
                     forcedContext = forcedContinuationContext,
+                    queryId = telemetryId,
+                    onFormatRetry = {
+                        withContext(Dispatchers.Main) {
+                            uiStatus = "Error de formato, volviendo a generar respuesta..."
+                            removeMessageById(streamingAnswerMessageId)
+                            removeMessageById(streamingThinkingMessageId)
+                            streamingAnswerMessageId = null
+                            streamingThinkingMessageId = null
+                            thinkingBubbleHasModelContent = false
+                        }
+                    },
                     onLocalLlmChunk = stream@{ partial ->
                         val displayPayload = buildAssistantDisplayPayload(partial)
                         val thinkingPartial = displayPayload.thinking
@@ -1783,8 +1811,7 @@ class MainActivity : ComponentActivity() {
                 val improvedResponse = improveResponseIfNeeded(userFacingResponse, qualityReport, userMessage)
                 
                 // Determinar si puede continuar basándose en autoconsciencia
-                val canContinue = responseMeta.usedLlm && isLlamaEnabled && isLlamaLoaded && responseMeta.kbSupported &&
-                                  (!qualityReport.isComplete || qualityReport.qualityScore < 0.7f)
+                val canContinue = false
 
                 val responseWithFollowUp = improvedResponse
                 val responseGuidanceType = if (responseMeta.kbSupported) {
@@ -1799,9 +1826,10 @@ class MainActivity : ComponentActivity() {
                     val updated = chatMessages[existingStreamIndex].copy(
                         text = responseWithFollowUp,
                         canContinue = canContinue,
-                        feedbackEligible = true,
+                        feedbackEligible = false,
                         responseGuidanceType = responseGuidanceType,
-                        isThinking = false
+                        isThinking = false,
+                        sources = responseMeta.sources
                     )
                     chatMessages[existingStreamIndex] = updated
                     updated
@@ -1810,19 +1838,15 @@ class MainActivity : ComponentActivity() {
                         text = responseWithFollowUp,
                         isUser = false,
                         canContinue = canContinue,
-                        feedbackEligible = true,
+                        feedbackEligible = false,
                         responseGuidanceType = responseGuidanceType,
-                        isThinking = false
+                        isThinking = false,
+                        sources = responseMeta.sources
                     ).also { chatMessages.add(it) }
                 }
                 lastResponse = responseWithFollowUp
+                querySucceeded = true
 
-                registerAssistantResponseForFeedback(
-                    message = assistantMessage,
-                    userQuery = if (isContinuationIntent) effectiveQuery else userMessage,
-                    responseMeta = responseMeta
-                )
-                
                 // Log resumen de calidad
                 AppLogger.log("MainActivity", "📊 Calidad: ${String.format("%.0f", qualityReport.qualityScore * 100)}% | " +
                     "Completa: ${qualityReport.isComplete} | Coherente: ${qualityReport.isCoherent} | " +
@@ -1841,6 +1865,7 @@ class MainActivity : ComponentActivity() {
                 uiStatus = "Error"
             } finally {
                 isProcessing = false
+                QueryTelemetry.finish(telemetryId, querySucceeded)
             }
         }
     }
@@ -2128,6 +2153,8 @@ class MainActivity : ComponentActivity() {
         userQuery: String,
         skipKbDirect: Boolean = false,
         forcedContext: String? = null,
+        queryId: Long = 0L,
+        onFormatRetry: (suspend () -> Unit)? = null,
         onLocalLlmChunk: (suspend (String) -> Unit)? = null
     ): ResponseMeta = withContext(Dispatchers.IO) {
         Log.d("MainActivity", "findResponse: localOnly=true, isLlamaEnabled=$isLlamaEnabled, isLlamaLoaded=$isLlamaLoaded")
@@ -2138,7 +2165,7 @@ class MainActivity : ComponentActivity() {
         val effectiveSimilarityThreshold = rawSimilarityThreshold.coerceIn(SAFE_MIN_SIMILARITY_THRESHOLD, SAFE_MAX_SIMILARITY_THRESHOLD)
         val effectiveContextRelevanceThreshold = rawContextRelevanceThreshold.coerceIn(SAFE_MIN_CONTEXT_RELEVANCE_THRESHOLD, SAFE_MAX_CONTEXT_RELEVANCE_THRESHOLD)
         val effectiveKbFastPathThreshold = rawKbFastPathThreshold.coerceIn(SAFE_MIN_KB_FAST_PATH_THRESHOLD, SAFE_MAX_KB_FAST_PATH_THRESHOLD)
-        val effectiveChatHistoryEnabled = if (STRICT_TERMINAL_PARITY_MODE) true else advancedChatHistoryEnabled
+        val effectiveChatHistoryEnabled = false
         val effectiveChatHistorySize = if (STRICT_TERMINAL_PARITY_MODE) PARITY_CHAT_HISTORY_SIZE else advancedChatHistorySize
         val effectiveContextLength = if (STRICT_TERMINAL_PARITY_MODE) PARITY_CONTEXT_LENGTH else advancedContextLength
         val effectiveSystemPrompt = if (STRICT_TERMINAL_PARITY_MODE) PARITY_SYSTEM_PROMPT else advancedSystemPrompt
@@ -2168,7 +2195,20 @@ class MainActivity : ComponentActivity() {
         val ragContext = semanticSearchHelper?.findTopKContexts(
             userQuery = userQuery,
             topK = 3,
-            minScore = retrievalMinScore
+            minScore = retrievalMinScore,
+            queryId = queryId
+        )
+        val ragSources = deduplicateDocumentSources(
+            ragContext?.contexts.orEmpty().take(3).map {
+                ChunkSource(
+                    citation = it.citation,
+                    date = formatKnowledgeBaseDate(it.date)
+                )
+            }
+        )
+        AppLogger.log(
+            "MainActivity",
+            "RAG sources id=$queryId selectedChunks=${ragContext?.contexts?.size ?: 0} uniqueDocuments=${ragSources.size}"
         )
         val kbDirectResponse = buildKbDirectResponseFromRag(ragContext)
 
@@ -2195,21 +2235,14 @@ class MainActivity : ComponentActivity() {
                     ))
             )
         val likelyAgriculturalQuery = isLikelyAgriculturalQuery(userQuery)
-        val hasGroundedKbSupport = bestMatch != null &&
-            (groundingAssessment?.hasStrongSupport == true) &&
-            kbSupportScore >= MIN_SUPPORT_SCORE_FOR_GROUNDED &&
-            kbCoverage >= MIN_LEXICAL_COVERAGE_FOR_GROUNDED &&
-            kbUnknownRatio <= MAX_UNKNOWN_RATIO_FOR_GROUNDED &&
-            bestMatch.similarityScore >= effectiveSimilarityThreshold
-        val semanticRelatedMinScore = maxOf(KB_RETRIEVAL_MIN_SCORE + 0.08f, 0.23f)
-        val hasRelatedKbSignal = bestMatch != null &&
-            bestMatch.similarityScore >= semanticRelatedMinScore &&
-            kbSupportScore >= 0.30f
-        val hasKbContext = hasRelatedKbSignal && !combinedKBContext.isNullOrBlank()
+        // The notebook always supplies its reranked Top-3. Do not re-filter those
+        // chunks through the legacy heuristic confidence thresholds.
+        val hasGroundedKbSupport = bestMatch != null
+        val hasRelatedKbSignal = bestMatch != null
+        val hasKbContext = !combinedKBContext.isNullOrBlank()
 
-        if (forcedContext == null) {
-            lastContext = if (!combinedKBContext.isNullOrBlank()) combinedKBContext else bestMatch?.answer
-        }
+        // Cada pregunta reemplaza el contexto anterior con su propio Top-3.
+        lastContext = if (!combinedKBContext.isNullOrBlank()) combinedKBContext else bestMatch?.answer
 
         val kbResults = ragContext?.contexts?.take(3)?.joinToString(" | ") {
             "${String.format("%.2f", it.similarityScore)}:'${it.matchedQuestion.take(30)}'"
@@ -2251,18 +2284,19 @@ class MainActivity : ComponentActivity() {
         }
 
         // --- Historial de conversación como pares (user, assistant) ---
-        val conversationHistory: List<Pair<String, String>> = if (effectiveChatHistoryEnabled) {
-            buildConversationHistory(effectiveChatHistorySize)
-        } else {
-            emptyList()
-        }
+        val conversationHistory: List<Pair<String, String>> = emptyList()
 
         // --- Contexto KB limpio (sin historial plano) ---
         val asksPracticalGuidance = asksForPracticalGuidance(normalizeForTokenBudget(userQuery))
-        val kbContextForPrompt = combinedKBContext?.take(effectiveContextLength)
+        // Preserve all three literal notebook chunks; do not apply the legacy
+        // character-level context truncation.
+        val kbContextForPrompt = combinedKBContext
         val forcedContextForPrompt = forcedContext?.take(effectiveContextLength)
-        val contextToPass = forcedContextForPrompt
-            ?: if (hasKbContext && !kbContextForPrompt.isNullOrBlank()) kbContextForPrompt else null
+        val contextToPass = if (hasKbContext && !kbContextForPrompt.isNullOrBlank()) {
+            kbContextForPrompt
+        } else {
+            forcedContextForPrompt
+        }
 
         val mode = when {
             hasKbContext && conversationHistory.isNotEmpty() -> "RAG+Chat"
@@ -2308,12 +2342,7 @@ class MainActivity : ComponentActivity() {
             val finalSystemPrompt = if (isSimpleGreeting) {
                 "Eres FarmifAI. Responde SOLO con un saludo corto de maximo 10 palabras. Ejemplo: Hola! En que te puedo ayudar? NO agregues explicaciones, ofertas de ayuda detalladas ni listas."
             } else if (hasKbContext) {
-                val confidenceDirective = if (routeResult.decision == ResponseRoutingPolicy.Decision.LLM_GROUNDED_HIGH_CONFIDENCE) {
-                    "La evidencia recuperada es suficientemente relacionada. Responde con precision y conserva las relaciones factuales."
-                } else {
-                    "La evidencia recuperada es debil o incompleta. Prioriza precision sobre cobertura; si no puedes sostener una recomendacion concreta, dilo con naturalidad y sin inventar."
-                }
-                "$effectiveSystemPrompt\nUsa SOLO los datos disponibles. No inventes ni completes con conocimiento externo. Conserva numeros, unidades y relaciones exactamente como aparecen (dosis, umbrales, tiempos, densidades). Si aparecen reglas de umbral (menor/mayor, <, >, <=, >=), conserva exactamente la direccion de la desigualdad y su accion asociada; nunca inviertas menor por mayor ni aplica por no aplica. No menciones terminos internos como KB, RAG, contexto, modelo o sistema. $confidenceDirective $guidanceStylePrompt"
+                "Eres un asistente inteligente. Analiza la información proporcionada en la etiqueta <knowledge> para responder a la solicitud del usuario. Responde estrictamente en el siguiente formato:\n<reasoning>\n...\n</reasoning>\n<answer>\n...\n</answer>"
             } else {
                 "$effectiveSystemPrompt\nNo hay evidencia recuperada suficiente para esta consulta. Responde como FarmifAI en maximo 2 frases, admitiendo que faltan datos suficientes para responder con precision. No des dosis, productos, umbrales ni pasos tecnicos inventados."
             }
@@ -2377,7 +2406,8 @@ class MainActivity : ComponentActivity() {
                             kbSupportScore = kbSupportScore,
                             kbCoverage = kbCoverage,
                             kbUnknownRatio = kbUnknownRatio,
-                            enforcedKbAbstention = false
+                            enforcedKbAbstention = false,
+                            sources = ragSources
                         )
                     }
                 }
@@ -2426,7 +2456,8 @@ class MainActivity : ComponentActivity() {
                             kbSupportScore = kbSupportScore,
                             kbCoverage = kbCoverage,
                             kbUnknownRatio = kbUnknownRatio,
-                            enforcedKbAbstention = false
+                            enforcedKbAbstention = false,
+                            sources = ragSources
                         )
                     }
                 }
@@ -2476,7 +2507,8 @@ class MainActivity : ComponentActivity() {
                             kbSupportScore = kbSupportScore,
                             kbCoverage = kbCoverage,
                             kbUnknownRatio = kbUnknownRatio,
-                            enforcedKbAbstention = false
+                            enforcedKbAbstention = false,
+                            sources = ragSources
                         )
                     }
                 }
@@ -2512,10 +2544,20 @@ class MainActivity : ComponentActivity() {
             }
 
             try {
-                val shouldUseHistory = !isSimpleGreeting && (forcedContext != null || skipKbDirect)
-                val llamaHistory = if (shouldUseHistory) conversationHistory else emptyList()
+                val llamaHistory = emptyList<Pair<String, String>>()
+                AppLogger.log(
+                    "MainActivity",
+                    "Independent query id=$queryId conversationTurns=0 included=false retrievalUsesCurrentQueryOnly=true"
+                )
                 var streamingChunkCount = 0
                 var loggedFirstStreamingChunk = false
+                val llmStart = android.os.SystemClock.elapsedRealtimeNanos()
+                Log.i(
+                    "SLM_METRICS",
+                    "REQUEST_START id=$queryId model=${llamaService?.getModelFilename(applicationContext)} " +
+                        "modelAlreadyLoaded=${llamaService?.isLoaded() == true} maxTokens=$effectiveMaxTokens " +
+                        "ragContextChars=${contextForLlm?.length ?: 0} conversationTurns=0"
+                )
                 val result = llamaService!!.generateAgriResponseStreaming(
                     userQuery = userQuery,
                     contextFromKB = contextForLlm,
@@ -2523,6 +2565,8 @@ class MainActivity : ComponentActivity() {
                     maxContextLength = effectiveContextLength,
                     systemPrompt = finalSystemPrompt,
                     conversationHistory = llamaHistory,
+                    queryId = queryId,
+                    onFormatRetry = { onFormatRetry?.invoke() },
                     onPartialResponse = { partial ->
                         val rawPartial = partial.trim()
                         if (rawPartial.length >= 5) {
@@ -2535,6 +2579,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 )
+                QueryTelemetry.record(queryId, "SLM_GENERATION", QueryTelemetry.elapsedMs(llmStart))
 
                 result.fold(
 	                    onSuccess = { response ->
@@ -2571,9 +2616,10 @@ class MainActivity : ComponentActivity() {
 	                                usedLlm = true,
 		                                kbSupported = hasKbContext && anchored && thresholdConsistent,
 	                                kbSupportScore = kbSupportScore,
-	                                kbCoverage = kbCoverage,
+                                kbCoverage = kbCoverage,
                                 kbUnknownRatio = kbUnknownRatio,
-                                enforcedKbAbstention = false
+                                enforcedKbAbstention = false,
+                                sources = if (hasKbContext) ragSources else emptyList()
                             )
                         } else {
                             AppLogger.log("MainActivity", "LLM response too short (${cleanResponse.length}) mode=$mode")
@@ -3902,7 +3948,7 @@ fun VoiceModeScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.padding(bottom = 24.dp)
             ) {
-                BigMicrophoneButton(isListening, isProcessing, isModelReady, onMicClick)
+                BigMicrophoneButton(isListening, isProcessing, true, onMicClick)
                 
                 Spacer(Modifier.height(16.dp))
                 
@@ -4042,7 +4088,7 @@ fun ChatModeScreen(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                        Text(statusMessage, style = MaterialTheme.typography.bodySmall, color = AgroColors.TextSecondary)
+                        Text(stringResource(R.string.assistant_subtitle), style = MaterialTheme.typography.bodySmall, color = AgroColors.TextSecondary)
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -4062,6 +4108,19 @@ fun ChatModeScreen(
                     }
                 }
             }
+        }
+
+        Surface(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+            shape = RoundedCornerShape(12.dp),
+            color = AgroColors.SurfaceLight
+        ) {
+            Text(
+                "Haz una pregunta completa. Incluye siempre el cultivo, la enfermedad o el producto. Ejemplo: ¿Cada cuánto debo regar el cultivo de tomate?",
+                modifier = Modifier.padding(12.dp),
+                style = MaterialTheme.typography.bodySmall,
+                color = AgroColors.TextSecondary
+            )
         }
 
         LazyColumn(state = listState, modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(vertical = 16.dp)) {
@@ -4091,13 +4150,13 @@ fun ChatModeScreen(
                 verticalAlignment = Alignment.Bottom, 
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                SmallMicButton(isListening, isModelReady && !isProcessing, onMicClick)
+                SmallMicButton(isListening, !isProcessing, onMicClick)
                 OutlinedTextField(
                     value = inputText,
                     onValueChange = { inputText = it },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("Escribe tu pregunta...", color = AgroColors.TextSecondary) },
-                    enabled = isModelReady && !isProcessing && !isListening,
+                    placeholder = { Text("Escribe tu consulta", color = AgroColors.TextSecondary) },
+                    enabled = !isProcessing && !isListening,
                     maxLines = 4,
                     shape = RoundedCornerShape(24.dp),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -4112,7 +4171,7 @@ fun ChatModeScreen(
                 )
                 IconButton(
                     onClick = { if (inputText.isNotBlank()) { onSendMessage(inputText); inputText = "" } },
-                    enabled = isModelReady && !isProcessing && inputText.isNotBlank() && !isListening,
+                    enabled = !isProcessing && inputText.isNotBlank() && !isListening,
                     modifier = Modifier.size(48.dp).background(if (inputText.isNotBlank()) AgroColors.Accent else AgroColors.SurfaceLight, CircleShape)
                 ) {
                     Icon(Icons.AutoMirrored.Filled.Send, "Enviar", tint = if (inputText.isNotBlank()) Color.White else AgroColors.TextSecondary)
@@ -4127,9 +4186,9 @@ fun EmptyStateChat() {
     Column(Modifier.fillMaxWidth().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Text("🌾", fontSize = 64.sp)
         Spacer(Modifier.height(16.dp))
-        Text(stringResource(R.string.welcome_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = AgroColors.TextPrimary)
+        Text("Nueva consulta agrícola", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = AgroColors.TextPrimary)
         Spacer(Modifier.height(8.dp))
-        Text(stringResource(R.string.empty_chat_hint), style = MaterialTheme.typography.bodyMedium, color = AgroColors.TextSecondary, textAlign = TextAlign.Center)
+        Text("Las consultas son independientes. Describe completamente el cultivo o problema en cada pregunta.", style = MaterialTheme.typography.bodyMedium, color = AgroColors.TextSecondary, textAlign = TextAlign.Center)
     }
 }
 
@@ -4160,8 +4219,9 @@ fun ModernMessageBubble(
 ) {
     val isThinkingBubble = message.isThinking && !message.isUser
     val canToggleFeedback = !message.isUser && message.feedbackEligible && !isThinkingBubble
+    var sourcesExpanded by remember(message.id) { mutableStateOf(false) }
     val bubbleModifier = Modifier
-        .widthIn(max = 300.dp)
+        .fillMaxWidth()
         .padding(4.dp)
         .then(
             if (canToggleFeedback && !feedbackExpanded) {
@@ -4173,7 +4233,7 @@ fun ModernMessageBubble(
 
     Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = if (message.isUser) Alignment.End else Alignment.Start
+        horizontalAlignment = Alignment.Start
     ) {
         Surface(
             color = when {
@@ -4190,6 +4250,13 @@ fun ModernMessageBubble(
             }
         ) {
             Column(Modifier.padding(14.dp)) {
+                Text(
+                    text = if (message.isUser) "CONSULTA" else "RESULTADO",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (message.isUser) Color.White.copy(alpha = 0.8f) else AgroColors.Accent,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(6.dp))
                 if (isThinkingBubble) {
                     Text(
                         "Pensando...",
@@ -4220,6 +4287,49 @@ fun ModernMessageBubble(
                             color = AgroColors.TextSecondary,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                         )
+                    }
+                }
+
+                if (!message.isUser && !isThinkingBubble && message.sources.isNotEmpty()) {
+                    Spacer(Modifier.height(8.dp))
+                    TextButton(
+                        onClick = { sourcesExpanded = !sourcesExpanded },
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+                    ) {
+                        Text("Fuentes (${message.sources.size})", color = AgroColors.Accent)
+                        Spacer(Modifier.width(2.dp))
+                        Icon(
+                            imageVector = if (sourcesExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            contentDescription = if (sourcesExpanded) "Ocultar fuentes" else "Mostrar fuentes",
+                            tint = AgroColors.Accent,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    AnimatedVisibility(visible = sourcesExpanded) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            message.sources.forEachIndexed { index, source ->
+                                Column {
+                                    Text(
+                                        text = "Fuente ${index + 1}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = AgroColors.Accent,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    if (source.date.isNotBlank()) {
+                                        Text(
+                                            text = source.date,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = AgroColors.TextSecondary
+                                        )
+                                    }
+                                    Text(
+                                        text = source.citation,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = AgroColors.TextSecondary
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -4589,7 +4699,7 @@ fun SettingsDialog(
                                         )
                                         Spacer(Modifier.width(8.dp))
                                         Text(
-                                            "LLM Local (qwen3.5_FarmifAI2.0/GGUF)",
+                                    "LLM Local (FarmifAI 1.3/GGUF)",
                                             style = MaterialTheme.typography.titleSmall,
                                             fontWeight = FontWeight.Bold,
                                             color = AgroColors.TextPrimary
@@ -4629,7 +4739,7 @@ fun SettingsDialog(
                                     ),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text("Descargar/Reintentar modelo qwen3.5_FarmifAI2.0")
+                                Text("Descargar/Reintentar modelo FarmifAI 1.3")
                                 }
                             }
 
@@ -4654,7 +4764,7 @@ fun SettingsDialog(
                             if (llamaModelPathText.isNotBlank()) {
                                 "Si falla la descarga, copia manualmente un .gguf a: $llamaModelPathText"
                             } else {
-                                "Descarga qwen3.5_FarmifAI2.0 desde este panel o copia un modelo .gguf en la carpeta de la app"
+                                "Descarga FarmifAI 1.3 desde este panel o copia un modelo .gguf en la carpeta de la app"
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = AgroColors.TextSecondary
@@ -4810,41 +4920,12 @@ fun SettingsDialog(
                                 
                                 HorizontalDivider(color = AgroColors.Surface)
                                 
-                                // Configuración del historial del chat
-                                Text("💬 Contexto del Chat", style = MaterialTheme.typography.labelMedium, color = AgroColors.Accent)
-                                
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text("Usar historial del chat", style = MaterialTheme.typography.bodySmall, color = AgroColors.TextPrimary)
-                                    Switch(
-                                        checked = localChatHistoryEnabled,
-                                        onCheckedChange = { localChatHistoryEnabled = it },
-                                        colors = SwitchDefaults.colors(
-                                            checkedThumbColor = AgroColors.Accent,
-                                            checkedTrackColor = AgroColors.Accent.copy(alpha = 0.5f)
-                                        )
-                                    )
-                                }
-                                Text("Permite continuar conversaciones y dar contexto", style = MaterialTheme.typography.bodySmall, color = AgroColors.TextSecondary)
-                                
-                                if (localChatHistoryEnabled) {
-                                    Spacer(Modifier.height(8.dp))
-                                    Text("Mensajes de historial: ${localChatHistorySize}", style = MaterialTheme.typography.bodySmall, color = AgroColors.TextPrimary)
-                                    Slider(
-                                        value = localChatHistorySize.toFloat(),
-                                        onValueChange = { localChatHistorySize = it.toInt().coerceIn(1, 20) },
-                                        valueRange = 1f..20f,
-                                        steps = 18,
-                                        colors = SliderDefaults.colors(
-                                            thumbColor = AgroColors.Accent,
-                                            activeTrackColor = AgroColors.Accent
-                                        )
-                                    )
-                                    Text("Cuántos mensajes anteriores incluir como contexto", style = MaterialTheme.typography.bodySmall, color = AgroColors.TextSecondary)
-                                }
+                                Text("Consultas independientes", style = MaterialTheme.typography.labelMedium, color = AgroColors.Accent)
+                                Text(
+                                    "El historial visible no se envía al modelo. Cada pregunta debe incluir el cultivo, enfermedad o producto.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = AgroColors.TextSecondary
+                                )
                                 
                                 HorizontalDivider(color = AgroColors.Surface)
                                 

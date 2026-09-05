@@ -41,6 +41,30 @@ file(GLOB_RECURSE NATIVE_SOURCES
 list(FILTER NATIVE_SOURCES EXCLUDE REGEX ".*/llama_android_compat\\.cpp$")
 add_library(msjni SHARED ${NATIVE_SOURCES}) # Coincidir con System.loadLibrary("msjni")
 
+# llama.cpp b10516 y puente JNI compilado contra la misma API. Los backends
+# CPU oficiales se empaquetan desde src/main/jniLibs y se cargan en runtime.
+set(LLAMA_JNI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/main/jniLibs/${ANDROID_ABI}")
+add_library(llama_prebuilt SHARED IMPORTED)
+set_target_properties(llama_prebuilt PROPERTIES
+        IMPORTED_LOCATION "${LLAMA_JNI_DIR}/libllama.so")
+add_library(ggml_prebuilt SHARED IMPORTED)
+set_target_properties(ggml_prebuilt PROPERTIES
+        IMPORTED_LOCATION "${LLAMA_JNI_DIR}/libggml.so")
+add_library(ggml_base_prebuilt SHARED IMPORTED)
+set_target_properties(ggml_base_prebuilt PROPERTIES
+        IMPORTED_LOCATION "${LLAMA_JNI_DIR}/libggml-base.so")
+
+add_library(llama-android SHARED
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/main/cpp/llama_android_compat.cpp")
+target_include_directories(llama-android PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/main/cpp/llama_include")
+target_link_libraries(llama-android PRIVATE
+        llama_prebuilt
+        ggml_prebuilt
+        ggml_base_prebuilt
+        android
+        log)
+
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # +++                  SECCIÓN AÑADIDA PARA EL TOKENIZADOR                +++
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

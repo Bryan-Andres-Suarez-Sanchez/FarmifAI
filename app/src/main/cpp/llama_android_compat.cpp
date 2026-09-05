@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 #include "llama.h"
+#include "ggml-backend.h"
 
 namespace {
 
@@ -190,6 +191,14 @@ Java_android_llama_cpp_LLamaAndroid_log_1to_1android(JNIEnv * /*env*/, jobject /
 extern "C" JNIEXPORT void JNICALL
 Java_android_llama_cpp_LLamaAndroid_backend_1init(JNIEnv * /*env*/, jobject /*thiz*/) {
     if (!g_backend_initialized) {
+        // Las versiones recientes de llama.cpp distribuyen los backends como
+        // bibliotecas dinámicas separadas. Deben registrarse antes de cargar
+        // el GGUF; llama_backend_init() por sí solo ya no lo hace.
+        // En Android las .so permanecen dentro del APK, por lo que el escaneo
+        // de directorios de load_all() no puede encontrarlas. El cargador
+        // nativo sí resuelve la biblioteca empaquetada por su nombre SONAME.
+        ggml_backend_load("libggml-cpu-android_armv8.0_1.so");
+        ggml_backend_load_all();
         llama_backend_init();
         g_backend_initialized = true;
     }
@@ -216,7 +225,6 @@ Java_android_llama_cpp_LLamaAndroid_load_1model(JNIEnv * env, jobject /*thiz*/, 
 
     llama_model_params params = llama_model_default_params();
     params.n_gpu_layers = 0;
-    params.use_mmap = true;
 
     llama_model * model = llama_model_load_from_file(c_filename, params);
     env->ReleaseStringUTFChars(filename, c_filename);

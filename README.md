@@ -105,7 +105,7 @@ All running **fully offline on the device**.
 
 ## AI / Model Details
 
-- Hugging Face model: FarmifAI/Qwen3.5-0.8B_FarmifAI2.0
+- Hugging Face model: FarmifAI/FarmifAI_1.3_GGUF
 - Runtime: llama.cpp (LLM) + MindSpore Lite (vision & sentence similarity)  
 - KB: app/src/main/assets/kb_nueva/extract/*.jsonl  
 - Embeddings: (2842, 384) float32  

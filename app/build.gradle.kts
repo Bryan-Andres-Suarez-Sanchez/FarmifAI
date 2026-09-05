@@ -83,6 +83,11 @@ android {
         buildConfig = true
     }
 
+    androidResources {
+        // Keep notebook pickle sources out of the APK; runtime uses the NPY conversion.
+        ignoreAssetsPattern = "!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~:*.pkl"
+    }
+
     lint {
         // Evita fallo de release por crash interno de lint (detector NullSafeMutableLiveData).
         checkReleaseBuilds = false
@@ -95,6 +100,11 @@ android {
             // Mantener fuera del APK los artefactos grandes provisionados localmente.
             excludes += "assets/sentence_encoder.ms"
             excludes += "assets/plant_disease_model.ms"
+            excludes += "assets/rag_e5_small.onnx"
+            excludes += "assets/rag_mmarco_reranker.onnx"
+            // Source-of-truth embeddings remain available to the notebook. Android
+            // packages the deterministic NPY conversion consumed at runtime.
+            excludes += "assets/knowledge_base/embeddings_chunks_e5_small.pkl"
         }
     }
 
@@ -133,6 +143,8 @@ dependencies {
     
     // ONNX Runtime para modelos exportados desde nlp_dev
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.16.3")
+    // Same generated Snowball algorithm used by NLTK's SpanishStemmer.
+    implementation("com.github.rholder:snowball-stemmer:1.3.0.581.1")
     
     // Vosk - Reconocimiento de voz offline (sin Google)
     implementation("com.alphacephei:vosk-android:0.3.47")
