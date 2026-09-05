@@ -26,12 +26,6 @@ The project was developed at the **Universidad del Cauca** in the context of res
 
 [Download or view the latest FarmifAI release](https://github.com/Bryan-Andres-Suarez-Sanchez/FarmifAI/releases/latest)
 
-### Currently published APK
-
-[Download the currently published signed APK](https://github.com/Bryan-Andres-Suarez-Sanchez/FarmifAI/releases/download/apk-final-signed-20260420/FarmifAI-release-v1.0-20260420_182313-signed.apk)
-
-> The repository may contain newer code than the currently published APK. A new APK containing the latest RAG architecture will be published in a future release.
-
 ---
 
 ## RAG Architecture
