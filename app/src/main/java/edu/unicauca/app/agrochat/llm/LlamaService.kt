@@ -41,6 +41,12 @@ class LlamaService private constructor() {
             "Qwen3.5-0.8B-Q3_K_M.gguf",
             "Qwen2.5-0.5B-Instruct-Q4_K_M.gguf"
         )
+        private val SPECIAL_TOKENS = listOf(
+            "<|begin_of_text|>", "<|end_of_text|>",
+            "<|start_header_id|>", "<|end_header_id|>",
+            "<|eot_id|>", "<|eom_id|>",
+            "<|im_start|>", "<|im_end|>"
+        )
         
         @Volatile
         private var instance: LlamaService? = null
@@ -323,31 +329,27 @@ class LlamaService private constructor() {
                 Log.d(TAG, "Prompt streaming (${detectModelFamily()}): ${prompt.length} chars, maxTokens: $maxTokens")
                 val raw = StringBuilder()
                 var emittedLength = 0
+                var lastEmitTimeMs = 0L
                 var firstTokenRecorded = false
                 stageStart = SystemClock.elapsedRealtimeNanos()
                 llama.send(prompt, formatChat = false, maxTokens = maxTokens).collect { chunk ->
-                    if (chunk.isBlank()) return@collect
-                    if (!firstTokenRecorded) {
+                    if (chunk.isEmpty()) return@collect
+                    if (!firstTokenRecorded && chunk.isNotBlank()) {
                         firstTokenRecorded = true
                         QueryTelemetry.record(queryId, "SLM_TTFT_A$attempt", QueryTelemetry.elapsedMs(stageStart))
                     }
                     raw.append(chunk)
 
-                    val partial = if (requiresXml) {
-                        AnswerXmlValidator.extractStreamingAnswer(raw.toString())?.let(::cleanResponse)
-                    } else {
-                        cleanResponse(raw.toString())
-                    }
-                    // Con XML solo mostramos texto una vez identificado <answer>;
-                    // así el razonamiento nunca llega a la interfaz.
-                    if (!partial.isNullOrBlank()) {
-                        val shouldEmit = partial.length >= 48 &&
-                            (partial.length - emittedLength >= 32 || partial.endsWith("\n") ||
-                                partial.endsWith(".") || partial.endsWith(":"))
-                        if (shouldEmit) {
-                            emittedLength = partial.length
-                            onPartialResponse(partial)
-                        }
+                    val nowMs = SystemClock.elapsedRealtime()
+                    val deltaChars = raw.length - emittedLength
+                    val shouldEmit = raw.length >= 12 &&
+                        (nowMs - lastEmitTimeMs >= 45L) &&
+                        (deltaChars >= 16 || chunk.contains('\n') || chunk.contains('.') || chunk.contains('>'))
+
+                    if (shouldEmit) {
+                        emittedLength = raw.length
+                        lastEmitTimeMs = nowMs
+                        onPartialResponse(raw.toString())
                     }
                 }
                 QueryTelemetry.record(queryId, "SLM_INFERENCE_A$attempt", QueryTelemetry.elapsedMs(stageStart))
@@ -376,7 +378,13 @@ class LlamaService private constructor() {
             }
 
             val cleanStart = SystemClock.elapsedRealtimeNanos()
-            val finalResponse = cleanResponse(extraction?.answer ?: rawResponse)
+            val cleanedAnswer = cleanResponse(extraction?.answer ?: rawResponse)
+            val extractedReasoning = if (requiresXml) AnswerXmlValidator.extractReasoning(rawResponse) else null
+            val finalResponse = if (!extractedReasoning.isNullOrBlank()) {
+                "<reasoning>\n$extractedReasoning\n</reasoning>\n<answer>\n$cleanedAnswer\n</answer>"
+            } else {
+                cleanedAnswer
+            }
             QueryTelemetry.record(queryId, "SLM_RESPONSE_CLEAN", QueryTelemetry.elapsedMs(cleanStart))
             onPartialResponse(finalResponse)
             Result.success(finalResponse)
@@ -405,23 +413,15 @@ class LlamaService private constructor() {
     private fun cleanResponse(response: String): String {
         var cleaned = response
         
-        // Tokens especiales comunes (Llama / Qwen)
-        val specialTokens = listOf(
-            "<|begin_of_text|>", "<|end_of_text|>",
-            "<|start_header_id|>", "<|end_header_id|>",
-            "<|eot_id|>", "<|eom_id|>",
-            "<|im_start|>", "<|im_end|>"
-        )
-        
         // Eliminar tokens al inicio
-        for (token in specialTokens) {
+        for (token in SPECIAL_TOKENS) {
             while (cleaned.startsWith(token)) {
                 cleaned = cleaned.removePrefix(token).trimStart()
             }
         }
         
         // Cortar en el primer token especial encontrado
-        for (token in specialTokens) {
+        for (token in SPECIAL_TOKENS) {
             val idx = cleaned.indexOf(token)
             if (idx > 0) {
                 cleaned = cleaned.substring(0, idx)

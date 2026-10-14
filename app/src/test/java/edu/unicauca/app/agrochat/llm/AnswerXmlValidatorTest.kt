@@ -37,4 +37,9 @@ class AnswerXmlValidatorTest {
     @Test fun doesNotStreamUnclosedReasoning() {
         assertNull(AnswerXmlValidator.extractStreamingAnswer("<reasoning>contenido privado todavía incompleto"))
     }
+
+    @Test fun extractsReasoningBlockCorrectly() {
+        val raw = "<reasoning>Pensando cómo abonar el cultivo de papa</reasoning><answer>Aplique abono orgánico.</answer>"
+        assertEquals("Pensando cómo abonar el cultivo de papa", AnswerXmlValidator.extractReasoning(raw))
+    }
 }

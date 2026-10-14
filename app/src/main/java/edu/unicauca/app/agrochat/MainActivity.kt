@@ -241,6 +241,29 @@ class MainActivity : ComponentActivity() {
         private const val MIN_LEXICAL_COVERAGE_FOR_GROUNDED = 0.34f
         private const val MAX_UNKNOWN_RATIO_FOR_GROUNDED = 0.45f
         private const val KB_RETRIEVAL_MIN_SCORE = 0.15f
+
+        private val REGEX_THINK_TAGS = Regex("(?is)</?\\s*(?:think|thinking|reasoning|razonamiento|analysis)\\s*:?\\s*>")
+        private val REGEX_ANSWER_OPEN = Regex("(?is)<\\s*(?:answer|respuesta|final_answer)\\s*:?\\s*>")
+        private val REGEX_ANSWER_CLOSE = Regex("(?is)</\\s*(?:answer|respuesta|final_answer)\\s*>")
+        private val REGEX_TRAILING_PARTIAL_TAG = Regex("<[^>]*$")
+        private val REGEX_SPECIAL_PIPE_TOKENS = Regex("<\\|[^>]+\\|>")
+        private val REGEX_MULTI_NEWLINES = Regex("\\n{3,}")
+        private val REGEX_MULTI_SPACES = Regex("[ \\t]{2,}")
+        private val REGEX_MD_BOLD_AST = Regex("\\*\\*(.*?)\\*\\*")
+        private val REGEX_MD_BOLD_UND = Regex("__(.*?)__")
+        private val REGEX_MD_CODE = Regex("`([^`]*)`")
+        private val REGEX_MD_LINK = Regex("\\[([^\\]]+)]\\(([^)]+)\\)")
+        private val REGEX_MD_HEADER = Regex("(?m)^\\s*#{1,6}\\s*")
+        private val REGEX_MD_BULLET = Regex("(?m)^\\s*[-*]\\s+")
+        private val REGEX_KB_TERM = Regex("base de conocimiento", RegexOption.IGNORE_CASE)
+        private val REGEX_REF_INFO_TERM = Regex("informacion de referencia", RegexOption.IGNORE_CASE)
+        private val REGEX_REF_CTX_TERM = Regex("contexto de referencia", RegexOption.IGNORE_CASE)
+        private val REGEX_KB_ACRONYM = Regex("\\bKB\\b", RegexOption.IGNORE_CASE)
+        private val REGEX_RAG_ACRONYM = Regex("\\bRAG\\b", RegexOption.IGNORE_CASE)
+        private val REGEX_LLM_ACRONYM = Regex("\\bLLM\\b", RegexOption.IGNORE_CASE)
+        private val REGEX_CON_BASE_EN = Regex("con base en", RegexOption.IGNORE_CASE)
+        private val REGEX_LETTER_TO_DIGIT = Regex("(?<=[A-Za-zÁÉÍÓÚáéíóúÑñ])(?=\\d)")
+        private val REGEX_DIGIT_TO_LETTER = Regex("(?<=\\d)(?=[A-Za-zÁÉÍÓÚáéíóúÑñ])")
         
         fun setAppLocale(context: Context, languageCode: String): Context {
             val locale = Locale(languageCode)
@@ -1388,17 +1411,23 @@ class MainActivity : ComponentActivity() {
             .replace("&lt;/think&gt;", "</think>", ignoreCase = true)
             .replace("<thinking>", "<think>", ignoreCase = true)
             .replace("</thinking>", "</think>", ignoreCase = true)
+            .replace("<reasoning>", "<think>", ignoreCase = true)
+            .replace("</reasoning>", "</think>", ignoreCase = true)
+            .replace("<razonamiento>", "<think>", ignoreCase = true)
+            .replace("</razonamiento>", "</think>", ignoreCase = true)
 
         val openTag = "<think>"
         val closeTag = "</think>"
         var index = 0
         var inThink = false
+        var sawThinkTag = false
         val thinkingBuilder = StringBuilder()
-        val answerBuilder = StringBuilder()
+        val outsideThinkBuilder = StringBuilder()
 
         while (index < source.length) {
             if (!inThink && source.regionMatches(index, openTag, 0, openTag.length, ignoreCase = true)) {
                 inThink = true
+                sawThinkTag = true
                 index += openTag.length
                 continue
             }
@@ -1412,20 +1441,43 @@ class MainActivity : ComponentActivity() {
             if (inThink) {
                 thinkingBuilder.append(source[index])
             } else {
-                answerBuilder.append(source[index])
+                outsideThinkBuilder.append(source[index])
             }
             index += 1
         }
 
-        val thinking = stripUserFacingMarkdown(
-            thinkingBuilder.toString()
-                .replace(Regex("(?i)</?think>"), " ")
-                .replace(Regex("\\n{3,}"), "\n\n")
-                .replace(Regex("[ \\t]{2,}"), " ")
-                .trim()
-        )
-        val answer = answerBuilder.toString()
-            .replace(Regex("(?i)</?think>"), " ")
+        val rawThinking = thinkingBuilder.toString()
+            .replace(REGEX_THINK_TAGS, " ")
+            .replace(REGEX_TRAILING_PARTIAL_TAG, "")
+            .replace(REGEX_MULTI_NEWLINES, "\n\n")
+            .replace(REGEX_MULTI_SPACES, " ")
+            .trim()
+        val thinking = stripUserFacingMarkdown(rawThinking)
+
+        val outside = outsideThinkBuilder.toString()
+        val answerOpenMatch = REGEX_ANSWER_OPEN.find(outside)
+        val rawAnswer = when {
+            answerOpenMatch != null -> {
+                val afterOpen = outside.substring(answerOpenMatch.range.last + 1)
+                val closeIdx = REGEX_ANSWER_CLOSE.find(afterOpen)?.range?.first ?: afterOpen.length
+                afterOpen.substring(0, closeIdx)
+            }
+            sawThinkTag && inThink -> {
+                ""
+            }
+            sawThinkTag && outside.trim().startsWith("<") && !outside.contains(">") -> {
+                ""
+            }
+            else -> {
+                outside.replace(REGEX_ANSWER_CLOSE, " ")
+            }
+        }
+
+        val answer = rawAnswer
+            .replace(REGEX_THINK_TAGS, " ")
+            .replace(REGEX_ANSWER_OPEN, " ")
+            .replace(REGEX_ANSWER_CLOSE, " ")
+            .replace(REGEX_TRAILING_PARTIAL_TAG, "")
             .trim()
 
         return ThinkAnswerParts(thinking = thinking, answer = answer)
@@ -2599,40 +2651,42 @@ class MainActivity : ComponentActivity() {
                 QueryTelemetry.record(queryId, "SLM_GENERATION", QueryTelemetry.elapsedMs(llmStart))
 
                 result.fold(
-	                    onSuccess = { response ->
-	                        val cleanResponse = response.trim()
-		                        if (cleanResponse.length > 10) {
-		                            val anchored = !hasKbContext || kbContextForPrompt.isNullOrBlank() || isResponseAnchoredToContext(cleanResponse, userQuery, kbContextForPrompt)
-		                            val focusedFactualText = if (
-		                                hasKbContext && asksPracticalGuidance && !kbDirectResponse.isNullOrBlank()
-		                            ) {
-		                                buildFocusedFactualTextForLlm(
-		                                    kbDirectResponse.orEmpty(),
-		                                    userQuery
-		                                )
-		                            } else {
-		                                ""
-		                            }
-		                            val thresholdConsistent = focusedFactualText.isBlank() || responseThresholdRulesAreConsistent(
-		                                response = cleanResponse,
-		                                factualText = focusedFactualText
-		                            )
-		                            if (!anchored) {
-		                                AppLogger.log("MainActivity", "LLM response con ancla KB débil; se mantiene salida de una sola inferencia")
-		                            }
-		                            if (!thresholdConsistent) {
-		                                AppLogger.log("MainActivity", "LLM response con inconsistencia umbral-accion; se mantiene salida de una sola inferencia")
-		                            }
+                    onSuccess = { response ->
+                        val cleanResponse = response.trim()
+                        if (cleanResponse.length > 10) {
+                            val answerOnly = splitThinkAndAnswer(cleanResponse).answer.ifBlank { cleanResponse }
+                            val anchored = !hasKbContext || kbContextForPrompt.isNullOrBlank() ||
+                                isResponseAnchoredToContext(answerOnly, userQuery, kbContextForPrompt)
+                            val focusedFactualText = if (
+                                hasKbContext && asksPracticalGuidance && !kbDirectResponse.isNullOrBlank()
+                            ) {
+                                buildFocusedFactualTextForLlm(
+                                    kbDirectResponse.orEmpty(),
+                                    userQuery
+                                )
+                            } else {
+                                ""
+                            }
+                            val thresholdConsistent = focusedFactualText.isBlank() || responseThresholdRulesAreConsistent(
+                                response = answerOnly,
+                                factualText = focusedFactualText
+                            )
+                            if (!anchored) {
+                                AppLogger.log("MainActivity", "LLM response con ancla KB débil; se mantiene salida de una sola inferencia")
+                            }
+                            if (!thresholdConsistent) {
+                                AppLogger.log("MainActivity", "LLM response con inconsistencia umbral-accion; se mantiene salida de una sola inferencia")
+                            }
 
-	                            AppLogger.log("MainActivity", "LLM response: ${cleanResponse.length} chars mode=$mode")
-	                            if (onLocalLlmChunk != null) {
-	                                AppLogger.log("MainActivity", "Streaming chunks totales=$streamingChunkCount")
-	                            }
-	                            return@withContext ResponseMeta(
-	                                response = cleanResponse,
-	                                usedLlm = true,
-		                                kbSupported = hasKbContext && anchored && thresholdConsistent,
-	                                kbSupportScore = kbSupportScore,
+                            AppLogger.log("MainActivity", "LLM response: ${cleanResponse.length} chars mode=$mode")
+                            if (onLocalLlmChunk != null) {
+                                AppLogger.log("MainActivity", "Streaming chunks totales=$streamingChunkCount")
+                            }
+                            return@withContext ResponseMeta(
+                                response = cleanResponse,
+                                usedLlm = true,
+                                kbSupported = hasKbContext && anchored && thresholdConsistent,
+                                kbSupportScore = kbSupportScore,
                                 kbCoverage = kbCoverage,
                                 kbUnknownRatio = kbUnknownRatio,
                                 enforcedKbAbstention = false,
@@ -2643,7 +2697,7 @@ class MainActivity : ComponentActivity() {
                         }
                     },
                     onFailure = { error ->
-                        AppLogger.log("MainActivity", "LLM error: ${error.message}")
+                        AppLogger.log("MainActivity", "Error en LLM local: ${error.message}")
                     }
                 )
             } catch (e: Exception) {

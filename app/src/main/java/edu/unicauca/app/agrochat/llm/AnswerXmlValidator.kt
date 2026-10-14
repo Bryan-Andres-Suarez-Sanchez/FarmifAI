@@ -41,7 +41,19 @@ internal object AnswerXmlValidator {
         return null
     }
 
-    fun isValid(response: String): Boolean = extract(response) != null
+    fun extractReasoning(response: String): String? {
+        val text = response.trim()
+        if (text.isBlank()) return null
+
+        val openMatch = reasoningOpen.find(text) ?: return null
+        val afterOpen = text.substring(openMatch.range.last + 1)
+        val endIdx = listOfNotNull(
+            reasoningClose.find(afterOpen)?.range?.first,
+            answerOpen.find(afterOpen)?.range?.first
+        ).minOrNull() ?: afterOpen.length
+
+        return sanitize(afterOpen.substring(0, endIdx))
+    }
 
     /** Extracts only an answer fragment whose start is already unambiguous. */
     fun extractStreamingAnswer(response: String): String? {
