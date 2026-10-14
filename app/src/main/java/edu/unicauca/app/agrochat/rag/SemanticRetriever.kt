@@ -13,7 +13,7 @@ class SemanticRetriever(
 
     fun search(vector: FloatArray, topK: Int): List<ScoredChunk> {
         require(vector.size == RagConfig.EMBEDDING_DIMENSION)
-        val scores = FloatArray(embeddings.rows) { embeddings.dot(it, vector) }
+        val scores = embeddings.dotAll(vector)
         return Bm25Retriever.stableTopK(scores, topK)
     }
 
