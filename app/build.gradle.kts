@@ -45,7 +45,23 @@ android {
 
         externalNativeBuild {
             cmake {
-                arguments.add("-DANDROID_STL=c++_shared")
+                arguments.addAll(
+                    listOf(
+                        "-DANDROID_STL=c++_shared",
+                        "-DGGML_CPU_KLEIDIAI=ON",
+                        "-DCMAKE_BUILD_TYPE=Release"
+                    )
+                )
+                val nativeOptFlags = listOf(
+                    "-march=armv8.2-a+dotprod+fp16",
+                    "-O3",
+                    "-DNDEBUG",
+                    "-ffast-math",
+                    "-funroll-loops",
+                    "-flto=thin"
+                )
+                cFlags.addAll(nativeOptFlags)
+                cppFlags.addAll(nativeOptFlags + "-std=c++17")
             }
         }
 
