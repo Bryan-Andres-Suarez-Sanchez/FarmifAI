@@ -27,6 +27,9 @@ class LlamaService private constructor() {
         private const val DEFAULT_MODEL_FILENAME = "FarmifAI_1.3.Q5_K_M.gguf"
         private const val MAX_TOKENS = 1200  // Salidas más completas por defecto
 
+        const val DEFAULT_TRAINING_SYSTEM_PROMPT =
+            "Eres un asistente agrícola. Responde únicamente con la información dentro de <knowledge>. Si la respuesta no está en el contexto, declara que no tienes información; no inventes datos.\n\nInstrucciones de formato:\n- En <reasoning>, analiza paso a paso el contexto frente a la pregunta.\n- En <answer>, escribe la respuesta clara y final.\n\nEstructura obligatoria:\n<reasoning>\n[Tu análisis aquí]\n</reasoning>\n<answer>\n[Tu respuesta aquí]\n</answer>"
+
         // Descarga automática desde FarmifAI/FarmifAI_1.3_GGUF.
         private const val MODEL_DOWNLOAD_URL = "https://huggingface.co/FarmifAI/FarmifAI_1.3_GGUF/resolve/main/FarmifAI_1.3.Q5_K_M.gguf"
         private const val MODEL_SIZE_BYTES = 592_636_640L
@@ -291,7 +294,7 @@ class LlamaService private constructor() {
         contextFromKB: String? = null,
         maxTokens: Int = MAX_TOKENS,
         maxContextLength: Int = 1200,
-        systemPrompt: String = "Eres FarmifAI, un asistente agricola experto. Responde en espanol de forma clara, cercana y practica para agricultor. Nunca menciones terminos internos como KB, RAG, LLM, contexto de referencia, modelo o sistema.",
+        systemPrompt: String = DEFAULT_TRAINING_SYSTEM_PROMPT,
         conversationHistory: List<Pair<String, String>> = emptyList()
     ): Result<String> {
         val prompt = buildAgriPrompt(userQuery, contextFromKB, maxContextLength, systemPrompt, conversationHistory)
@@ -313,7 +316,7 @@ class LlamaService private constructor() {
         contextFromKB: String? = null,
         maxTokens: Int = MAX_TOKENS,
         maxContextLength: Int = 1200,
-        systemPrompt: String = "Eres FarmifAI, un asistente agricola experto. Responde en espanol de forma clara, cercana y practica para agricultor. Nunca menciones terminos internos como KB, RAG, LLM, contexto de referencia, modelo o sistema.",
+        systemPrompt: String = DEFAULT_TRAINING_SYSTEM_PROMPT,
         conversationHistory: List<Pair<String, String>> = emptyList(),
         queryId: Long = 0L,
         onFormatRetry: suspend () -> Unit = {},
@@ -541,8 +544,7 @@ class LlamaService private constructor() {
             "<knowledge>Sin fragmentos recuperados.</knowledge>"
         }
         val userMessage = "$knowledgeContext\n\n<pregunta_actual>\n$userQuery\n</pregunta_actual>"
-        val independentSystemPrompt = "$systemPrompt\nEsta es una consulta independiente. Usa solo <pregunta_actual> y <knowledge>; no supongas información de consultas anteriores."
-        return buildPromptForCurrentModel(independentSystemPrompt, userMessage)
+        return buildPromptForCurrentModel(systemPrompt, userMessage)
     }
 
     /**
