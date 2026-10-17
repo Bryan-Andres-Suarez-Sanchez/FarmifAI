@@ -3,6 +3,20 @@ project(MyProjectNative LANGUAGES C CXX)
 
 set(CMAKE_VERBOSE_MAKEFILE on)
 
+# --- ESTÁNDAR C++17 Y OPTIMIZACIONES SIMD ARM64 (+dotprod, +fp16) + -O3 + LTO ---
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+set(GGML_CPU_KLEIDIAI ON CACHE BOOL "Enable ARM KleidiAI micro-kernels" FORCE)
+set(GGML_OPENMP OFF CACHE BOOL "Disable OpenMP in favor of native thread pool on Android" FORCE)
+
+set(ARM_PERF_FLAGS "-march=armv8.2-a+dotprod+fp16 -O3 -DNDEBUG -ffast-math -funroll-loops -flto=thin")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${ARM_PERF_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ARM_PERF_FLAGS}")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} ${ARM_PERF_FLAGS}")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${ARM_PERF_FLAGS}")
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -flto=thin")
+
 set(MINDSPORE_LITE_INSTALL_DIR
         "${CMAKE_CURRENT_SOURCE_DIR}/src/main/cpp/mindspore-lite-2.4.10-android-aarch64")
 

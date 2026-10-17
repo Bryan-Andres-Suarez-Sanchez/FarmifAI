@@ -27,6 +27,9 @@ class LlamaService private constructor() {
         private const val DEFAULT_MODEL_FILENAME = "FarmifAI_1.3.Q5_K_M.gguf"
         private const val MAX_TOKENS = 1200  // Salidas más completas por defecto
 
+        const val DEFAULT_TRAINING_SYSTEM_PROMPT =
+            "Eres un asistente agrícola. Responde únicamente con la información dentro de <knowledge>. Si la respuesta no está en el contexto, declara que no tienes información; no inventes datos.\n\nInstrucciones de formato:\n- En <reasoning>, analiza paso a paso el contexto frente a la pregunta.\n- En <answer>, escribe la respuesta clara y final.\n\nEstructura obligatoria:\n<reasoning>\n[Tu análisis aquí]\n</reasoning>\n<answer>\n[Tu respuesta aquí]\n</answer>"
+
         // Descarga automática desde FarmifAI/FarmifAI_1.3_GGUF.
         private const val MODEL_DOWNLOAD_URL = "https://huggingface.co/FarmifAI/FarmifAI_1.3_GGUF/resolve/main/FarmifAI_1.3.Q5_K_M.gguf"
         private const val MODEL_SIZE_BYTES = 592_636_640L
@@ -40,6 +43,12 @@ class LlamaService private constructor() {
             "Qwen3.5-0.8B-Q4_0.gguf",
             "Qwen3.5-0.8B-Q3_K_M.gguf",
             "Qwen2.5-0.5B-Instruct-Q4_K_M.gguf"
+        )
+        private val SPECIAL_TOKENS = listOf(
+            "<|begin_of_text|>", "<|end_of_text|>",
+            "<|start_header_id|>", "<|end_header_id|>",
+            "<|eot_id|>", "<|eom_id|>",
+            "<|im_start|>", "<|im_end|>"
         )
         
         @Volatile
@@ -285,7 +294,7 @@ class LlamaService private constructor() {
         contextFromKB: String? = null,
         maxTokens: Int = MAX_TOKENS,
         maxContextLength: Int = 1200,
-        systemPrompt: String = "Eres FarmifAI, un asistente agricola experto. Responde en espanol de forma clara, cercana y practica para agricultor. Nunca menciones terminos internos como KB, RAG, LLM, contexto de referencia, modelo o sistema.",
+        systemPrompt: String = DEFAULT_TRAINING_SYSTEM_PROMPT,
         conversationHistory: List<Pair<String, String>> = emptyList()
     ): Result<String> {
         val prompt = buildAgriPrompt(userQuery, contextFromKB, maxContextLength, systemPrompt, conversationHistory)
@@ -307,7 +316,7 @@ class LlamaService private constructor() {
         contextFromKB: String? = null,
         maxTokens: Int = MAX_TOKENS,
         maxContextLength: Int = 1200,
-        systemPrompt: String = "Eres FarmifAI, un asistente agricola experto. Responde en espanol de forma clara, cercana y practica para agricultor. Nunca menciones terminos internos como KB, RAG, LLM, contexto de referencia, modelo o sistema.",
+        systemPrompt: String = DEFAULT_TRAINING_SYSTEM_PROMPT,
         conversationHistory: List<Pair<String, String>> = emptyList(),
         queryId: Long = 0L,
         onFormatRetry: suspend () -> Unit = {},
@@ -323,31 +332,27 @@ class LlamaService private constructor() {
                 Log.d(TAG, "Prompt streaming (${detectModelFamily()}): ${prompt.length} chars, maxTokens: $maxTokens")
                 val raw = StringBuilder()
                 var emittedLength = 0
+                var lastEmitTimeMs = 0L
                 var firstTokenRecorded = false
                 stageStart = SystemClock.elapsedRealtimeNanos()
                 llama.send(prompt, formatChat = false, maxTokens = maxTokens).collect { chunk ->
-                    if (chunk.isBlank()) return@collect
-                    if (!firstTokenRecorded) {
+                    if (chunk.isEmpty()) return@collect
+                    if (!firstTokenRecorded && chunk.isNotBlank()) {
                         firstTokenRecorded = true
                         QueryTelemetry.record(queryId, "SLM_TTFT_A$attempt", QueryTelemetry.elapsedMs(stageStart))
                     }
                     raw.append(chunk)
 
-                    val partial = if (requiresXml) {
-                        AnswerXmlValidator.extractStreamingAnswer(raw.toString())?.let(::cleanResponse)
-                    } else {
-                        cleanResponse(raw.toString())
-                    }
-                    // Con XML solo mostramos texto una vez identificado <answer>;
-                    // así el razonamiento nunca llega a la interfaz.
-                    if (!partial.isNullOrBlank()) {
-                        val shouldEmit = partial.length >= 48 &&
-                            (partial.length - emittedLength >= 32 || partial.endsWith("\n") ||
-                                partial.endsWith(".") || partial.endsWith(":"))
-                        if (shouldEmit) {
-                            emittedLength = partial.length
-                            onPartialResponse(partial)
-                        }
+                    val nowMs = SystemClock.elapsedRealtime()
+                    val deltaChars = raw.length - emittedLength
+                    val shouldEmit = raw.length >= 12 &&
+                        (nowMs - lastEmitTimeMs >= 45L) &&
+                        (deltaChars >= 16 || chunk.contains('\n') || chunk.contains('.') || chunk.contains('>'))
+
+                    if (shouldEmit) {
+                        emittedLength = raw.length
+                        lastEmitTimeMs = nowMs
+                        onPartialResponse(raw.toString())
                     }
                 }
                 QueryTelemetry.record(queryId, "SLM_INFERENCE_A$attempt", QueryTelemetry.elapsedMs(stageStart))
@@ -376,7 +381,13 @@ class LlamaService private constructor() {
             }
 
             val cleanStart = SystemClock.elapsedRealtimeNanos()
-            val finalResponse = cleanResponse(extraction?.answer ?: rawResponse)
+            val cleanedAnswer = cleanResponse(extraction?.answer ?: rawResponse)
+            val extractedReasoning = if (requiresXml) AnswerXmlValidator.extractReasoning(rawResponse) else null
+            val finalResponse = if (!extractedReasoning.isNullOrBlank()) {
+                "<reasoning>\n$extractedReasoning\n</reasoning>\n<answer>\n$cleanedAnswer\n</answer>"
+            } else {
+                cleanedAnswer
+            }
             QueryTelemetry.record(queryId, "SLM_RESPONSE_CLEAN", QueryTelemetry.elapsedMs(cleanStart))
             onPartialResponse(finalResponse)
             Result.success(finalResponse)
@@ -405,23 +416,15 @@ class LlamaService private constructor() {
     private fun cleanResponse(response: String): String {
         var cleaned = response
         
-        // Tokens especiales comunes (Llama / Qwen)
-        val specialTokens = listOf(
-            "<|begin_of_text|>", "<|end_of_text|>",
-            "<|start_header_id|>", "<|end_header_id|>",
-            "<|eot_id|>", "<|eom_id|>",
-            "<|im_start|>", "<|im_end|>"
-        )
-        
         // Eliminar tokens al inicio
-        for (token in specialTokens) {
+        for (token in SPECIAL_TOKENS) {
             while (cleaned.startsWith(token)) {
                 cleaned = cleaned.removePrefix(token).trimStart()
             }
         }
         
         // Cortar en el primer token especial encontrado
-        for (token in specialTokens) {
+        for (token in SPECIAL_TOKENS) {
             val idx = cleaned.indexOf(token)
             if (idx > 0) {
                 cleaned = cleaned.substring(0, idx)
@@ -541,8 +544,7 @@ class LlamaService private constructor() {
             "<knowledge>Sin fragmentos recuperados.</knowledge>"
         }
         val userMessage = "$knowledgeContext\n\n<pregunta_actual>\n$userQuery\n</pregunta_actual>"
-        val independentSystemPrompt = "$systemPrompt\nEsta es una consulta independiente. Usa solo <pregunta_actual> y <knowledge>; no supongas información de consultas anteriores."
-        return buildPromptForCurrentModel(independentSystemPrompt, userMessage)
+        return buildPromptForCurrentModel(systemPrompt, userMessage)
     }
 
     /**

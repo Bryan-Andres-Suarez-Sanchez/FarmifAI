@@ -25,7 +25,7 @@ class LLamaAndroid private constructor() {
         private const val ENABLE_NATIVE_LOG_TO_ANDROID = false
         
         // Tamaño del batch - debe ser suficiente para prompt + contexto RAG
-        private const val BATCH_SIZE = 1024
+        private const val BATCH_SIZE = 512
         
         private class IntVar(value: Int) {
             @Volatile
@@ -173,10 +173,7 @@ class LLamaAndroid private constructor() {
         when (val state = currentState) {
             is State.Loaded -> {
                 cancelRequested = false
-                // Limpiar KV cache antes de la consulta
-                kv_cache_clear(state.context)
                 
-                // Crear batch y sampler frescos para cada consulta
                 val batch = new_batch(BATCH_SIZE, 0, 1)
                 if (batch == 0L) throw IllegalStateException("new_batch() falló")
                 
@@ -190,8 +187,9 @@ class LLamaAndroid private constructor() {
                     val promptTokens = completion_init(state.context, batch, message, formatChat, maxTokens)
                     val ncur = IntVar(promptTokens)
                     val totalLimit = promptTokens + maxTokens
+                    var currentPos = promptTokens
                     
-                    while (ncur.value <= totalLimit) {
+                    while (currentPos <= totalLimit) {
                         if (cancelRequested) break
                         val str = completion_loop(
                             state.context, 
@@ -201,10 +199,12 @@ class LLamaAndroid private constructor() {
                             ncur
                         )
                         if (str == null) break
-                        emit(str)
+                        currentPos++
+                        if (str.isNotEmpty()) {
+                            emit(str)
+                        }
                     }
                 } finally {
-                    // Siempre liberar batch y sampler
                     free_sampler(sampler)
                     free_batch(batch)
                     kv_cache_clear(state.context)
@@ -214,19 +214,12 @@ class LLamaAndroid private constructor() {
         }
     }.flowOn(runLoop)
     
-    /**
-     * Genera una respuesta completa (sin streaming)
-     * @param maxTokens Tokens ADICIONALES a generar (no el total incluyendo prompt)
-     */
     suspend fun sendComplete(message: String, formatChat: Boolean = true, maxTokens: Int = nlen): String {
         return withContext(runLoop) {
             when (val state = currentState) {
                 is State.Loaded -> {
                     cancelRequested = false
-                    // Limpiar KV cache antes de la consulta
-                    kv_cache_clear(state.context)
                     
-                    // Crear batch y sampler frescos para cada consulta
                     val batch = new_batch(BATCH_SIZE, 0, 1)
                     if (batch == 0L) throw IllegalStateException("new_batch() falló")
                     
@@ -240,26 +233,26 @@ class LLamaAndroid private constructor() {
                         val response = StringBuilder()
                         val promptTokens = completion_init(state.context, batch, message, formatChat, maxTokens)
                         val ncur = IntVar(promptTokens)
-                        
-                        // El límite total es: tokens del prompt + tokens adicionales a generar
                         val totalLimit = promptTokens + maxTokens
+                        var currentPos = promptTokens
                         
                         Log.d(TAG, "completion_init: promptTokens=$promptTokens, maxTokens=$maxTokens, totalLimit=$totalLimit")
                         
                         var tokenCount = 0
-                        while (ncur.value <= totalLimit) {
+                        while (currentPos <= totalLimit) {
                             if (cancelRequested) break
                             val str = completion_loop(
                                 state.context,
                                 batch,
                                 sampler,
-                                totalLimit,  // Usar el límite total
+                                totalLimit,
                                 ncur
                             )
                             if (str == null) {
                                 Log.d(TAG, "completion_loop returned null after $tokenCount tokens")
                                 break
                             }
+                            currentPos++
                             response.append(str)
                             tokenCount++
                         }
@@ -267,7 +260,6 @@ class LLamaAndroid private constructor() {
                         Log.d(TAG, "Generated $tokenCount tokens, response length: ${response.length}")
                         response.toString()
                     } finally {
-                        // Siempre liberar batch y sampler
                         free_sampler(sampler)
                         free_batch(batch)
                         kv_cache_clear(state.context)

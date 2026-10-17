@@ -229,8 +229,11 @@ class MainActivity : ComponentActivity() {
         private const val ADAPTIVE_DEFAULT_MAX_TOKENS = 1000
         private const val ADAPTIVE_MAX_MAX_TOKENS = 1400
         private const val GREETING_MAX_TOKENS = 60
-        private const val PARITY_SYSTEM_PROMPT =
-            "Eres FarmifAI, un asistente agrícola experto. Si se proporciona informacion de referencia, usala como fuente principal y no inventes datos fuera de esa informacion. Si falta un dato, dilo de forma clara y natural."
+        const val DEFAULT_TRAINING_SYSTEM_PROMPT =
+            "Eres un asistente agrícola. Responde únicamente con la información dentro de <knowledge>. Si la respuesta no está en el contexto, declara que no tienes información; no inventes datos.\n\nInstrucciones de formato:\n- En <reasoning>, analiza paso a paso el contexto frente a la pregunta.\n- En <answer>, escribe la respuesta clara y final.\n\nEstructura obligatoria:\n<reasoning>\n[Tu análisis aquí]\n</reasoning>\n<answer>\n[Tu respuesta aquí]\n</answer>"
+        private const val LEGACY_DEFAULT_SYSTEM_PROMPT =
+            "Eres FarmifAI, un asistente agricola que habla de forma cercana y practica, como un asesor en campo. Basa tus respuestas en los datos que se te proporcionan. Responde breve por defecto, pero si el usuario pide indicaciones o pasos puedes extenderte un poco con 3 a 6 pasos cortos y claros. Si no tienes datos sobre algo, dilo de forma clara. No inventes cifras ni recomendaciones."
+        private const val PARITY_SYSTEM_PROMPT = DEFAULT_TRAINING_SYSTEM_PROMPT
         private const val SAFE_MIN_SIMILARITY_THRESHOLD = 0.25f
         private const val SAFE_MAX_SIMILARITY_THRESHOLD = 0.80f
         private const val SAFE_MIN_KB_FAST_PATH_THRESHOLD = 0.20f
@@ -241,6 +244,29 @@ class MainActivity : ComponentActivity() {
         private const val MIN_LEXICAL_COVERAGE_FOR_GROUNDED = 0.34f
         private const val MAX_UNKNOWN_RATIO_FOR_GROUNDED = 0.45f
         private const val KB_RETRIEVAL_MIN_SCORE = 0.15f
+
+        private val REGEX_THINK_TAGS = Regex("(?is)</?\\s*(?:think|thinking|reasoning|razonamiento|analysis)\\s*:?\\s*>")
+        private val REGEX_ANSWER_OPEN = Regex("(?is)<\\s*(?:answer|respuesta|final_answer)\\s*:?\\s*>")
+        private val REGEX_ANSWER_CLOSE = Regex("(?is)</\\s*(?:answer|respuesta|final_answer)\\s*>")
+        private val REGEX_TRAILING_PARTIAL_TAG = Regex("<[^>]*$")
+        private val REGEX_SPECIAL_PIPE_TOKENS = Regex("<\\|[^>]+\\|>")
+        private val REGEX_MULTI_NEWLINES = Regex("\\n{3,}")
+        private val REGEX_MULTI_SPACES = Regex("[ \\t]{2,}")
+        private val REGEX_MD_BOLD_AST = Regex("\\*\\*(.*?)\\*\\*")
+        private val REGEX_MD_BOLD_UND = Regex("__(.*?)__")
+        private val REGEX_MD_CODE = Regex("`([^`]*)`")
+        private val REGEX_MD_LINK = Regex("\\[([^\\]]+)]\\(([^)]+)\\)")
+        private val REGEX_MD_HEADER = Regex("(?m)^\\s*#{1,6}\\s*")
+        private val REGEX_MD_BULLET = Regex("(?m)^\\s*[-*]\\s+")
+        private val REGEX_KB_TERM = Regex("base de conocimiento", RegexOption.IGNORE_CASE)
+        private val REGEX_REF_INFO_TERM = Regex("informacion de referencia", RegexOption.IGNORE_CASE)
+        private val REGEX_REF_CTX_TERM = Regex("contexto de referencia", RegexOption.IGNORE_CASE)
+        private val REGEX_KB_ACRONYM = Regex("\\bKB\\b", RegexOption.IGNORE_CASE)
+        private val REGEX_RAG_ACRONYM = Regex("\\bRAG\\b", RegexOption.IGNORE_CASE)
+        private val REGEX_LLM_ACRONYM = Regex("\\bLLM\\b", RegexOption.IGNORE_CASE)
+        private val REGEX_CON_BASE_EN = Regex("con base en", RegexOption.IGNORE_CASE)
+        private val REGEX_LETTER_TO_DIGIT = Regex("(?<=[A-Za-zÁÉÍÓÚáéíóúÑñ])(?=\\d)")
+        private val REGEX_DIGIT_TO_LETTER = Regex("(?<=\\d)(?=[A-Za-zÁÉÍÓÚáéíóúÑñ])")
         
         fun setAppLocale(context: Context, languageCode: String): Context {
             val locale = Locale(languageCode)
@@ -305,9 +331,7 @@ class MainActivity : ComponentActivity() {
     private var advancedSimilarityThreshold by mutableStateOf(0.45f)
     private var advancedKbFastPathThreshold by mutableStateOf(0.70f)
     private var advancedContextRelevanceThreshold by mutableStateOf(0.50f)
-    private var advancedSystemPrompt by mutableStateOf(
-        "Eres FarmifAI, un asistente agricola que habla de forma cercana y practica, como un asesor en campo. Basa tus respuestas en los datos que se te proporcionan. Responde breve por defecto, pero si el usuario pide indicaciones o pasos puedes extenderte un poco con 3 a 6 pasos cortos y claros. Si no tienes datos sobre algo, dilo de forma clara. No inventes cifras ni recomendaciones."
-    )
+    private var advancedSystemPrompt by mutableStateOf(DEFAULT_TRAINING_SYSTEM_PROMPT)
     private var advancedUseLlmForAll by mutableStateOf(false)  // Priorizar KB directa cuando haya match claro
     private var advancedContextLength by mutableStateOf(1800) // Slider max 3000
     private var advancedDetectGreetings by mutableStateOf(true)  // Detectar saludos para KB directa (activado)
@@ -909,7 +933,13 @@ class MainActivity : ComponentActivity() {
         advancedSimilarityThreshold = prefs.getFloat("advanced_similarity_threshold", 0.45f).coerceIn(SAFE_MIN_SIMILARITY_THRESHOLD, SAFE_MAX_SIMILARITY_THRESHOLD)
         advancedKbFastPathThreshold = prefs.getFloat("advanced_kb_fast_path_threshold", 0.70f).coerceIn(SAFE_MIN_KB_FAST_PATH_THRESHOLD, SAFE_MAX_KB_FAST_PATH_THRESHOLD)
         advancedContextRelevanceThreshold = prefs.getFloat("advanced_context_relevance_threshold", 0.50f).coerceIn(SAFE_MIN_CONTEXT_RELEVANCE_THRESHOLD, SAFE_MAX_CONTEXT_RELEVANCE_THRESHOLD)
-        advancedSystemPrompt = "Eres FarmifAI, un asistente agricola que habla de forma cercana y practica, como un asesor en campo. Basa tus respuestas en los datos que se te proporcionan. Responde breve por defecto, pero si el usuario pide indicaciones o pasos puedes extenderte un poco con 3 a 6 pasos cortos y claros. Si no tienes datos sobre algo, dilo de forma clara. No inventes cifras ni recomendaciones."
+        val savedPrompt = prefs.getString("advanced_system_prompt", null)
+        advancedSystemPrompt = if (savedPrompt.isNullOrBlank() || savedPrompt.trim() == LEGACY_DEFAULT_SYSTEM_PROMPT.trim()) {
+            prefs.edit().putString("advanced_system_prompt", DEFAULT_TRAINING_SYSTEM_PROMPT).apply()
+            DEFAULT_TRAINING_SYSTEM_PROMPT
+        } else {
+            savedPrompt
+        }
         advancedUseLlmForAll = prefs.getBoolean("advanced_use_llm_for_all", false)
         advancedContextLength = prefs.getInt("advanced_context_length", 1800).coerceIn(300, 3000)
         advancedDetectGreetings = prefs.getBoolean("advanced_detect_greetings", true)
@@ -1388,17 +1418,23 @@ class MainActivity : ComponentActivity() {
             .replace("&lt;/think&gt;", "</think>", ignoreCase = true)
             .replace("<thinking>", "<think>", ignoreCase = true)
             .replace("</thinking>", "</think>", ignoreCase = true)
+            .replace("<reasoning>", "<think>", ignoreCase = true)
+            .replace("</reasoning>", "</think>", ignoreCase = true)
+            .replace("<razonamiento>", "<think>", ignoreCase = true)
+            .replace("</razonamiento>", "</think>", ignoreCase = true)
 
         val openTag = "<think>"
         val closeTag = "</think>"
         var index = 0
         var inThink = false
+        var sawThinkTag = false
         val thinkingBuilder = StringBuilder()
-        val answerBuilder = StringBuilder()
+        val outsideThinkBuilder = StringBuilder()
 
         while (index < source.length) {
             if (!inThink && source.regionMatches(index, openTag, 0, openTag.length, ignoreCase = true)) {
                 inThink = true
+                sawThinkTag = true
                 index += openTag.length
                 continue
             }
@@ -1412,20 +1448,43 @@ class MainActivity : ComponentActivity() {
             if (inThink) {
                 thinkingBuilder.append(source[index])
             } else {
-                answerBuilder.append(source[index])
+                outsideThinkBuilder.append(source[index])
             }
             index += 1
         }
 
-        val thinking = stripUserFacingMarkdown(
-            thinkingBuilder.toString()
-                .replace(Regex("(?i)</?think>"), " ")
-                .replace(Regex("\\n{3,}"), "\n\n")
-                .replace(Regex("[ \\t]{2,}"), " ")
-                .trim()
-        )
-        val answer = answerBuilder.toString()
-            .replace(Regex("(?i)</?think>"), " ")
+        val rawThinking = thinkingBuilder.toString()
+            .replace(REGEX_THINK_TAGS, " ")
+            .replace(REGEX_TRAILING_PARTIAL_TAG, "")
+            .replace(REGEX_MULTI_NEWLINES, "\n\n")
+            .replace(REGEX_MULTI_SPACES, " ")
+            .trim()
+        val thinking = stripUserFacingMarkdown(rawThinking)
+
+        val outside = outsideThinkBuilder.toString()
+        val answerOpenMatch = REGEX_ANSWER_OPEN.find(outside)
+        val rawAnswer = when {
+            answerOpenMatch != null -> {
+                val afterOpen = outside.substring(answerOpenMatch.range.last + 1)
+                val closeIdx = REGEX_ANSWER_CLOSE.find(afterOpen)?.range?.first ?: afterOpen.length
+                afterOpen.substring(0, closeIdx)
+            }
+            sawThinkTag && inThink -> {
+                ""
+            }
+            sawThinkTag && outside.trim().startsWith("<") && !outside.contains(">") -> {
+                ""
+            }
+            else -> {
+                outside.replace(REGEX_ANSWER_CLOSE, " ")
+            }
+        }
+
+        val answer = rawAnswer
+            .replace(REGEX_THINK_TAGS, " ")
+            .replace(REGEX_ANSWER_OPEN, " ")
+            .replace(REGEX_ANSWER_CLOSE, " ")
+            .replace(REGEX_TRAILING_PARTIAL_TAG, "")
             .trim()
 
         return ThinkAnswerParts(thinking = thinking, answer = answer)
@@ -2358,10 +2417,8 @@ class MainActivity : ComponentActivity() {
             }
             val finalSystemPrompt = if (isSimpleGreeting) {
                 "Eres FarmifAI. Responde SOLO con un saludo corto de maximo 10 palabras. Ejemplo: Hola! En que te puedo ayudar? NO agregues explicaciones, ofertas de ayuda detalladas ni listas."
-            } else if (hasKbContext) {
-                "Eres un asistente inteligente. Analiza la información proporcionada en la etiqueta <knowledge> para responder a la solicitud del usuario. Responde estrictamente en el siguiente formato:\n<reasoning>\n...\n</reasoning>\n<answer>\n...\n</answer>"
             } else {
-                "$effectiveSystemPrompt\nNo hay evidencia recuperada suficiente para esta consulta. Responde como FarmifAI en maximo 2 frases, admitiendo que faltan datos suficientes para responder con precision. No des dosis, productos, umbrales ni pasos tecnicos inventados."
+                effectiveSystemPrompt
             }
 
             val contextForLlm = if (isSimpleGreeting) null else contextToPass
@@ -2599,40 +2656,42 @@ class MainActivity : ComponentActivity() {
                 QueryTelemetry.record(queryId, "SLM_GENERATION", QueryTelemetry.elapsedMs(llmStart))
 
                 result.fold(
-	                    onSuccess = { response ->
-	                        val cleanResponse = response.trim()
-		                        if (cleanResponse.length > 10) {
-		                            val anchored = !hasKbContext || kbContextForPrompt.isNullOrBlank() || isResponseAnchoredToContext(cleanResponse, userQuery, kbContextForPrompt)
-		                            val focusedFactualText = if (
-		                                hasKbContext && asksPracticalGuidance && !kbDirectResponse.isNullOrBlank()
-		                            ) {
-		                                buildFocusedFactualTextForLlm(
-		                                    kbDirectResponse.orEmpty(),
-		                                    userQuery
-		                                )
-		                            } else {
-		                                ""
-		                            }
-		                            val thresholdConsistent = focusedFactualText.isBlank() || responseThresholdRulesAreConsistent(
-		                                response = cleanResponse,
-		                                factualText = focusedFactualText
-		                            )
-		                            if (!anchored) {
-		                                AppLogger.log("MainActivity", "LLM response con ancla KB débil; se mantiene salida de una sola inferencia")
-		                            }
-		                            if (!thresholdConsistent) {
-		                                AppLogger.log("MainActivity", "LLM response con inconsistencia umbral-accion; se mantiene salida de una sola inferencia")
-		                            }
+                    onSuccess = { response ->
+                        val cleanResponse = response.trim()
+                        if (cleanResponse.length > 10) {
+                            val answerOnly = splitThinkAndAnswer(cleanResponse).answer.ifBlank { cleanResponse }
+                            val anchored = !hasKbContext || kbContextForPrompt.isNullOrBlank() ||
+                                isResponseAnchoredToContext(answerOnly, userQuery, kbContextForPrompt)
+                            val focusedFactualText = if (
+                                hasKbContext && asksPracticalGuidance && !kbDirectResponse.isNullOrBlank()
+                            ) {
+                                buildFocusedFactualTextForLlm(
+                                    kbDirectResponse.orEmpty(),
+                                    userQuery
+                                )
+                            } else {
+                                ""
+                            }
+                            val thresholdConsistent = focusedFactualText.isBlank() || responseThresholdRulesAreConsistent(
+                                response = answerOnly,
+                                factualText = focusedFactualText
+                            )
+                            if (!anchored) {
+                                AppLogger.log("MainActivity", "LLM response con ancla KB débil; se mantiene salida de una sola inferencia")
+                            }
+                            if (!thresholdConsistent) {
+                                AppLogger.log("MainActivity", "LLM response con inconsistencia umbral-accion; se mantiene salida de una sola inferencia")
+                            }
 
-	                            AppLogger.log("MainActivity", "LLM response: ${cleanResponse.length} chars mode=$mode")
-	                            if (onLocalLlmChunk != null) {
-	                                AppLogger.log("MainActivity", "Streaming chunks totales=$streamingChunkCount")
-	                            }
-	                            return@withContext ResponseMeta(
-	                                response = cleanResponse,
-	                                usedLlm = true,
-		                                kbSupported = hasKbContext && anchored && thresholdConsistent,
-	                                kbSupportScore = kbSupportScore,
+                            AppLogger.log("MainActivity", "LLM response: ${cleanResponse.length} chars mode=$mode")
+                            if (onLocalLlmChunk != null) {
+                                AppLogger.log("MainActivity", "Streaming chunks totales=$streamingChunkCount")
+                            }
+                            return@withContext ResponseMeta(
+                                response = cleanResponse,
+                                usedLlm = true,
+                                kbSupported = hasKbContext && anchored && thresholdConsistent,
+                                kbSupportScore = kbSupportScore,
                                 kbCoverage = kbCoverage,
                                 kbUnknownRatio = kbUnknownRatio,
                                 enforcedKbAbstention = false,
@@ -2643,7 +2702,7 @@ class MainActivity : ComponentActivity() {
                         }
                     },
                     onFailure = { error ->
-                        AppLogger.log("MainActivity", "LLM error: ${error.message}")
+                        AppLogger.log("MainActivity", "Error en LLM local: ${error.message}")
                     }
                 )
             } catch (e: Exception) {
@@ -4947,11 +5006,23 @@ fun SettingsDialog(
                                 HorizontalDivider(color = AgroColors.Surface)
                                 
                                 // System Prompt
-                                Text("System Prompt del LLM", style = MaterialTheme.typography.labelMedium, color = AgroColors.TextSecondary)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("System Prompt del LLM", style = MaterialTheme.typography.labelMedium, color = AgroColors.TextSecondary)
+                                    TextButton(
+                                        onClick = { localSystemPrompt = MainActivity.DEFAULT_TRAINING_SYSTEM_PROMPT },
+                                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+                                    ) {
+                                        Text("Restablecer", style = MaterialTheme.typography.labelSmall, color = AgroColors.Accent)
+                                    }
+                                }
                                 OutlinedTextField(
                                     value = localSystemPrompt,
                                     onValueChange = { localSystemPrompt = it },
-                                    modifier = Modifier.fillMaxWidth().height(100.dp),
+                                    modifier = Modifier.fillMaxWidth().height(180.dp),
                                     textStyle = MaterialTheme.typography.bodySmall,
                                     colors = OutlinedTextFieldDefaults.colors(
                                         focusedBorderColor = AgroColors.Accent,
